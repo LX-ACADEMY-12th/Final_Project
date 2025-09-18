@@ -1,0 +1,6 @@
+# Example CODEOWNERS
+# .github/CODEOWNERS
+
+# repository 전체 owner 지정
+# 개인에게 owner 지정
+* @taeminlee25
