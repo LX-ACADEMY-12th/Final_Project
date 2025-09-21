@@ -1,1 +1,189 @@
+# ===== OS 파일 =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
 
+# ===== 로그 파일 =====
+*.log
+logs/
+log/
+
+# ===== 임시 파일 =====
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ===== web-app-backend (Spring Boot + Maven) =====
+web-app-backend/target/
+web-app-backend/out/
+web-app-backend/bin/
+
+# Maven 관련
+web-app-backend/pom.xml.tag
+web-app-backend/pom.xml.releaseBackup
+web-app-backend/pom.xml.versionsBackup
+web-app-backend/pom.xml.next
+web-app-backend/release.properties
+web-app-backend/dependency-reduced-pom.xml
+web-app-backend/.mvn/wrapper/maven-wrapper.properties
+web-app-backend/.mvn/wrapper/maven-wrapper.jar
+
+# Maven Wrapper (팀에서 공유하려면 주석 처리)
+# web-app-backend/mvnw
+# web-app-backend/mvnw.cmd
+# web-app-backend/.mvn/
+
+# Spring Boot 로그
+web-app-backend/spring.log
+
+# 중요: 비밀 정보 포함된 설정 파일
+web-app-backend/src/main/resources/application-local.yml
+web-app-backend/src/main/resources/application-local.properties
+web-app-backend/src/main/resources/application-secret.yml
+web-app-backend/src/main/resources/application-secret.properties
+web-app-backend/src/main/resources/application-dev-local.yml
+web-app-backend/src/main/resources/application-prod-local.yml
+
+# H2 Database 파일
+web-app-backend/*.db
+web-app-backend/*.trace.db
+web-app-backend/*.lock.db
+
+# ===== vue-project (Vue.js) =====
+vue-project/node_modules/
+vue-project/.pnp
+vue-project/.pnp.js
+
+# 빌드 결과물
+vue-project/dist/
+vue-project/build/
+
+# 환경 변수 파일
+vue-project/.env.local
+vue-project/.env.development.local
+vue-project/.env.test.local
+vue-project/.env.production.local
+
+# 캐시
+vue-project/.cache/
+vue-project/.parcel-cache/
+vue-project/.vite/
+
+# 테스트 커버리지
+vue-project/coverage/
+
+# ESLint/Stylelint 캐시
+vue-project/.eslintcache
+vue-project/.stylelintcache
+
+# 패키지 매니저 (npm 사용시 yarn.lock 주석 해제, yarn 사용시 package-lock.json 주석 해제)
+vue-project/package-lock.json  # yarn 사용시
+# vue-project/yarn.lock          # npm 사용시
+
+# npm 로그
+vue-project/npm-debug.log*
+vue-project/yarn-debug.log*
+vue-project/yarn-error.log*
+
+# ===== IDE 및 에디터 =====
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Eclipse
+.metadata
+bin/
+tmp/
+*.bak
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ===== 환경 변수 및 보안 =====
+.env
+.env.local
+.env.*.local
+config.local.*
+
+# 시크릿 파일
+secrets/
+*.secret
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+*.keystore
+
+# ===== 데이터베이스 파일 =====
+# H2 Database
+*.db
+*.trace.db
+*.lock.db
+
+# SQLite
+*.sqlite
+*.sqlite3
+
+# ===== 압축 파일 =====
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# ===== 스크립트 관련 =====
+scripts/local-*
+scripts/*.local
+
+# ===== 기타 =====
+# 백업 파일
+*.backup
+*.bak
+*.old
+
+# 사용자 정의 설정
+local/
+*.local
+
+# 테스트 관련
+test-results/
+cypress/videos/
+cypress/screenshots/
+
+# 임시 업로드 파일
+uploads/temp/
+
+# 성능 분석
+.nyc_output/
+
+# 프로파일링 결과
+*.prof
