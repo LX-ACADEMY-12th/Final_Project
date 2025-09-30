@@ -3,10 +3,10 @@
     <div class="friend-list-form">
       <header class="friend-list-header">
         <div class="logo">
-          <svg width="24" height="24" fill="#4285F4" viewBox="0 0 16 16">
+          <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
             <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
           </svg>
-          <h1>MapSocial</h1>
+          <h1>여행 한 조각</h1>
         </div>
         <h2 class="friend-list-title">친구 목록</h2>
       </header>
