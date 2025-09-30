@@ -15,7 +15,6 @@
   </li>
 </template>
 
-
 <script setup>
 defineProps({
   friend: {
@@ -25,14 +24,12 @@ defineProps({
 });
 </script>
 
-
 <style scoped>
 .friend-item {
   display: flex;
   align-items: center;
   margin-bottom: 24px;
 }
-
 .profile-image-placeholder {
   width: 48px;
   height: 48px;
@@ -43,7 +40,6 @@ defineProps({
   justify-content: center;
   margin-right: 16px;
 }
-
 .friend-name {
   font-size: 16px;
   font-weight: 500;
@@ -53,7 +49,6 @@ defineProps({
   padding-bottom: 4px;
   margin-right: 16px;
 }
-
 .unfollow-button {
   padding: 8px 12px;
   font-size: 13px;
@@ -66,7 +61,6 @@ defineProps({
   margin-right: 12px;
   white-space: nowrap;
 }
-
 .location-icon {
   display: flex;
   align-items: center;
