@@ -14,8 +14,10 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@amcharts/amcharts5": "^5.14.1",
     "leaflet": "^1.9.4",
     "pinia": "^3.0.3",
+    "topojson-client": "^3.1.0",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
   },
