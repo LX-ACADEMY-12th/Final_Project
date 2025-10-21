@@ -33,3 +33,12 @@ a,
     padding: 0 2rem;
   }
 }
+
+@font-face {
+  /* 1. 폰트의 이름을 정합니다 */
+  font-family: 'SUIT';
+
+  /* 2. 폰트 파일의 경로를 알려줍니다 */
+  /* main.css 파일 기준, ./fonts/ 안에 있는 파일을 가리킵니다. */
+  src: url('./fonts/SUIT-Variable.ttf') format('ttf');
+}

@@ -1,221 +1,238 @@
-<!-- MyPagePuzzleSkeleton.vue (수정본) -->
 <template>
-  <div class="view-container">
-    <header class="profile-header">
-      <div class="profile-avatar">
-      </div>
-      <div class="profile-details">
-        <span class="username">차민정</span>
+  <div id="my-page" class="container px-4 py-4">
 
-        <div class="user-stats">
-          <div class="stat-item">
-            <span class="stat-value">572</span>
-            <span class="stat-label">posting</span>
-          </div>
-          <div class="stat-item" @click="goToFollowers()">
-            <span class="stat-value">372</span>
-            <span class="stat-label">followers</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">222</span>
-            <span class="stat-label">following</span>
+    <div class="d-flex align-items-center justify-content-between pb-4 border-bottom">
+      <button class="btn p-0 me-3 border-0" @click="goBack">
+        <i class="bi bi-arrow-left fs-4"></i>
+      </button>
+      <h2 class="h5 mb-0 fw-bold text-dark">마이페이지</h2>
+      <div class="btn p-0 me-3 border-0" style="visibility: hidden;">
+        <i class="bi bi-arrow-left fs-4"></i>
+      </div>
+    </div>
+    <div class="d-flex align-items-center mt-4 mb-4">
+      <div class="position-relative me-3">
+        <div
+          class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary">
+          <i class="bi bi-emoji-smile" style="font-size: 2.5rem;"></i>
+        </div>
+        <button
+          class="btn btn-primary rounded-circle p-0 position-absolute profile-badge d-flex align-items-center justify-content-center"
+          @click="goToAccountView">
+          <i class="bi bi-gear-fill"></i>
+        </button>
+      </div>
+      <div>
+        <div class="fw-bold text-dark">김아무개</div>
+        <div class="small text-dark">user@naver.com</div>
+      </div>
+    </div>
+    <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start">
+      <div class="d-flex align-items-center mb-2">
+        <i class="bi bi-crosshair me-2 fs-5"></i>
+        <span class="fw-bold">스탬프 투어</span>
+      </div>
+      <div class="display-4 fw-bolder">12 / 20</div>
+    </button>
+    <button
+      class="btn btn-primary w-100 p-3 mb-4 custom-rounded text-start d-flex align-items-center justify-content-between saved-route-btn">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-bookmark-plus-fill me-2 fs-5"></i>
+        <span class="fw-bold">저장된 추천 경로</span>
+      </div>
+      <i class="bi bi-plus-lg fs-5"></i>
+    </button>
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
+          <span>관심 전시 목록</span>
+        </div>
+        <i class="bi bi-chevron-right text-muted"></i>
+      </li>
+      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
+          <span>관심 장소 목록</span>
+        </div>
+        <i class="bi bi-chevron-right text-muted"></i>
+      </li>
+      <li data-bs-toggle="modal" data-bs-target="#settingsModal"
+        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-gear-fill me-3 fs-5 text-secondary"></i>
+          <span>로그아웃/탈퇴</span>
+        </div>
+        <i class="bi bi-chevron-right text-muted"></i>
+      </li>
+      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-bell-fill me-3 fs-5 text-warning"></i>
+          <span>공지사항</span>
+        </div>
+        <i class="bi bi-chevron-right text-muted"></i>
+      </li>
+    </ul>
+
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+          <div class="modal-body text-center p-4">
+            <h5 class="fw-bold text-dark mb-4" id="settingsModalLabel">설정</h5>
+            <button type="button" class="btn btn-primary w-100 p-3 fw-bold mb-3 rounded-pill modal-logout-btn">
+              로그아웃
+            </button>
+            <button type="button" class="btn btn-outline-primary w-100 p-3 fw-bold rounded-pill modal-withdraw-btn"
+              data-bs-dismiss="modal">
+              회원탈퇴
+            </button>
           </div>
         </div>
-
-        <div class="profile-actions">
-          <button class="btn btn-dark btn-sm edit-button" @click="goToProfileModify()">프로필 편집</button>
-          <button class="btn btn-white options-button" @click="goToSetting()">
-            <i class="bi bi-three-dots"></i>
-          </button>
-        </div>
       </div>
-    </header>
-
-    <nav class="tab-navigation">
-      <button class="btn col-4" :class="{ 'active': activeTab === 'myFeed' }" @click="changeTab('myFeed')">
-        <i class="bi bi-stack"></i>
-      </button>
-      <button class="btn col-4" :class="{ 'active': activeTab === 'myPuzzle' }" @click="changeTab('myPuzzle')">
-        <i class="bi bi-puzzle-fill"></i>
-      </button>
-      <button class="btn col-4" :class="{ 'active': activeTab === 'myRandom' }" @click="changeTab('myRandom')">
-        <i class="bi bi-compass-fill"></i>
-      </button>
-    </nav>
-
-    <main class="content-area">
-      <div v-if="activeTab === 'myFeed'" class="tab-content-panel">
-        <MyPageFeedView />
-      </div>
-      <div v-else-if="activeTab === 'myPuzzle'" class="tab-content-panel">
-        <MyPageRegionView />
-      </div>
-      <div v-else-if="activeTab === 'myRandom'" class="tab-content-panel">
-        <MyPageRandomView />
-      </div>
-      <div v-else class="w-100 h-100 d-flex justify-content-center align-items-center">
-        <span>탭 준비중…</span>
-      </div>
-    </main>
+    </div>
   </div>
 </template>
 
 <script>
-import { nextTick } from 'vue'
-import MyPageFeedView from './MyFeedView.vue'
-import MyPageRegionView from './MyPageRegionView.vue'
-import MyPageRandomView from './MyPageRandomView.vue'
-
 export default {
   name: 'MyPageView',
-  components: { MyPageFeedView, MyPageRegionView, MyPageRandomView },
-
-  data() {
-    return {
-      activeTab: localStorage.getItem('myPage.activeTab') || 'myFeed',
-    }
-  },
-
   methods: {
-    async changeTab(tab) {
-      this.activeTab = tab
-      localStorage.setItem('myPage.activeTab', tab)
-      // 지도/임베드 등이 있다면 전환 직후 사이즈 보정
-      await nextTick()
-      window.dispatchEvent(new Event('resize'))
+    // 뒤로가기 함수
+    goBack() {
+      // Vue.Router를 이용하여 이전페이지로 이동
+      this.$router.back();
     },
-    goToProfileModify() {
-      this.$router.push('/profileEdit')
-    },
-
-    goToSetting() {
-      this.$router.push('/setting')
-    },
-    goToFollowers() {
-      this.$router.push('/friendList')
+    // 계정설정화면으로 이동하는 함수
+    goToAccountView() {
+      this.$router.push({ name: 'AccountView' })
     }
-  },
+  }
 }
 </script>
 
 <style scoped>
-.view-container {
-  width: 100%;
-  /* ✅ 부모(.main-container) 너비의 100% */
-  height: 100%;
-  /* ✅ 부모(.main-container) 높이의 100% */
-
-  /* 내부 레이아웃 및 스크롤 설정 */
-  display: flex;
-  flex-direction: column;
+@font-face {
+  font-family: 'SUIT Variable';
+  src: url('@/assets/fonts/SUIT-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
 }
 
-/* 1. 프로필 헤더 */
-.profile-header {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  /* 아바타와 정보 사이 간격 */
-  gap: 20px;
+#my-page {
+  font-family: 'SUIT Variable', sans-serif;
+  max-width: 480px;
+  background-color: #ffffff;
+  min-height: 100vh;
 }
 
-.profile-avatar {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background-color: #e2e8f0;
-  flex-shrink: 0;
-  /* 컨테이너가 줄어들어도 크기 유지 */
+.profile-pic {
+  width: 60px;
+  height: 60px;
 }
 
-.profile-details {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  /* 이름, 통계, 버튼 사이 세로 간격 */
-  width: 100%;
+.profile-badge {
+  width: 24px;
+  height: 24px;
+  bottom: -5px;
+  right: -5px;
+  font-size: 14px;
+  background-color: #0d6efd;
+  border-color: #0d6efd;
 }
 
-.username {
-  font-weight: bold;
-  font-size: 1.2rem;
+.profile-badge:active {
+  filter: brightness(90%);
 }
 
-/* 유저 통계 */
-.user-stats {
-  display: flex;
-  justify-content: space-between;
-  /* 통계 아이템 간격 균등 배분 */
-  text-align: center;
+.stamp-card {
+  background-color: #8fa4c3;
+  border: none;
+  transition: filter 0.2s ease-in-out;
 }
 
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
+.stamp-card:active {
+  filter: brightness(90%);
 }
 
-.stat-value {
-  font-weight: bold;
+.saved-route-btn {
+  background-color: #3674B5;
+  border-color: #3674B5;
+  transition: filter 0.2s ease-in-out;
+  margin-bottom: 32px;
+  /* 추가된 간격 */
+}
+
+.saved-route-btn:active {
+  filter: brightness(90%);
+}
+
+.custom-rounded {
+  border-radius: 0.75rem !important;
+}
+
+.text-heart-red {
+  color: #ea4335;
+}
+
+.list-group-item-action {
+  cursor: pointer;
+}
+
+.list-group-item-action span {
+  color: #000000;
+}
+
+.list-group-item-action:hover {
+  background-color: #ffffff;
+}
+
+.list-group-item-action:active {
+  background-color: #f8f9fa;
+}
+
+.modal-dialog {
+  max-width: 35%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.modal-logout-btn {
+  background-color: #5883e3;
+  border-color: #5883e3;
+  font-weight: 600;
   font-size: 1rem;
 }
 
-.stat-label {
-  font-size: 0.8rem;
-  color: #64748b;
+.modal-logout-btn:hover {
+  background-color: #5883e3;
+  border-color: #5883e3;
 }
 
-/* 프로필 액션 버튼 */
-.profile-actions {
-  display: flex;
-  gap: 8px;
-  /* 버튼 사이 간격 */
+.modal-logout-btn:active {
+  filter: brightness(90%);
 }
 
-.edit-button {
-  flex-grow: 1;
-  /* 편집 버튼이 남은 공간을 모두 차지 */
+.modal-withdraw-btn {
+  color: #5883e3;
+  border-color: #5883e3;
+  border-width: 1px;
+  font-weight: 600;
+  font-size: 1rem;
 }
 
-/* 2. 탭 네비게이션 */
-.tab-navigation {
-  display: flex;
-  border-top: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
+.modal-withdraw-btn:active {
+  color: #ffffff;
+  background-color: #5883e3;
+  border-color: #5883e3;
 }
 
-.tab-navigation .btn {
-  border-radius: 0;
-  padding: 12px 0;
-  color: #64748b;
+.modal-body h5 {
+  font-weight: 700;
+  font-size: 1.2rem;
 }
 
-.tab-navigation .btn.active {
-  color: #000;
-  border-bottom: 2px solid #000;
-  background-color: transparent;
-}
-
-.tab-navigation .btn:focus {
-  box-shadow: none;
-}
-
-.tab-navigation i {
-  font-size: 1.3rem;
-}
-
-/* 3. 콘텐츠 영역 */
-.content-area {
-  /* 남은 모든 세로 공간을 차지 */
-  flex-grow: 1;
-  /* 내용이 길어지면 스크롤 */
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.tab-content-panel {
-  flex-grow: 1;
-  /* 부모(content-area)의 남은 공간을 모두 차지 */
+.btn:hover {
+  filter: none;
+  opacity: 1;
 }
 </style>

@@ -3,7 +3,7 @@ import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <div class="main-container">
+  <div id="app-container">
     <RouterView />
   </div>
 </template>
@@ -14,8 +14,8 @@ body {
   height: 100%;
   width: 100%;
   margin: 0;
-  background-color: #E2EBFB;
   /* 원하는 배경색 */
+  background-color: #E2EBFB;
 }
 
 /* #app을 Flex 컨테이너로 만들고 자식 요소를 중앙 정렬합니다. */
@@ -27,14 +27,14 @@ body {
   justify-content: center;
   /* 세로 중앙 정렬 */
   align-items: center;
+  padding: 0;
 }
 </style>
 
 <style scoped>
-.main-container {
+#app-container {
   width: 412px;
   height: 917px;
-  /* 부모(#app)가 flex로 중앙 정렬을 해주므로 margin: auto는 더 이상 필요 없습니다. */
   position: relative;
   background-color: #f0f0f0;
   border: 1px solid #ccc;
