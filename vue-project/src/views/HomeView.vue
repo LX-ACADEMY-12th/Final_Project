@@ -1,5 +1,6 @@
 <template>
   <div class="vh-100 overflow-auto bg-white" style="font-family: 'SUIT', sans-serif">
+
     <!-- 사용자 프로필 영역 헤더 -->
     <div class="d-flex align-items-center gap-3 p-3 border-bottom">
       <!-- 프로필 이미지 영역 -->
@@ -9,6 +10,8 @@
         <div class="text-secondary" style="font-size: 0.9rem;">안녕하세요</div>
         <div class="fw-bold" style="font-size: 1.1rem;">김민수 학부모님</div>
       </div>
+      <!-- AI 튜터 탭 -->
+
     </div>
 
     <!-- 안내문구 -->
