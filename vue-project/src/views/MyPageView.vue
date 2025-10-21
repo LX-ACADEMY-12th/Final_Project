@@ -57,8 +57,7 @@
         </div>
         <i class="bi bi-chevron-right text-muted"></i>
       </li>
-      <li data-bs-toggle="modal" data-bs-target="#settingsModal"
-        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
+      <li data-bs-toggle="modal" data-bs-target="#settingsModal" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
         <div class="d-flex align-items-center">
           <i class="bi bi-gear-fill me-3 fs-5 text-secondary"></i>
           <span>로그아웃/탈퇴</span>
@@ -82,8 +81,7 @@
             <button type="button" class="btn btn-primary w-100 p-3 fw-bold mb-3 rounded-pill modal-logout-btn">
               로그아웃
             </button>
-            <button type="button" class="btn btn-outline-primary w-100 p-3 fw-bold rounded-pill modal-withdraw-btn"
-              data-bs-dismiss="modal">
+            <button type="button" class="btn btn-outline-primary w-100 p-3 fw-bold rounded-pill modal-withdraw-btn" data-bs-dismiss="modal">
               회원탈퇴
             </button>
           </div>
