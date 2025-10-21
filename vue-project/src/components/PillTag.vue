@@ -1,5 +1,5 @@
 <template>
-  <span class="badge rounded-pill pill-tag" :style="tagStyle">
+  <span class="badge rounded-pill pill-tag" style="font-family: 'SUIT', sans-serif" :style="tagStyle">
     {{ text }}
   </span>
 </template>
