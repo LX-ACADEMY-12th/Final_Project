@@ -1,5 +1,5 @@
 <template>
-  <div class="vh-100 position-relative overflow-hidden bg-light">
+  <div class="vh-100 position-relative overflow-hidden bg-light" style="font-family: 'SUIT', sans-serif">
 
     <div ref="mapContainer" class="map-placeholder"></div>
     <!-- 사용자 프로필 영역 -->
