@@ -40,13 +40,13 @@
         <i class="bi bi-bookmark-plus-fill me-2 fs-5"></i>
         <span class="fw-bold">저장된 추천 경로</span>
       </div>
-      <i class="bi bi-plus-lg fs-5"></i>
+      <i class="bi bi-plus-lg fs-5" @click="goToUserLikeCouse"></i>
     </button>
     <ul class="list-group list-group-flush">
       <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
         <div class="d-flex align-items-center">
           <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
-          <span>관심 전시 목록</span>
+          <span>관심 장소 목록</span>
         </div>
         <i class="bi bi-chevron-right text-muted"></i>
       </li>
@@ -105,6 +105,10 @@ export default {
     // 계정설정화면으로 이동하는 함수
     goToAccountView() {
       this.$router.push({ name: 'AccountView' })
+    },
+    // 저장된 추천 코스로 이동하는 함수
+    goToUserLikeCouse() {
+      this.$router.push({ name: 'UserLikeCourse' })
     }
   }
 }
