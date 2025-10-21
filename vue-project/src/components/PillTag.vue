@@ -15,7 +15,7 @@ const props = defineProps({
   }
 });
 
-// 이미지(`image_492c0a.png`)를 기반으로 한 색상 맵
+// 색상 맵
 const subjectColors = {
   '지구': { bg: '#C9F0FF', text: '#007AFF' },
   '물리': { bg: '#E0D6FF', text: '#582DE8' },

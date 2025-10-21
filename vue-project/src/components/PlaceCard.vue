@@ -15,7 +15,8 @@
           <PillTag :text="item.grade" type="grade" />
 
         </div>
-        <button class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center btn-add">
+        <button class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center btn-add"
+          @click="onAddClick">
           <i class="bi bi-plus fs-5"></i>
         </button>
       </div>
@@ -37,6 +38,14 @@
 // 태그 컴포넌트들 임포트
 import PillTag from './PillTag.vue';
 import TypeTag from './TypeTag.vue';
+
+// [!!] 1. 'add' 이벤트를 부모에게 전달하기 위해 defineEmits를 추가합니다.
+const emit = defineEmits(['add']);
+
+// [!!] 2. 버튼 클릭 시 'add' 이벤트를 발생시키는 함수
+const onAddClick = () => {
+  emit('add');
+};
 
 // 부모(Home.vue)로부터 item 객체를 통째로 받음
 defineProps({

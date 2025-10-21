@@ -40,7 +40,7 @@
         <i class="bi bi-bookmark-plus-fill me-2 fs-5"></i>
         <span class="fw-bold">저장된 추천 경로</span>
       </div>
-      <i class="bi bi-plus-lg fs-5" @click="goToUserLikeCouse"></i>
+      <i class="bi bi-plus-lg fs-5" @click="goToUserLikeCouseList"></i>
     </button>
     <ul class="list-group list-group-flush">
       <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
@@ -57,9 +57,9 @@
         </div>
         <i class="bi bi-chevron-right text-muted"></i>
       </li>
-      <li data-bs-toggle="modal" data-bs-target="#settingsModal"
-        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
-        <div class="d-flex align-items-center">
+      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0"
+        @click=" isSettingsModalOpen = true">
+        <div class=" d-flex align-items-center">
           <i class="bi bi-gear-fill me-3 fs-5 text-secondary"></i>
           <span>로그아웃/탈퇴</span>
         </div>
@@ -74,28 +74,25 @@
       </li>
     </ul>
 
-    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-          <div class="modal-body text-center p-4">
-            <h5 class="fw-bold text-dark mb-4" id="settingsModalLabel">설정</h5>
-            <button type="button" class="btn btn-primary w-100 p-3 fw-bold mb-3 rounded-pill modal-logout-btn">
-              로그아웃
-            </button>
-            <button type="button" class="btn btn-outline-primary w-100 p-3 fw-bold rounded-pill modal-withdraw-btn"
-              data-bs-dismiss="modal">
-              회원탈퇴
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <SettingsModal :show="isSettingsModalOpen" @close="isSettingsModalOpen = false" @logout="handleLogout"
+      @withdraw="handleWithdraw" />
   </div>
 </template>
 
 <script>
+import SettingsModal from '@/components/SettingsModal.vue';
+
 export default {
   name: 'MyPageView',
+  components: {
+    SettingsModal
+  },
+  // 모달의 표시 상태를 관리할 data 추가
+  data() {
+    return {
+      isSettingsModalOpen: false
+    }
+  },
   methods: {
     // 뒤로가기 함수
     goBack() {
@@ -107,8 +104,19 @@ export default {
       this.$router.push({ name: 'AccountView' })
     },
     // 저장된 추천 코스로 이동하는 함수
-    goToUserLikeCouse() {
-      this.$router.push({ name: 'UserLikeCourse' })
+    goToUserLikeCouseList() {
+      this.$router.push({ name: 'UserLikeCourseList' })
+    },
+    // 모달 이벤트를 처리할 메서드 추가
+    handleLogout() {
+      console.log('MyPageView에서 로그아웃 로직 실행');
+      this.isSettingsModalOpen = false; // 닫기
+      // 여기에 실제 로그아웃 API 호출 구현
+    },
+    handleWithdraw() {
+      console.log('MyPageView에서 회원탈퇴 로직 실행');
+      this.isSettingsModalOpen = false; // 닫기
+      // 여기에 실제 회원탈퇴 API 호출 및 로직을 구현합니다.
     }
   }
 }
@@ -192,51 +200,5 @@ export default {
 
 .list-group-item-action:active {
   background-color: #f8f9fa;
-}
-
-.modal-dialog {
-  max-width: 35%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.modal-logout-btn {
-  background-color: #5883e3;
-  border-color: #5883e3;
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-.modal-logout-btn:hover {
-  background-color: #5883e3;
-  border-color: #5883e3;
-}
-
-.modal-logout-btn:active {
-  filter: brightness(90%);
-}
-
-.modal-withdraw-btn {
-  color: #5883e3;
-  border-color: #5883e3;
-  border-width: 1px;
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-.modal-withdraw-btn:active {
-  color: #ffffff;
-  background-color: #5883e3;
-  border-color: #5883e3;
-}
-
-.modal-body h5 {
-  font-weight: 700;
-  font-size: 1.2rem;
-}
-
-.btn:hover {
-  filter: none;
-  opacity: 1;
 }
 </style>

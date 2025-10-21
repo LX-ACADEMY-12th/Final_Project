@@ -4,7 +4,10 @@ import HomeView from '@/views/HomeView.vue'
 import MyPageView from '@/views/MyPageView.vue'
 import AccountView from '@/views/AccountView.vue'
 import ChatView from '@/views/ChatView.vue'
-import UserLikeCourse from '@/views/UserLikeCourse.vue'
+import IndoorMapView from '@/views/ExhibitionHall.vue'
+import UserLikeCourseListView from '@/views/UserLikeCourseListView.vue'
+import UserLikeCourseDetailView from '@/views/UserLikeCourseDetailView.vue'
+import PlaceDetailView from '@/views/PlaceDetailsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,14 +33,29 @@ const router = createRouter({
       component: AccountView,
     },
     {
-      path: '/chat',
-      name: 'ChatView',
+      path: '/aitutor',
+      name: 'AiTutor',
       component: ChatView,
     },
     {
-      path: '/userLikeCourse',
-      name: 'UserLikeCourse',
-      component: UserLikeCourse,
+      path: '/usercourselist',
+      name: 'UserLikeCourseList',
+      component: UserLikeCourseListView,
+    },
+    {
+      path: '/indoormap',
+      name: 'IndoorMapView',
+      component: IndoorMapView,
+    },
+    {
+      path: '/coursedetail/:ExhibitionName',
+      name: 'UserLikeCourseDetail',
+      component: UserLikeCourseDetailView,
+    },
+    {
+      path: '/placedetail',
+      name: 'PlaceDetail',
+      component: PlaceDetailView,
     },
   ],
 })

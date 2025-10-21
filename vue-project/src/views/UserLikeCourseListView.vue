@@ -30,9 +30,7 @@
 </template>
 
 <script>
-import { ref } from 'vue';
 import UserLikeCourseCard from '@/components/UserLikeCourseCard.vue';
-import router from '@/router';
 
 export default {
   name: 'UserLikeCourse',
@@ -43,9 +41,7 @@ export default {
   data() {
     return {
       selectedTab: '전시',
-
-      // 🚨 [수정됨] v-for의 :key는 고유해야 합니다.
-      // ExhibitionName이 중복되므로, 고유한 id 값을 추가했습니다.
+      // ExhibitionName 이 중복되므로, 고유한 id 값을 추가했습니다.
       userLikeCourseCardItem: [
         {
           id: 1, // 👈 고유 ID
@@ -119,7 +115,7 @@ export default {
   methods: {
     goToCourseDetail(item) {
       // ExhibitionName을 URL 파라미터로 전달
-      router.push(`/UserLikeCourseDetail/${item.ExhibitionName}`);
+      this.$router.push(`/coursedetail/${item.ExhibitionName}`);
 
       // 참고: 이름이 중복되므로, id로 보내는 것이 더 안전합니다.
       // router.push(`/UserLikeCourseDetail/${item.id}`);

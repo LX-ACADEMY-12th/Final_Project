@@ -110,8 +110,7 @@
         <!-- 카드 아이템 열차 섹션 -->
         <div class="d-flex flex-row align-items-center" style="gap: 16px; height: 100%; padding: 0 16px;">
           <!-- 카드 아이템 반복 -->
-          <VenueCard v-for="item in carouselItems" :key="item.id" :item="item" />
-
+          <PlaceCard v-for="item in carouselItems" :key="item.id" :item="item" @add="goToDetail(item)" />
         </div>
       </div>
     </div>
@@ -154,7 +153,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import FilterModal from '@/components/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
-import VenueCard from '@/components/PlaceCard.vue';
+import PlaceCard from '@/components/PlaceCard.vue';
 
 const router = useRouter();
 // 전시/탐험 버튼 상태 ('전시'가 활성화됨)
@@ -204,6 +203,11 @@ const carouselItems = ref([
   }
 ]);
 
+const goToDetail = (item) => {
+  console.log(`상세 페이지로 이동:`, item.title);
+  router.push('/placedetail')
+}
+
 // 모달에서 '선택 완료를 눌렀을 때 실행되는 함수'
 const handleFilterComplete = (filterData) => {
   console.log(`필터 선택 완료:`, filterData);
@@ -237,7 +241,7 @@ const handleNavigation = (navItemName) => {
   } else if (navItemName === '지도') {
     router.push('/map');
   } else if (navItemName === '코스관리') {
-    router.push('/course');
+    router.push('/usercourselist');
   } else if (navItemName === '마이페이지') {
     router.push('/mypage');
   }

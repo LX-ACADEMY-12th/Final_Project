@@ -40,8 +40,8 @@
         /* 하단 UI 요소들(캐러셀, 네비바) 위에 위치 */
         bottom: calc(170px + 63px + 16px);
       ">
-      <button
-        class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center">
+      <button class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center"
+        @click="goToIndoorMap">
         <i class="bi bi-layers-half" style="font-size: 1rem; line-height: 1;"></i>
         <span style="font-size: 0.6rem; margin-top: 2px;">실내지도</span>
       </button>
@@ -70,7 +70,7 @@
         <!-- 카드 아이템 열차 섹션 -->
         <div class="d-flex flex-row align-items-center" style="gap: 16px; height: 100%; padding: 0 18px;">
           <!-- 카드 아이템 반복 -->
-          <VenueCard v-for="item in carouselItems" :key="item.id" :item="item" />
+          <PlaceCard v-for="item in carouselItems" :key="item.id" :item="item" @add=goToDetail(item) />
         </div>
       </div>
     </div>
@@ -86,7 +86,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import FilterModal from '@/components/FilterModal.vue';
-import VenueCard from '@/components/PlaceCard.vue';
+import PlaceCard from '@/components/PlaceCard.vue';
 
 const router = useRouter();
 // '전시/탐험' 탭 상태 ('전시'가 활성화됨)
@@ -100,6 +100,14 @@ const selectedSubject = ref('물리');
 const selectedGrade = ref('초등 3학년');
 // 지도컨테이너 DOM을 참조할 ref를 생성
 const mapContainer = ref(null);
+// 실내지도 버튼 클릭 시 호출 함수
+const goToIndoorMap = () => {
+  router.push('/indoormap');
+}
+const goToDetail = (item) => {
+  console.log(`상세 페이지로 이동:`, item.title);
+  router.push('/placedetail')
+}
 // 컴포넌트 마운트된 후 카카오맵을 초기화
 onMounted(() => {
   // Kakao 객체 및 maps API가 로드되었는지 확인
@@ -194,7 +202,7 @@ const handleNavigation = (navItemName) => {
   } else if (navItemName === '지도') {
     router.push('/map');
   } else if (navItemName === '코스관리') {
-    router.push('/course');
+    router.push('/usercourselist');
   } else if (navItemName === '마이페이지') {
     router.push('/mypage');
   }
