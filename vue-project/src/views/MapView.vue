@@ -159,11 +159,12 @@ const carouselItems = ref([
   }
 ]);
 
-
-
 // 모달에서 '선택 완료를 눌렀을 때 실행되는 함수'
 const handleFilterComplete = (filterData) => {
   console.log(`필터 선택 완료:`, filterData);
+  // 부모의 상태(ref)를 모달에서 전달받은 값으로 업데이트
+  selectedSubject.value = filterData.subject;
+  selectedGrade.value = filterData.grade;
   // 모달 닫기
   isModalOpen.value = false;
   // 필터 변경 후 바로 검색 실행
