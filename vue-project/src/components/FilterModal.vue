@@ -23,12 +23,12 @@
               {{ subject }}
             </button>
           </div>
-          <div class="col-12 mt-2">
+          <!-- <div class="col-12 mt-2">
             <button type="button" class="filter-btn" :class="{ 'active': selectedSubject === '전체' }"
               @click="selectedSubject = '전체'">
               전체
             </button>
-          </div>
+          </div> -->
         </div>
 
         <h6 class="fw-bold mb-3 mt-4 pt-2">초등학교</h6>
@@ -39,12 +39,12 @@
               {{ grade }}
             </button>
           </div>
-          <div class="col-12 mt-2">
+          <!-- <div class="col-12 mt-2">
             <button type="button" class="filter-btn" :class="{ 'active': selectedGrade === '전체' }"
               @click="selectedGrade = '전체'">
               전체
             </button>
-          </div>
+          </div> -->
         </div>
       </div>
 
