@@ -4,11 +4,11 @@
 
     <div class="modal-sheet d-flex flex-column" style="font-family: 'SUIT', sans-serif">
 
-      <div class="modal-header p-3 d-flex align-items-center flex-shrink-0">
-        <i class="bi bi-person-circle fs-2 me-3" style="color: #4A7CEC;"></i>
+      <div class="modal-header p-3 d-flex align-items-center flex-shrink-0" style="background-color: #4A7CEC">
+        <i class="bi bi-person-circle fs-2 me-3" style="color: white;"></i>
         <div class="flex-grow-1">
-          <h5 class="fw-bold m-0 fs-6">필터 선택</h5>
-          <small class="text-secondary">탐구영역과 학년을 선택하세요.</small>
+          <h5 class="fw-bold m-0 fs-6 text-white">필터 선택</h5>
+          <small class="text-black">탐구영역과 학년을 선택하세요.</small>
         </div>
         <button class="btn-close fs-5" @click="$emit('close')"></button>
       </div>
