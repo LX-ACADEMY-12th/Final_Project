@@ -8,19 +8,25 @@ import IndoorMapView from '@/views/ExhibitionHall.vue'
 import UserLikeCourseListView from '@/views/UserLikeCourseListView.vue'
 import UserLikeCourseDetailView from '@/views/UserLikeCourseDetailView.vue'
 import PlaceDetailView from '@/views/PlaceDetailsView.vue'
+import PlaceListView from '@/views/PlaceListView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/home',
+      name: 'Home',
+      component: HomeView,
+    },
     {
       path: '/map',
       name: 'Map',
       component: MapView,
     },
     {
-      path: '/home',
-      name: 'Home',
-      component: HomeView,
+      path: '/list',
+      name: 'PlaceList',
+      component: PlaceListView,
     },
     {
       path: '/mypage',
