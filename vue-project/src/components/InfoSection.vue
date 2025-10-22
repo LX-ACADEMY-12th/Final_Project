@@ -28,6 +28,10 @@
 
       </div>
 
+      <div v-if="hashTags.length > 0" class="hashtags-area">
+          <Hashtag v-for="(tag, index) in hashTags" :key="'hash-' + index" :text="tag" />
+      </div>
+
       <div class="description" :class="{ 'expanded': isExpanded }">
         {{ displayedDescription }}
         <button v-if="isLongText" @click="toggleDescription" class="btn btn-white">
@@ -44,19 +48,23 @@
 <script>
 // ✨ 1. SubjectTag 컴포넌트를 가져옵니다.
 import PillTag from '@/components/PillTag.vue';
+import Hashtag from '@/components/HashTag.vue';
 
 export default {
   name: 'InfoSection',
 
   // ✨ 2. components에 SubjectTag를 등록하여 템플릿에서 사용할 수 있게 합니다.
   components: {
-    PillTag
+    PillTag,
+    Hashtag,
   },
 
   // isExpanded: 전시 소개 글이 펼쳐져있나 확인하는 변수
   data() {
     return {
       isExpanded: false, // 기본값은 '접힌' 상태
+
+      hashTags: ['빛과 파동'],
     };
   },
 
@@ -194,6 +202,13 @@ export default {
   gap: 8px;
   font-size: 14px;
   color: #666;
+}
+
+.hashtags-area {
+  /* 해시태그가 여러 줄로 표시될 수 있도록 flex-wrap을 적용합니다. */
+  display: flex;
+  flex-wrap: wrap; 
+  margin-bottom: 16px; 
 }
 
 .description {
