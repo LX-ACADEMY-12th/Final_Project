@@ -24,12 +24,12 @@
         <i class="bi bi-search fs-5"></i>
       </button>
     </div>
-    <!-- 프로필 영역 아래 전시 및 탐험 버튼 -->
+    <!-- 프로필 영역 아래 전시 및 답사 버튼 -->
     <div class="position-absolute d-flex flex-row" style="z-index: 10; top: 104px; left: 18px; gap: 8px;">
       <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
         @click="selectedTab = '전시'">전시</button>
-      <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '탐험' }"
-        @click="selectedTab = '탐험'">탐험</button>
+      <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
+        @click="selectedTab = '답사'">답사</button>
     </div>
 
     <!-- 지도 상 실내지도, 방문장소, 현위치 버튼 -->
@@ -40,18 +40,18 @@
         /* 하단 UI 요소들(캐러셀, 네비바) 위에 위치 */
         bottom: calc(170px + 63px + 16px);
       ">
-      <button class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center"
+      <!-- <button class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center"
         @click="goToIndoorMap">
         <i class="bi bi-layers-half" style="font-size: 1rem; line-height: 1;"></i>
         <span style="font-size: 0.6rem; margin-top: 2px;">실내지도</span>
-      </button>
+      </button> -->
       <button
         class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center">
         <i class="bi bi-geo-alt" style="font-size: 1rem; line-height: 1;"></i>
         <span style="font-size: 0.6rem; margin-top: 2px;">방문장소</span>
       </button>
-      <button
-        class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center">
+      <button class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center"
+        @click="goToCurrentLocation">
         <i class="bi bi-bullseye" style="font-size: 1rem; line-height: 1;"></i>
         <span style="font-size: 0.6rem; margin-top: 2px;">현위치</span>
       </button>
@@ -70,7 +70,8 @@
         <!-- 카드 아이템 열차 섹션 -->
         <div class="d-flex flex-row align-items-center" style="gap: 16px; height: 100%; padding: 0 18px;">
           <!-- 카드 아이템 반복 -->
-          <PlaceCard v-for="item in carouselItems" :key="item.id" :item="item" @add=goToDetail(item) />
+          <PlaceCard v-for="item in currentCarouselItems" :key="item.id" :item="item" @add=goToDetail(item)
+            @item-click="handleItemClick(item)" />
         </div>
       </div>
     </div>
@@ -82,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import FilterModal from '@/components/FilterModal.vue';
@@ -100,72 +101,239 @@ const selectedSubject = ref('물리');
 const selectedGrade = ref('초등 3학년');
 // 지도컨테이너 DOM을 참조할 ref를 생성
 const mapContainer = ref(null);
+
+// map 객체와 markers 배열을 ref로 관리합니다.
+const map = ref(null);
+const markers = ref([]);
+// 현위치 핀 1개를 별도로 관리할 ref 추가
+const currentLocationMarker = ref(null);
+
 // 실내지도 버튼 클릭 시 호출 함수
-const goToIndoorMap = () => {
-  router.push('/indoormap');
-}
+// const goToIndoorMap = () => {
+//   router.push('/indoormap');
+// }
 const goToDetail = (item) => {
   console.log(`상세 페이지로 이동:`, item.title);
   router.push('/placedetail')
 }
-// 컴포넌트 마운트된 후 카카오맵을 초기화
+
+// 카드 본체 클릭 시 호출될 함수 (지도 이동)
+const handleItemClick = (item) => {
+  console.log(`지도 이동:`, item.title);
+  moveMapToItem(item.lat, item.lng);
+}
+
+// 현위치로 이동하고 핀을 찍는 함수
+const goToCurrentLocation = () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // === 현위치 가져오기 성공 ===
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        // [!!] 현위치 정확도(미터 단위)
+        const accuracy = position.coords.accuracy;
+
+        const currentLocation = new window.kakao.maps.LatLng(lat, lng);
+
+        // 맵 중심을 현위치로 이동
+        map.value.setCenter(currentLocation);
+        map.value.setLevel(3); // 현위치 기준 줌 레벨
+
+        // --- [!!] 현위치 '원' 생성 로직 (기존 마커 로직 대체) ---
+
+        // 1. 기존 현위치 '원'이 있다면 제거
+        if (currentLocationMarker.value) {
+          currentLocationMarker.value.setMap(null);
+        }
+
+        // 2. 새 '원' 생성
+        const newCircle = new window.kakao.maps.Circle({
+          center: currentLocation,      // 원의 중심좌표
+          radius: accuracy,             // 원의 반지름 (m 단위, 정확도)
+          strokeWeight: 2,              // 선의 두께
+          strokeColor: '#007AFF',       // 선 색상
+          strokeOpacity: 0.8,           // 선 불투명도
+          strokeStyle: 'solid',       // 선 스타일
+          fillColor: '#007AFF',        // 채우기 색상
+          fillOpacity: 0.2              // 채우기 불투명도
+        });
+
+        // 3. '원'을 맵에 표시
+        newCircle.setMap(map.value);
+
+        // 4. ref에 새 '원' 저장
+        currentLocationMarker.value = newCircle;
+        // --- 원 생성 끝 ---
+      },
+      (error) => {
+        // === 현위치 가져오기 실패 ===
+        console.error("Geolocation error: ", error.message);
+        alert("현위치를 가져오는 데 실패했습니다.");
+      }
+    );
+  } else {
+    // === Geolocation API를 지원하지 않는 브라우저 ===
+    console.error("Geolocation is not supported by this browser.");
+    alert("이 브라우저에서는 현위치 기능을 지원하지 않습니다.");
+  }
+}
+
+// 지도 이동(panTo) 함수
+const moveMapToItem = (lat, lng) => {
+  // 지도가 없으면 중단
+  if (!map.value) return;
+  const moveLatLon = new window.kakao.maps.LatLng(lat, lng);
+  // 1. 설정한 레벨로 줌을 먼저 설정
+  map.value.setLevel(2);
+  // 부드럽게 이동
+  map.value.panTo(moveLatLon);
+}
+
+// 모든 핀이 보이도록 맵 범위를 조절하는 함수
+const fitMapToBounds = (items) => {
+  // 맵이 없거나, 아이템이 없으면 중단
+  if (!map.value || !items || items.length === 0) return;
+
+  // LatLngBounds 객체에 모든 좌표를 추가
+  const bounds = new window.kakao.maps.LatLngBounds();
+  items.forEach(item => {
+    bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng));
+  });
+
+  // 계산된 범위로 지도의 중심과 줌 레벨을 조절
+  map.value.setBounds(bounds);
+}
+
+// 기존 마커(핀) 제거 함수
+const clearMarkers = () => {
+  if (markers.value.length > 0) {
+    markers.value.forEach((marker) => marker.setMap(null));
+    markers.value = []; // 배열 비우기
+  }
+}
+
+// 새 마커(핀) 그리기 함수
+const drawMarkers = (items) => {
+  if (!map.value) return; // 맵이 없으면 중단
+
+  items.forEach(item => {
+    const markerPosition = new window.kakao.maps.LatLng(item.lat, item.lng);
+    const marker = new window.kakao.maps.Marker({
+      position: markerPosition
+    });
+    marker.setMap(map.value);
+    markers.value.push(marker);
+  });
+}
+
 onMounted(() => {
   // Kakao 객체 및 maps API가 로드되었는지 확인
   if (window.kakao && window.kakao.maps) {
-    // 지도 생성 옵션
+    // 기본 옵션 (서울시청 - 현위치 실패 시 fallback으로 사용)
     const options = {
-      center: new window.kakao.maps.LatLng(37.566826, 126.9786567), // (예: 서울시청 위도/경도)
-      level: 3, // 확대 레벨
+      center: new window.kakao.maps.LatLng(37.566826, 126.9786567),
+      level: 3,
     };
 
-    // 지도 생성 (mapContainer.value는 <div ref="mapContainer"> DOM 요소를 가리킴)
-    const map = new window.kakao.maps.Map(mapContainer.value, options);
+    // 맵을 기본 옵션으로 우선 생성
+    map.value = new window.kakao.maps.Map(mapContainer.value, options);
 
-    // (선택 사항) 지도 컨트롤(줌) 추가
-    // const zoomControl = new window.kakao.maps.ZoomControl();
-    // map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+    // '전시' 탭의 핀은 항상 그립니다.
+    drawMarkers(currentCarouselItems.value);
+
+    // onMounted 시, 분리한 현위치 함수 호출
+    goToCurrentLocation();
 
   } else {
     console.error("Kakao Maps API 스크립트가 로드되지 않았습니다.");
   }
 });
 
-// 캐러셀 아이템 데이터 (이전 코드 재사용)
-const carouselItems = ref([
+// '전시' 탭을 위한 목데이터
+const exhibitionItems = ref([
   {
     id: 1,
-    iconClass: 'bi-triangle-fill',
-    iconBgColor: '#F0EDF9',
-    iconColor: '#C0B0F0',
-    subject: '지구',  // 데이터
-    grade: '3학년',  // 데이터
-    place: '장소명',  // 데이터
-    type: '전시',    // 데이터
-    title: '전시명'
+    imageUrl: 'https://placehold.co/600x400',
+    subject: '지구',
+    grade: '3학년',
+    title: '습지생물코너',
+    type: '상설',
+    place: '국립중앙과학관 자연사관',
+    hashtags: ['항상성과 몸의 조절', '생명과학과 인간의 생활'],
+    lat: 36.3758, // 국립중앙과학관
+    lng: 127.3845
   },
   {
     id: 2,
-    iconClass: 'bi-star-fill',
-    iconBgColor: '#F0EDF9',
-    iconColor: '#C0B0F0',
-    subject: '물리',  // '우주' -> '물리' (색상표에 맞게)
-    grade: '5학년',
-    place: '서울천문대',
-    type: '탐험',
-    title: '천문대탐험'
+    imageUrl: 'https://placehold.co/600x400',
+    subject: '물리',
+    grade: '4학년',
+    title: '빛의 원리',
+    type: '기획',
+    place: '국립과천과학관',
+    hashtags: ['파동', '빛', '물리1', '체험'],
+    lat: 37.4363, // 국립과천과학관
+    lng: 126.9746
   },
   {
     id: 3,
-    iconClass: 'bi-beaker',
-    iconBgColor: '#F0EDF9',
-    iconColor: '#C0B0F0',
+    imageUrl: 'https://placehold.co/600x400',
     subject: '화학',
-    grade: '4학년',
-    place: '한천강지질공원',
-    type: '탐험',
-    title: '지질탐험'
+    grade: '5학년',
+    title: '미래 에너지',
+    type: '상설',
+    place: '서울시립과학관',
+    hashtags: ['에너지', '화학 반응', '미래 기술'],
+    lat: 37.6094, // 서울시립과학관
+    lng: 127.0706
   }
 ]);
+
+// '답사' 탭을 위한 목데이터 추가
+const fieldTripItems = ref([
+  {
+    id: 4, // ID 중복 방지 (1 -> 4)
+    imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
+    subject: '지구',
+    grade: '5학년',
+    title: '해운대',
+    place: '부산시 해운대구',
+    hashtags: ['고체지구', '유체지구', '천체'],
+    lat: 35.1587, // 해운대
+    lng: 129.1604
+  },
+  {
+    id: 5, // ID 중복 방지 (2 -> 5)
+    imageUrl: 'https://placehold.co/600x400/CCBBAA/000000',
+    subject: '물리',
+    grade: '4학년',
+    title: '서울숲',
+    place: '서울시 성동구',
+    hashtags: ['고체지구', '유체지구', '천체'],
+    lat: 37.5445, // 서울숲
+    lng: 127.0374
+  }
+]);
+
+// selectedTab에 따라 표시할 아이템을 동적으로 결정하는 computed 속성
+const currentCarouselItems = computed(() => {
+  if (selectedTab.value === '전시') {
+    return exhibitionItems.value;
+  } else if (selectedTab.value === '답사') {
+    return fieldTripItems.value;
+  }
+  return []; // 기본값
+});
+
+// 탭 전환 시 핀을 다시 그리도록 currentCarouselItems를 감시(watch)
+watch(currentCarouselItems, (newItems) => {
+  if (!map.value) return; // 맵이 아직 로드되지 않았으면 중단
+
+  clearMarkers(); // 기존 핀 모두 제거
+  drawMarkers(newItems); // 새 핀 그리기
+  fitMapToBounds(newItems); // 맵을 새 핀들에 맞추기
+});
 
 // 모달에서 '선택 완료를 눌렀을 때 실행되는 함수'
 const handleFilterComplete = (filterData) => {
