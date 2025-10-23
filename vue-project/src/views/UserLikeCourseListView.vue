@@ -42,7 +42,7 @@ export default {
       selectedTab: '전시',
       userLikeCourseCardItem: [
         {
-          id: 1, // 👈 고유 ID
+          id: 1,
           imageUrl: 'https://placehold.co/600x400',
           subject: '지구',
           grade: '3학년',
@@ -50,141 +50,327 @@ export default {
           address: '국립과천과학관',
           coursePlaces: ['전시명1', '전시명2', '전시명3'],
           type: '전시',
+          // 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 1,
+              number: 1,
+              title: '습지생물코너',
+              place: '국립중앙과학관 자연사관',
+              lat: 36.3758,
+              lng: 127.3845
+            },
+            {
+              id: 2,
+              number: 2,
+              title: '빛의 원리',
+              place: '국립과천과학관',
+              lat: 37.4363,
+              lng: 126.9746
+            },
+            {
+              id: 3,
+              number: 3,
+              title: '미래 에너지',
+              place: '서울시립과학관',
+              lat: 37.6094,
+              lng: 127.0706
+            }
+          ]
         },
         {
-          id: 2, // 👈 고유 ID
+          id: 2,
           imageUrl: 'https://placehold.co/600x400',
           subject: '화학',
           grade: '3학년',
           ExhibitionName: '전시명2',
           address: '국립과천과학관',
           type: '전시',
+          // 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 4,
+              number: 1,
+              title: '화학 실험실',
+              place: '국립과천과학관 화학관',
+              lat: 37.4363,
+              lng: 126.9746
+            },
+            {
+              id: 5,
+              number: 2,
+              title: '분자 모형 전시',
+              place: '국립과천과학관 분자관',
+              lat: 37.4360,
+              lng: 126.9750
+            }
+          ]
         },
         {
-          id: 3, // 👈 고유 ID
+          id: 3,
           imageUrl: 'https://placehold.co/600x400',
           subject: '물리',
           grade: '3학년',
           ExhibitionName: '전시명3',
           address: '국립과천과학관',
           type: '전시',
+          // 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 6,
+              number: 1,
+              title: '물리 체험관',
+              place: '국립과천과학관 물리관',
+              lat: 37.4363,
+              lng: 126.9746
+            },
+            {
+              id: 7,
+              number: 2,
+              title: '전기 실험실',
+              place: '국립과천과학관 전기관',
+              lat: 37.4365,
+              lng: 126.9748
+            },
+            {
+              id: 8,
+              number: 3,
+              title: '자기장 체험',
+              place: '국립과천과학관 자기관',
+              lat: 37.4368,
+              lng: 126.9752
+            }
+          ]
         },
         {
-          id: 4, // 👈 고유 ID
+          id: 4,
           imageUrl: 'https://placehold.co/600x400',
           subject: '생명',
           grade: '3학년',
-          ExhibitionName: '전시명3',
+          ExhibitionName: '생명과학 탐험',
           address: '국립과천과학관',
           type: '전시',
+          // 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 9,
+              number: 1,
+              title: '생명의 기원',
+              place: '국립과천과학관 생명관',
+              lat: 37.4363,
+              lng: 126.9746
+            },
+            {
+              id: 10,
+              number: 2,
+              title: 'DNA 모형',
+              place: '국립과천과학관 유전자관',
+              lat: 37.4366,
+              lng: 126.9749
+            }
+          ]
         },
         {
-          id: 5, // 👈 고유 ID
+          id: 5,
           imageUrl: 'https://placehold.co/600x400',
           subject: '지구',
           grade: '3학년',
-          ExhibitionName: '전시명3',
+          ExhibitionName: '지구과학 여행',
           address: '국립과천과학관',
           type: '전시',
+          // 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 11,
+              number: 1,
+              title: '지구의 구조',
+              place: '국립과천과학관 지구관',
+              lat: 37.4363,
+              lng: 126.9746
+            },
+            {
+              id: 12,
+              number: 2,
+              title: '화석 전시관',
+              place: '국립과천과학관 화석관',
+              lat: 37.4370,
+              lng: 126.9755
+            }
+          ]
         },
         {
-          id: 6, // 👈 고유 ID
+          id: 6,
           imageUrl: 'https://placehold.co/600x400',
           subject: '지구',
           grade: '3학년',
-          ExhibitionName: '전시명3',
+          ExhibitionName: '천체 관측',
           address: '국립과천과학관',
           type: '전시',
+          // 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 13,
+              number: 1,
+              title: '천체 투영관',
+              place: '국립과천과학관 천체관',
+              lat: 37.4363,
+              lng: 126.9746
+            }
+          ]
         },
         {
-          id: 7, // 👈 고유 ID
+          id: 7,
           imageUrl: 'https://placehold.co/600x400',
           subject: '지구',
           grade: '3학년',
-          ExhibitionName: '전시명3',
+          ExhibitionName: '우주 탐험',
           address: '국립과천과학관',
           type: '전시',
+          // 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 14,
+              number: 1,
+              title: '우주선 모형',
+              place: '국립과천과학관 우주관',
+              lat: 37.4363,
+              lng: 126.9746
+            },
+            {
+              id: 15,
+              number: 2,
+              title: '달 탐사',
+              place: '국립과천과학관 달관',
+              lat: 37.4372,
+              lng: 126.9758
+            }
+          ]
         },
         {
-          id: 8, // 👈 고유 ID
+          id: 8,
           imageUrl: 'https://placehold.co/600x400',
           subject: '지구',
           grade: '3학년',
-          ExhibitionName: '전시명3',
+          ExhibitionName: '환경 보호',
           address: '국립과천과학관',
           type: '전시',
+          // 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 16,
+              number: 1,
+              title: '환경 오염',
+              place: '국립과천과학관 환경관',
+              lat: 37.4363,
+              lng: 126.9746
+            }
+          ]
         },
         {
-          id: 9, // 👈 고유 ID
+          id: 9,
           imageUrl: 'https://placehold.co/600x400',
           subject: '지구',
           grade: '3학년',
           ExhibitionName: '장소명1',
           address: '장소명1 주소',
           type: '답사',
+          // 답사 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 17,
+              number: 1,
+              title: '해운대 해변',
+              place: '부산시 해운대구 해운대해변로',
+              lat: 35.1587,
+              lng: 129.1604
+            },
+            {
+              id: 18,
+              number: 2,
+              title: '동백섬',
+              place: '부산시 해운대구 동백로',
+              lat: 35.1532,
+              lng: 129.1635
+            },
+            {
+              id: 19,
+              number: 3,
+              title: '해운대 온천',
+              place: '부산시 해운대구 중동',
+              lat: 35.1598,
+              lng: 129.1588
+            }
+          ]
         },
         {
-          id: 10, // 👈 고유 ID
+          id: 10,
           imageUrl: 'https://placehold.co/600x400',
           subject: '지구',
           grade: '3학년',
           ExhibitionName: '장소명2',
           address: '장소명2 주소',
           type: '답사',
+          // 답사 코스 상세 데이터 추가
+          courseItems: [
+            {
+              id: 20,
+              number: 1,
+              title: '경복궁 정문',
+              place: '서울특별시 종로구 사직로 161',
+              lat: 37.5796,
+              lng: 126.9770
+            },
+            {
+              id: 21,
+              number: 2,
+              title: '근정전',
+              place: '경복궁 근정전',
+              lat: 37.5794,
+              lng: 126.9769
+            },
+            {
+              id: 22,
+              number: 3,
+              title: '경회루',
+              place: '경복궁 경회루',
+              lat: 37.5802,
+              lng: 126.9765
+            }
+          ]
         },
       ]
     };
-
   },
+
   computed: {
-    /**
-     * 'filteredItems'는 data()의 selectedTab 값이 바뀔 때마다
-     * 자동으로 다시 계산되는 새로운 배열입니다.
-     */
-    // template 코드에서 v-for가 userLikeCourseCardItem이 아닌, filteredItems를 사용할 수 있도록 변경함
     filteredItems() {
-      // 1. this.selectedTab 값 (예: '전시')을 가져옵니다.
-      // 2. this.userLikeCourseCardItem (원본 배열)에서
-      //    item의 type이 '전시'인 것만 골라(filter) 새 배열로 만듭니다.
       return this.userLikeCourseCardItem.filter(item => {
         return item.type === this.selectedTab;
       });
     },
   },
+
   methods: {
     goToCourseDetail(item) {
-      // ExhibitionName을 URL 파라미터로 전달
-      // '전시'든 '답사'든 같은 경로('/coursedetail')로 보낸다.
-      // 대신, URL 뒤에 ?type=전시 또는 ?type=답사 꼬리표를 붙인다.
-      //this.$router.push(`/coursedetail/${item.ExhibitionName}`);
-
       this.$router.push({
-        name: 'UserLikeCourseDetail', // path: '/coursedetail/${item.ExhibitionName'
-        params: { ExhibitionName: item.ExhibitionName }, // :ExhibitionName부분
-        query: { type: item.type } // URL 뒤에 ?type=... 을 붙인다.
-      })
-      // 참고: 이름이 중복되므로, id로 보내는 것이 더 안전합니다.
-      // router.push(`/UserLikeCourseDetail/${item.id}`);
-      // (이 경우 router/index.js와 상세페이지 로직도 id 기준으로 변경해야 함)
+        name: 'UserLikeCourseDetail',
+        params: { ExhibitionName: item.ExhibitionName },
+        query: { type: item.type }
+      });
     },
-    // 탭 변경 시 URL도 함께 변경하는 함수 정의
+
     changeTab(tabName) {
       this.selectedTab = tabName;
-      // router.replace를 사용하여 히스토리 스택에 추가하지 않고 URL 변경
       this.$router.replace({ query: { tab: tabName } });
     },
-    // 뒤로가기 함수
+
     goBack() {
-      // Vue.Router를 이용하여 이전페이지로 이동
       this.$router.back();
     },
   },
-  created() {
-    // 컴포넌트가 생성될 때 URL 쿼리를 확인합니다.
-    // (이 시점에는 'this.$route'로 접근할 수 있습니다.)
-    const tabFromQuery = this.$route.query.tab;
 
-    // 만약 쿼리 값이 '답사'이면, data의 selectedTab 값을 덮어씁니다.
+  created() {
+    const tabFromQuery = this.$route.query.tab;
     if (tabFromQuery === '답사') {
       this.selectedTab = '답사';
     }
@@ -199,16 +385,10 @@ export default {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  /* [!!] padding 수정 (좌우 16px) */
   padding: 5px 16px;
   gap: 8px;
-
   position: relative;
-  /* [!!] absolute -> relative (부모 div가 위치를 잡음) */
-  /* [!!] 고정 width 제거 -> 텍스트 길이에 맞게 자동 조절 */
-  /* width: 84px; */
   height: 38px;
-
   border-radius: 20px;
   background: #FFFFFF;
   color: #333;
@@ -219,29 +399,19 @@ export default {
 }
 
 .spec-button.active {
-  /* [!!] Figma 디자인의 파란색으로 변경 */
   background: #4A7CEC;
   color: white;
   border: none;
   font-weight: 700;
 }
 
-
-/* 페이지 전체 컨테이너
-  - 화면 전체 높이(100vh)를 차지
-  - flex-direction: column (자식 요소를 세로로 배치)
-*/
 .page-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  /* 이 컨테이너 자체가 스크롤되는 것을 방지 */
 }
 
-/* [헤더]
-   채팅방 헤더와 동일한 구조
-*/
 .chat-header {
   position: relative;
 }
@@ -257,34 +427,21 @@ export default {
   font-weight: 600;
 }
 
-/* 카드 목록 영역 (자식 2)
-  - flex: 1 (나머지 세로 공간을 모두 차지)
-  - overflow-y: auto (내용이 넘칠 경우에만 세로 스크롤바 생성)
-*/
 .user-like-course {
   flex: 1;
   overflow-y: auto;
 
-  /* 스크롤바 숨기기 */
-  /* Chrome, Safari, Edge 등 (웹킷 브라우저) */
   &::-webkit-scrollbar {
     display: none;
   }
 
-  /* Firefox */
   scrollbar-width: none;
-
-  /* IE (구형) */
   -ms-overflow-style: none;
 
-  /* 카드 목록이 잘 보이도록 패딩 추가 */
   padding: 16px;
-  /* 목록 배경색 */
   background-color: #f9f9f9;
-
   display: flex;
   flex-direction: column;
-  /* 카드 아이템 간 간격 */
   gap: 16px;
 }
 </style>

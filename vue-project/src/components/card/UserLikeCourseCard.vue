@@ -1,7 +1,12 @@
 <template>
   <div class="course-card" style="font-family: 'SUIT', sans-serif">
-    <!-- 지도 -->
-    <img :src="item.imageUrl" :alt="item.ExhibitionName" class="map-thumbnail" />
+    <!-- 코스 경로가 표시된 지도 -->
+    <div class="map-container" ref="mapContainer">
+      <div v-if="!mapGenerated" class="map-placeholder">
+        지도 생성 중...
+      </div>
+    </div>
+
     <div class="content-area">
       <div class="content-header">
         <!-- 알약 태그 프레임 -->
@@ -25,12 +30,10 @@
 </template>
 
 <script>
-// PillTag 컴포넌트를 import 합니다.
 import PillTag from '@/components/tag/PillTag.vue';
 
 export default {
   name: 'UserLikeCourseCard',
-  // 자식 컴포넌트로 PillTag를 등록합니다.
   components: {
     PillTag
   },
@@ -38,39 +41,294 @@ export default {
     item: {
       type: Object,
       required: true
-      /* [중요] item 객체에 coursePlaces 배열이 필요합니다.
-        item: {
-          ...
-          ExhibitionName: '국립중앙과학관 코스',
-          address: '대전 유성구',
-          subject: '과학',
-          grade: '초등',
-          coursePlaces: ['자연사관', '과학기술관', '미래기술관', '천체관']
-        }
-      */
     }
   },
+  data() {
+    return {
+      mapGenerated: false,
+      map: null,
+      markers: [],
+      polyline: null,
+      mapWidth: 149,
+      mapHeight: 126
+    };
+  },
   computed: {
-    /**
-     * coursePlaces 배열을 "장소1 → 장소2 → 장소3" 형태의 문자열로 변환
-     */
     courseSequenceText() {
-      if (!Array.isArray(this.item.coursePlaces) || this.item.coursePlaces.length === 0) {
-        return '코스 정보가 없습니다.'; // 또는 빈 문자열 ''
+      // 기존 coursePlaces 배열 사용 (하위 호환성)
+      if (Array.isArray(this.item.coursePlaces) && this.item.coursePlaces.length > 0) {
+        return this.item.coursePlaces.join(' → ');
       }
-      return this.item.coursePlaces.join(' → '); // '→' 아이콘으로 연결
+
+      // 새로운 courseItems 배열 사용
+      if (Array.isArray(this.item.courseItems) && this.item.courseItems.length > 0) {
+        return this.item.courseItems
+          .map(courseItem => courseItem.title || courseItem.place)
+          .join(' → ');
+      }
+
+      return '코스 정보가 없습니다.';
+    },
+
+    // 코스 장소들의 좌표 배열
+    courseCoordinates() {
+      if (!this.item.courseItems || !Array.isArray(this.item.courseItems)) {
+        return [];
+      }
+
+      return this.item.courseItems
+        .filter(item => item.lat && item.lng)
+        .map(item => ({
+          lat: item.lat,
+          lng: item.lng,
+          title: item.title || item.place,
+          number: item.number || 1
+        }));
+    }
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.initializeMap();
+    });
+  },
+  watch: {
+    'item.courseItems': {
+      handler() {
+        if (this.map) {
+          this.updateMapWithCourse();
+        }
+      },
+      deep: true
+    }
+  },
+  beforeUnmount() {
+    this.clearMap();
+  },
+  methods: {
+    async initializeMap() {
+      if (!window.kakao || !window.kakao.maps) {
+        console.error('카카오맵 API가 로드되지 않았습니다.');
+        this.showFallbackImage();
+        return;
+      }
+
+      try {
+        await this.createCourseMap();
+      } catch (error) {
+        console.error('지도 생성 실패:', error);
+        this.showFallbackImage();
+      }
+    },
+
+    async createCourseMap() {
+      const container = this.$refs.mapContainer;
+      if (!container) return;
+
+      // 코스 좌표가 없으면 기본 지도 표시
+      if (this.courseCoordinates.length === 0) {
+        this.showFallbackImage();
+        return;
+      }
+
+      // 지도 범위 계산
+      const { center, level } = this.calculateMapBounds();
+
+      // 지도 옵션
+      const options = {
+        center: new window.kakao.maps.LatLng(center.lat, center.lng),
+        level: level,
+        draggable: false,
+        scrollwheel: false,
+        disableDoubleClick: true,
+        disableDoubleClickZoom: true,
+        keyboardShortcuts: false
+      };
+
+      // 지도 생성
+      this.map = new window.kakao.maps.Map(container, options);
+
+      // 코스 경로와 마커 추가
+      this.addCourseMarkersAndRoute();
+
+      // 지도 컨트롤 숨기기
+      this.hideMapControls();
+
+      this.mapGenerated = true;
+    },
+
+    calculateMapBounds() {
+      const coordinates = this.courseCoordinates;
+
+      if (coordinates.length === 0) {
+        return { center: { lat: 37.566826, lng: 126.9786567 }, level: 5 };
+      }
+
+      if (coordinates.length === 1) {
+        return { center: coordinates[0], level: 3 };
+      }
+
+      // 경계 계산
+      const latitudes = coordinates.map(coord => coord.lat);
+      const longitudes = coordinates.map(coord => coord.lng);
+
+      const minLat = Math.min(...latitudes);
+      const maxLat = Math.max(...latitudes);
+      const minLng = Math.min(...longitudes);
+      const maxLng = Math.max(...longitudes);
+
+      // 중심점
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLng = (minLng + maxLng) / 2;
+
+      // 적절한 줌 레벨 계산
+      const latDiff = maxLat - minLat;
+      const lngDiff = maxLng - minLng;
+      const maxDiff = Math.max(latDiff, lngDiff);
+
+      let level = 1;
+      if (maxDiff > 0.002) level = 2;
+      if (maxDiff > 0.005) level = 3;
+      if (maxDiff > 0.01) level = 4;
+      if (maxDiff > 0.02) level = 5;
+      if (maxDiff > 0.05) level = 6;
+
+      return {
+        center: { lat: centerLat, lng: centerLng },
+        level
+      };
+    },
+
+    addCourseMarkersAndRoute() {
+      if (this.courseCoordinates.length === 0) return;
+
+      const positions = [];
+
+      // 기존 마커와 라인 제거
+      this.clearMapElements();
+
+      // 마커 추가
+      this.courseCoordinates.forEach((coord, index) => {
+        const position = new window.kakao.maps.LatLng(coord.lat, coord.lng);
+        positions.push(position);
+
+        // 커스텀 마커 이미지 생성
+        const markerImageSrc = this.createMarkerImage(
+          coord.number || (index + 1),
+          this.getMarkerColor(index)
+        );
+
+        const markerImage = new window.kakao.maps.MarkerImage(
+          markerImageSrc,
+          new window.kakao.maps.Size(24, 35),
+          { offset: new window.kakao.maps.Point(12, 35) }
+        );
+
+        // 마커 생성
+        const marker = new window.kakao.maps.Marker({
+          position: position,
+          image: markerImage,
+          map: this.map
+        });
+
+        this.markers.push(marker);
+      });
+
+      // 폴리라인 추가 (경로 연결선)
+      if (positions.length > 1) {
+        this.polyline = new window.kakao.maps.Polyline({
+          path: positions,
+          strokeWeight: 3,
+          strokeColor: '#4A7CEC',
+          strokeOpacity: 0.8,
+          strokeStyle: 'solid'
+        });
+        this.polyline.setMap(this.map);
+      }
+    },
+
+    updateMapWithCourse() {
+      if (!this.map) return;
+
+      // 새로운 코스 데이터로 지도 업데이트
+      const { center, level } = this.calculateMapBounds();
+
+      if (this.courseCoordinates.length > 0) {
+        this.map.setCenter(new window.kakao.maps.LatLng(center.lat, center.lng));
+        this.map.setLevel(level);
+        this.addCourseMarkersAndRoute();
+      }
+    },
+
+    clearMapElements() {
+      // 기존 마커 제거
+      this.markers.forEach(marker => marker.setMap(null));
+      this.markers = [];
+
+      // 기존 폴리라인 제거
+      if (this.polyline) {
+        this.polyline.setMap(null);
+        this.polyline = null;
+      }
+    },
+
+    clearMap() {
+      this.clearMapElements();
+      if (this.map) {
+        this.map = null;
+      }
+    },
+
+    getMarkerColor(index) {
+      // 코스 순서에 따른 색상 배열
+      const colors = ['#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
+      return colors[index % colors.length];
+    },
+
+    createMarkerImage(number, color) {
+      // SVG로 코스 순서 마커 이미지 생성
+      const svg = `
+        <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 23 12 23s12-14 12-23c0-6.627-5.373-12-12-12z"
+                fill="${color}" stroke="#fff" stroke-width="2"/>
+          <circle cx="12" cy="12" r="8" fill="#fff"/>
+          <text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif"
+                font-size="10" font-weight="bold" fill="${color}">${number}</text>
+        </svg>
+      `;
+
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    },
+
+    hideMapControls() {
+      // 지도 컨트롤 숨기기
+      setTimeout(() => {
+        const container = this.$refs.mapContainer;
+        if (container) {
+          const controls = container.querySelectorAll('.kakao-map-control, .MapTypeControl, .ZoomControl');
+          controls.forEach(control => {
+            control.style.display = 'none';
+          });
+        }
+      }, 100);
+    },
+
+    showFallbackImage() {
+      const container = this.$refs.mapContainer;
+      if (!container) return;
+
+      container.innerHTML = `
+        <div class="map-fallback">
+          <img src="https://placehold.co/${this.mapWidth}x${this.mapHeight}/e9ecef/6c757d?text=Course+Map"
+               alt="코스 지도" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+      `;
+      this.mapGenerated = true;
     }
   }
 }
 </script>
 
 <style scoped>
-/* --- 레이아웃의 핵심 부분 --- */
-
-/* [카드 전체]
-  'display: flex'를 사용해 [이미지] | [콘텐츠 영역]으로
-  가로 2단 분리합니다.
-*/
 .course-card {
   display: flex;
   align-items: center;
@@ -83,7 +341,6 @@ export default {
   cursor: pointer;
   transition: box-shadow 0.2s ease;
   height: 168px;
-  /* 카드 높이 고정 */
 }
 
 .course-card:hover {
@@ -92,75 +349,87 @@ export default {
 
 .course-list {
   font-size: 0.8rem;
+  color: #666;
+  line-height: 1.4;
 }
 
-/* [왼쪽 이미지] */
-.map-thumbnail {
+/* 지도 컨테이너 */
+.map-container {
   width: 149px;
   height: 126px;
   border-radius: 8px;
-  object-fit: cover;
+  overflow: hidden;
   border: 1px solid #eee;
   flex-shrink: 0;
-  /* 이미지가 찌그러지지 않도록 함 */
+  position: relative;
+  background-color: #f8f9fa;
 }
 
-/* [오른쪽 콘텐츠 영역]
-  'display: flex'와 'flex-direction: column'을 사용해
-  [헤더], [제목], [주소]를 세로로 쌓습니다.
-  'flex: 1'은 이미지를 제외한 나머지 공간을 모두 차지하게 합니다.
-*/
+/* 지도 플레이스홀더 */
+.map-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #999;
+}
+
+.map-fallback {
+  width: 100%;
+  height: 100%;
+}
+
 .content-area {
   flex: 1;
-  /* 남은 공간 모두 차지 */
   display: flex;
   flex-direction: column;
   justify-content: center;
-  /* (중요) 세로(column) 방향이므로 height: 100%가 필요할 수 있으나,
-     부모(.course-card)가 align-items: center이므로 필요 없을 수 있습니다.
-     만약 title, address가 위로 쏠린다면 height: 100% 또는
-     justify-content: center 추가 */
   height: 100%;
-  /* 부모 높이(168px)에 맞춰 꽉 채움 */
 }
 
-/* [콘텐츠 헤더 (태그 + 아이콘)]
-  'display: flex'와 'justify-content: space-between'을 사용해
-  [PillTag]는 왼쪽에, [action-icons]는 오른쪽에 배치합니다.
-*/
 .content-header {
   display: flex;
   justify-content: space-between;
-  /* 양쪽 끝으로 밀어냄 */
   align-items: center;
   margin-bottom: 4px;
   width: 100%;
-  /* 부모(.content-area) 너비에 맞춤 */
 }
 
-/* [아이콘 영역] */
 .action-icons {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 18px;
   color: #dc3545;
-  /* 하트 아이콘이므로 빨간색으로 변경 (예시) */
   flex-shrink: 0;
 }
 
-/* [제목] */
 .title {
   font-size: 17px;
   font-weight: 600;
   color: #333;
   margin-bottom: 4px;
-  /* 'flex-grow: 1'이 있으면 안 됩니다. (다른 요소들을 밀어냄) */
 }
 
-/* [주소] */
 .address {
   font-size: 14px;
   color: #777;
+  margin-bottom: 4px;
+}
+
+/* 카카오맵 컨트롤 숨기기 */
+.map-container :deep(.kakao-map-control) {
+  display: none !important;
+}
+
+.map-container :deep(.MapTypeControl) {
+  display: none !important;
+}
+
+.map-container :deep(.ZoomControl) {
+  display: none !important;
 }
 </style>
