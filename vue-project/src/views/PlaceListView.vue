@@ -28,8 +28,9 @@
       <PlaceCard2 v-for="item in currentCarouselItems" :key="item.id" :item="item" @add=goToDetail(item)
         @item-click="handleItemClick(item)" />
     </div>
-    <FilterModal v-if="isModalOpen" :initialSubject="selectedSubject" :initialGrade="selectedGrade"
-      @close="isModalOpen = false" @complete="handleFilterComplete" />
+    <FilterModal v-if="isModalOpen" :showSearchOptions="false" :initialSearchType="'filter'"
+      :initialSubject="selectedSubject" :initialGrade="selectedGrade" @close="isModalOpen = false"
+      @complete="handleFilterComplete" />
   </div>
 </template>
 

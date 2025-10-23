@@ -333,7 +333,7 @@ const performSearch = async () => {
         filteredList = itemsWithDistance.filter(item => {
           const withinRadius = item.distance <= searchRadius.value;
           const subjectMatch = item.subject === selectedSubject.value;
-          const gradeMatch = item.grade === selectedGrade.value.replace('초등 ', '');
+          const gradeMatch = item.grade === selectedGrade.value;
 
           console.log(`${item.title}: 반경내(${withinRadius}) 과목일치(${subjectMatch}) 학년일치(${gradeMatch})`);
 
@@ -351,14 +351,13 @@ const performSearch = async () => {
         const regionString = `${item.city} ${item.district}`.trim();
         return (selectedRegion.value && regionString.includes(selectedRegion.value)) &&
           item.subject === selectedSubject.value &&
-          item.grade === selectedGrade.value.replace('초등 ', '');
+          item.grade === selectedGrade.value;
       });
     } else { // 'filter'
       console.log('일반 필터 검색 모드');
       filteredList = baseList.filter(item => {
         return item.subject === selectedSubject.value &&
-          item.grade === selectedGrade.value.replace('초등 ', '');
-
+          item.grade === selectedGrade.value;
       });
     }
 
