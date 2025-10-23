@@ -355,12 +355,24 @@ export default {
 .scroll-content {
   /* 남은 모든 공간(높이)을 차지하도록 합니다. */
   flex-grow: 1;
-  /* 필수: 이 영역에서만 스크롤이 발생하도록 합니다. */
+  /* 이 영역에서만 스크롤이 발생하도록 합니다. */
   overflow-y: auto;
   min-height: 0;
   /* background-color: #fff; */
   /* 스크롤 영역 배경색이 필요하다면 추가 */
   padding-bottom: 40px;
+
+  /* 스크롤바 숨기기 */
+  /* Chrome, Safari, Edge 등 (웹킷 브라우저) */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Firefox */
+  scrollbar-width: none;
+
+  /* IE (구형) */
+  -ms-overflow-style: none;
 }
 
 .divider {
