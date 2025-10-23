@@ -261,6 +261,19 @@ export default {
 .user-like-course {
   flex: 1;
   overflow-y: auto;
+
+  /* 스크롤바 숨기기 */
+  /* Chrome, Safari, Edge 등 (웹킷 브라우저) */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Firefox */
+  scrollbar-width: none;
+
+  /* IE (구형) */
+  -ms-overflow-style: none;
+
   /* 카드 목록이 잘 보이도록 패딩 추가 */
   padding: 16px;
   /* 목록 배경색 */
