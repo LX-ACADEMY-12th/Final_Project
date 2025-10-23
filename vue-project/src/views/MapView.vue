@@ -11,8 +11,7 @@
         left: 18px;
         top: 16px;
       ">
-      <img src="https://via.placeholder.com/48/E0E0E0/808080?text=Av" class="rounded-circle"
-        style="width: 48px; height: 48px; flex-shrink: 0;">
+      <img src="https://placehold.co/600x400" class="rounded-circle" style="width: 48px; height: 48px; flex-shrink: 0;">
 
       <div class="flex-grow-1" style="font-family: 'SUIT', sans-serif">
         <div class="text-secondary" style="font-size: 0.9rem;">안녕하세요</div>
