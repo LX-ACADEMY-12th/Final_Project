@@ -27,9 +27,9 @@
     <!-- 프로필 영역 아래 전시 및 답사 버튼 -->
     <div class="position-absolute d-flex flex-row" style="z-index: 10; top: 104px; left: 18px; gap: 8px;">
       <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-        @click="selectedTab = '전시'">전시</button>
+        @click="changeTab('전시')">전시</button>
       <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-        @click="selectedTab = '답사'">답사</button>
+        @click="changeTab('답사')">답사</button>
     </div>
 
     <!-- 지도 상 실내지도, 방문장소, 현위치 버튼 -->
@@ -82,12 +82,20 @@
   </div>
 </template>
 
+<script>
+// <KeepAlive>가 인식할 수 있도록 name을 지정
+// 이 이름이 App.vue의 include="MapComponent"와 일치해야 합니다.
+export default {
+  name: 'MapComponent'
+}
+</script>
+
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, onActivated } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomNavbar from '@/components/BottomNavbar.vue';
-import FilterModal from '@/components/FilterModal.vue';
-import PlaceCard from '@/components/PlaceCard.vue';
+import FilterModal from '@/components/modal/FilterModal.vue';
+import PlaceCard from '@/components/card/PlaceCard.vue';
 
 const router = useRouter();
 // '전시/탐험' 탭 상태 ('전시'가 활성화됨)
@@ -112,9 +120,41 @@ const currentLocationMarker = ref(null);
 // const goToIndoorMap = () => {
 //   router.push('/indoormap');
 // }
+
+// URL 쿼리에서 탭 상태를 읽어와 selectedTab의 초기값을 설정
+// (setup 스코프에서 router.currentRoute.value로 현재 라우트 정보에 접근)
+const tabFromQuery = router.currentRoute.value.query.tab;
+if (tabFromQuery === '답사') {
+  selectedTab.value = '답사';
+}
+
+// [수정 2] onActivated 훅을 추가합니다.
+onActivated(() => {
+  // 이 컴포넌트가 <KeepAlive>에 의해 다시 화면에 나타날 때마다 실행됩니다.
+  console.log('지도 컴포넌트가 다시 활성화됨. 네비바를 "지도"로 설정합니다.');
+  // 이 컴포넌트는 '지도' 페이지이므로, 네비바 상태를 '지도'로 강제 설정합니다.
+  selectedNavItem.value = '지도';
+});
+
+// 탭 변경 시 URL도 함께 변경하는 함수 정의
+const changeTab = (tabName) => {
+  selectedTab.value = tabName;
+  // router.replace를 사용하여 히스토리 스택에 추가하지 않고 URL 변경
+  router.replace({ query: { tab: tabName } });
+};
+
+// 장소 상세페이지 이동 함수
 const goToDetail = (item) => {
   console.log(`상세 페이지로 이동:`, item.title);
-  router.push('/placedetail')
+  if (selectedTab.value === '전시') {
+    // '전시' 탭이면 /exhibition/ID 로 이동
+    console.log(`전시 상세로 이동 (ID: ${item.id}):`, item.title);
+    router.push(`/exhibition/${item.id}`);
+  } else {
+    // '답사' 탭이면 /place/ID 로 이동
+    console.log(`장소 상세로 이동 (ID: ${item.id}):`, item.title);
+    router.push(`/place/${item.id}`);
+  }
 }
 
 // 카드 본체 클릭 시 호출될 함수 (지도 이동)
@@ -362,7 +402,7 @@ const handleNavigation = (navItemName) => {
   console.log(navItemName, '클릭됨.');
   // 활성 탭 상태 업데이트
   selectedNavItem.value = navItemName;
-  // [!!] 경로는 실제 router/index.js에 정의된 path와 일치해야 합니다.
+  // 경로는 실제 router/index.js에 정의된 path와 일치해야 합니다.
   if (navItemName === '홈') {
     router.push('/home');
   } else if (navItemName === '목록') {

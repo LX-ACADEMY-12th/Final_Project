@@ -21,7 +21,7 @@
 </template>
 
 <script>
-import CourseMap from './CourseMap.vue';
+import CourseMap from '@/components/map/CourseMap.vue';
 
 export default {
   name: 'LocationSection',

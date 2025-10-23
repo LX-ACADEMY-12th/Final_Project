@@ -4,7 +4,12 @@ import { RouterView } from 'vue-router'
 
 <template>
   <div id="app-container">
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <!-- 컴포넌트의 name 속성이 MapComponent 인 것만 기억해라 -->
+      <KeepAlive include="MapComponent">
+        <component :is="Component" />
+      </KeepAlive>
+    </RouterView>
   </div>
 </template>
 

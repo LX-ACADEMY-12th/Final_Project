@@ -1,11 +1,9 @@
 <template>
-  <div class="place-card d-flex flex-row bg-white align-items-center px-3 py-3 rounded-4 shadow gap-3"
-    @click="onItemClick">
-    <!-- 이미지 프레임 -->
-    <div class="image-frame rounded-3 d-flex align-items-center justify-content-center flex-shrink-0">
-      <img v-if="item.imageUrl" :src="item.imageUrl" alt="전시 이미지" class="place-image rounded-3">
-    </div>
-
+  <div class="place-card d-flex flex-row bg-white align-items-center px-3 py-3 rounded-4 shadow gap-3" style="
+    font-family: 'SUIT' , sans-serif">
+    <!-- 이미지  -->
+    <img :src="item.imageUrl" :alt="item.title" class="map-thumbnail" />
+    <!-- 컨텐츠 프레임 -->
     <div class="content-frame d-flex flex-column flex-grow-1 gap-2 min-w-0">
       <!-- 첫 줄 프레임 -->
       <div class="d-flex justify-content-between align-items-center gap-1">
@@ -49,12 +47,12 @@
 </template>
 
 <script setup>
-import PillTag from './PillTag.vue';
-import TypeTag from './TypeTag.vue';
-import HashTag from './HashTag.vue';
+import PillTag from '@/components/tag/PillTag.vue';
+import TypeTag from '@/components/tag/TypeTag.vue';
+import HashTag from '@/components/tag/HashTag.vue';
 
 import { computed } from 'vue';
-const emit = defineEmits(['add', 'item-click']);
+const emit = defineEmits(['add']);
 
 const props = defineProps({
   item: {
@@ -96,35 +94,44 @@ const onAddClick = () => {
   emit('add');
 };
 
-// 카드 본체 클릭 핸들러
-const onItemClick = () => {
-  emit('item-click');
-}
 </script>
 
+
 <style scoped>
+/* --- 레이아웃의 핵심 부분 --- */
+
+/* [카드 전체]
+  'display: flex'를 사용해 [이미지] | [콘텐츠 영역]으로
+  가로 2단 분리합니다.
+*/
 .place-card {
-  width: 310px;
-  height: 146px;
-  z-index: 10;
-  flex-shrink: 0;
-  /* 카드 내부 요소들이 넘치지 않도록 */
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  gap: 15px;
+  margin: 0 0 0 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   cursor: pointer;
+  transition: box-shadow 0.2s ease;
+  height: 168px;
+  /* 카드 높이 고정 */
 }
 
-/* 이미지 프레임 */
-.image-frame {
-  width: 80px;
-  height: 80px;
-  overflow: hidden;
-  background-color: #f0f0f0;
+.place-card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
-.place-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+/* 이미지 */
+.map-thumbnail {
+  width: 149px;
+  height: 126px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #eee;
+  /* 이미지가 찌그러지지 않도록 함 */
+  flex-shrink: 0;
 }
 
 /* 콘텐츠 영역 */

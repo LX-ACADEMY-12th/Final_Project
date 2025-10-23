@@ -2,41 +2,58 @@
   <div class="exhibition-detail-page">
 
     <div class="header">
-      <ExhibitionHeader pageTitle="교과서" />
+      <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시 상세" />
+      <ExhibitionHeader v-else-if="pageType === 'place'" pageTitle="장소 상세" />
+      <ExhibitionHeader v-else pageTitle="로딩 중..." />
     </div>
 
-    <!-- 헤더 빼고 전체 스크롤 가능하게 -->
     <div class="scroll-content">
-      <InfoSection :exhibition="exhibition" imageTag="전시 태그" :subjectTags="exhibition.subjectTag" />
 
-      <hr class="divider" />
+      <div v-if="pageType === 'exhibition'">
+        <InfoSection :exhibition="exhibition" imageTag="전시 태그" :subjectTags="exhibition.subjectTag" />
+        <hr class="divider" />
+        <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="(tabName) => currentTab = tabName" />
 
-      <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="(tabName) => currentTab = tabName" />
-
-      <!-- 여기서부터는 스크롤로 내려감-->
-      <div v-if="currentTab === 'detail'">
-        <ContentDetailView />
-      </div>
-
-      <div v-else-if="currentTab === 'recommend'">
-        <div class="course-list-container">
-          <CourseRecommend :course-items="courseItems" />
+        <div v-if="currentTab === 'detail'">
+          <ContentDetailView :info="exhibitionInformation" :description="exhibition.description" />
+        </div>
+        <div v-else-if="currentTab === 'recommend'">
+          <CourseRecommend :course-items="courseItems" type="exhibition" />
         </div>
       </div>
-    </div>
 
+      <div v-else-if="pageType === 'place'">
+        <InfoSection :exhibition="place" imageTag="장소 태그" :subjectTags="place.subjectTag" />
+        <hr class="divider" />
+        <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="(tabName) => currentTab = tabName" />
+
+        <div v-if="currentTab === 'detail'">
+          <ContentDetailView :info="placeInformation" :description="place.description" />
+        </div>
+        <div v-else-if="currentTab === 'recommend'">
+          <CourseRecommend :course-items="courseItems" type="place" />
+        </div>
+      </div>
+
+      <div v-else class="loading-container">
+        <p>데이터를 불러오는 중입니다...</p>
+      </div>
+
+    </div>
   </div>
 </template>
 
 <script>
 // 6개의 하위 컴포넌트를 불러옵니다.
-import ExhibitionHeader from '@/components/ExhibitionHeader.vue';
-import InfoSection from '@/components/InfoSection.vue';
-import TabSection from '@/components/TabSection.vue';
-import CourseRecommend from './CourseRecommend.vue';
-import ContentDetailView from './ContentDetailView.vue';
+import ExhibitionHeader from '@/components/header/ExhibitionHeader.vue';
+import InfoSection from '@/components/section/InfoSection.vue';
+import TabSection from '@/components/section/TabSection.vue';
+import ContentDetailView from './ContentDetailView.vue'; // 전시/ 장소 상세 정보 vue
+import CourseRecommend from './CourseRecommend.vue'; // 추천 연계 / 실내 관람 코스 보여주는 vue
+// import ReviewModal from '@/components/ReviewModal.vue'; // 후기 모달 (필요시)
 
 export default {
+  name: 'PlaceDetailsView',
   // 컴포넌트들을 등록하여 사용할 수 있게 합니다.
   components: {
     ExhibitionHeader,
@@ -46,91 +63,234 @@ export default {
     ContentDetailView
   },
 
-  name: 'PlaceDetailsView',
-
   // 모든 데이터를 중앙에서 관리합니다.
   data() {
     return {
-
-      // 탭 상태 관리 데이터
+      // 템플릿 v-if 분기용 변수
+      pageType: null, // 'exhibition' 또는 'place'가 저장될 곳
       currentTab: 'detail', // 초기값
       // **모달 제어 데이터:**
       showReviewModal: false,
 
-      // === 메인 상세 페이지 데이터 ===
+      // --- '전시' 데이터를 담을 객체 (초기 상태) ---
       exhibition: {
-        title: '단위와 양자 나라의 앨리스 - 큐빗(Cubit)에서 큐비트(Qubit)까지',
-        rating: 4.7,
-        reviewCount: 516,
-        // new
-        subjectTag: ['물리', '생명'],
-        description: `‘이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
-                      이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
-                      이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
-                      이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.`,
-        // 메인 이미지 URL을 데이터 객체 안에 넣습니다.
-        mainImage: 'https://www.sciencecenter.go.kr/scipia/File/110062/CKEDITOR_ATTATCHMENTS/7551/7551.jpg',
+        title: '데이터 로딩 중...',
+        rating: 0,
+        reviewCount: 0,
+        subjectTag: [],
+        type: '', // 'exhibition' 또는 'place'가 채워질 곳
+        description: '',
+        mainImage: 'https://via.placeholder.com/600x400', // 로딩 이미지
       },
       exhibitionInformation: {
-        exhibitionLocation: '국립과천과학관 2층 첨단기술관',
-        operationPeriod: '2025.08.12(화) - 10.12(일)',
-        operationHours: '오전 9:30 - 오후 5:30 (매주 월요일 정기 휴관)',
-        entranceFee: '무료'
+        exhibitionLocation: '',
+        operationPeriod: '',
+        operationHours: '',
+        entranceFee: ''
       },
-      reviews: [
-        { id: 1, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-        { id: 2, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-        { id: 3, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-        { id: 4, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-        { id: 5, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-      ],
 
-      // 'AI 추천 코스' 탭에서 사용할 코스 데이터
-      courseItems: [
-        {
-          number: 1,
-          mainTitle: '국립중앙과학관',
-          imageSrc: 'https://lh3.googleusercontent.com/gps-cs-s/AC9h4nrV8BM0LV8Ut5eepaWN3hzpJj3slSODMEaAi02DvDiyR9F6hTm6cnx0oW4TmgaP04jlBbssTq9DXz7TQ1UKWBDLF7_99ALOrsp41q9CEDYYf7OU1CqBLFoHdRY9myX1jljB8Vo=w408-h306-k-no',
-          placeName: '대전국립중앙과학관',
-          address: '대전광역시 유성구 대덕대로 481',
-          description: '과학, 기술, 자연사에 대한 인터랙티브 전시물이 있는 박물관',
-        },
-        {
-          number: 2,
-          mainTitle: '엑스포 과학공원',
-          imageSrc: 'https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqOOfxYhEFNAQpgZyk0ZBl7cg9QUdGno20Rb5JQzbSzeDKMKihJVDeev2sp-Ky1HC27OUqKFjbV1g5IjHaxRJF52WmJeKxCBWTSZbBZLzXm3ikeBB2yqShxTyv_jgfa0Sq4XAYA=w426-h240-k-no',
-          placeName: '대전 엑스포 과학공원',
-          address: '대전광역시 유성구 대덕대로 480',
-          description: '1993 대전엑스포 부지에 조성된 과학·문화 공원',
-        },
-        {
-          number: 3,
-          mainTitle: '한밭수목원',
-          imageSrc: 'https://lh3.googleusercontent.com/gps-cs-s/AC9h4nob7TboAJOVzNoQyQlJbMN-X_9S4Tc8_s5TvyVpZiUQPUXUKypKIvLBebC_0OdUSUs13Tto2mQOvlbtfNWCRv_m_mghRzf3PV3iD9YVJoXUa0l1VgxeswYjswMfD4OxpSoC0GCTlQ=w408-h305-k-no',
-          placeName: '한밭수목원',
-          address: '대전광역시 서구 둔산대로 169',
-          description: '다양한 종의 나무와 식물을 볼 수 있는 도심 속 공원으로 놀이 시설과 큰 연못, 산책로가 있습니다.',
-        },
-      ],
+      // --- '장소' 데이터를 담을 객체 (초기 상태) ---
+      place: {
+        title: '데이터 로딩 중...',
+        rating: 0,
+        reviewCount: 0,
+        subjectTag: [],
+        type: '', // 'exhibition' 또는 'place'가 채워질 곳
+        description: '',
+        mainImage: 'https://via.placeholder.com/600x400', // 로딩 이미지
+      },
+
+      placeInformation: {
+        exhibitionLocation: '',
+        operationPeriod: '',
+        operationHours: '',
+        entranceFee: ''
+      },
+
+      // --- 공통 데이터 (리뷰, 추천 코스) ---
+      reviews: [],
+      courseItems: [], // 추천 코스 데이터 (초기 상태)
 
       // === 모달 폼 데이터 ===
-      reviewText: '',          // 모달 내 후기 텍스트 입력값
-      selectedRating: 4.0,     // 모달 내 별점 선택값
-      uploadedImageCount: 0,   // 모달 내 업로드된 이미지 개수
+      reviewText: '',
+      selectedRating: 4.0,
+      uploadedImageCount: 0,
     };
+  },
+
+  // [추가] 컴포넌트 생성 시 URL을 확인하여 데이터 로드
+  created() {
+    // URL에서 ID 값을 가져옵니다. (예: "1" 또는 "4")
+    const id = this.$route.params.id;
+    // URL 경로에 '/place/'가 포함되어 있는지 확인합니다.
+    const isPlace = this.$route.path.includes('/place/');
+
+    if (isPlace) {
+      // 1. pageType을 'place'로 설정
+      this.pageType = 'place';
+      console.log(`장소 상세 페이지 로드 (ID: ${id})`);
+      // 2. '장소' 데이터 fetch 함수 호출
+      this.fetchPlaceData(id);
+    } else {
+      // 1. pageType을 'exhibition'으로 설정
+      this.pageType = 'exhibition';
+      console.log(`전시 상세 페이지 로드 (ID: ${id})`);
+      // 2. '전시' 데이터 fetch 함수 호출
+      this.fetchExhibitionData(id);
+    }
   },
 
   // 계산된 속성 (Computed Properties)
   computed: {
-    // 폼 유효성 검사: 모달에 전달되어 '후기 올리기' 버튼의 활성화/비활성화를 결정합니다.
+    // (기존 코드와 동일)
     isFormValid() {
-      // 텍스트가 비어있지 않고, 별점이 0보다 크면 true를 반환합니다.
       return this.reviewText.trim().length > 0 && this.selectedRating > 0;
     }
   },
 
-  // 사용자 정의 함수 (메서드): 모든 로직은 여기서 처리됩니다.
+  // 사용자 정의 함수 (메서드)
   methods: {
+
+    // [id: 1] '전시' 데이터를 불러오는 함수
+    fetchExhibitionData() {
+      // (id 값과 무관하게 하드코딩된 '전시' 데이터 로드)
+      // === 'this.exhibition' 관련 객체에 데이터 삽입 ===
+      this.exhibition = {
+        title: '단위와 양자 나라의 앨리스 - 큐빗(Cubit)에서 큐비트(Qubit)까지',
+        rating: 4.7,
+        reviewCount: 516,
+        subjectTag: ['물리', '생명'],
+        type: 'exhibition', // 하위 컴포넌트 전달용
+        description: `이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
+             이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
+             이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
+             이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다`,
+        mainImage: 'https://www.sciencecenter.go.kr/scipia/File/110062/CKEDITOR_ATTATCHMENTS/7551/7551.jpg',
+      };
+      this.exhibitionInformation = {
+        exhibitionLocation: '국립과천과학관 2층 첨단기술관',
+        operationPeriod: '2025.08.12(화) - 10.12(일)',
+        operationHours: '오전 9:30 - 오후 5:30 (매주 월요일 정기 휴관)',
+        entranceFee: '무료'
+      };
+      this.reviews = [
+        { id: 1, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요!', date: '2025.05.15', likes: 12 },
+        { id: 2, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요!', date: '2025.05.15', likes: 12 },
+      ];
+      // '전시' 추천 코스 (ExhibitionCourseCard용)
+      this.courseItems = [
+        {
+          id: 1,
+          number: 1,
+          color: '#e53e3e',
+          imageUrl: 'https://placehold.co/600x400',
+          subject: '지구',
+          grade: '3학년',
+          title: '습지생물코너',
+          type: '상설',
+          place: '국립중앙과학관 자연사관',
+          hashtags: ['항상성과 몸의 조절', '생명과학과 인간의 생활'],
+          lat: 36.3758, // 국립중앙과학관
+          lng: 127.3845
+        },
+        {
+          id: 2,
+          number: 2,
+          color: '#e53e3e',
+          imageUrl: 'https://placehold.co/600x400',
+          subject: '물리',
+          grade: '4학년',
+          title: '빛의 원리',
+          type: '기획',
+          place: '국립과천과학관',
+          hashtags: ['파동', '빛', '물리1', '체험'],
+          lat: 37.4363, // 국립과천과학관
+          lng: 126.9746
+        },
+        {
+          id: 3,
+          number: 3,
+          color: '#e53e3e',
+          imageUrl: 'https://placehold.co/600x400',
+          subject: '화학',
+          grade: '5학년',
+          title: '미래 에너지',
+          type: '상설',
+          place: '서울시립과학관',
+          hashtags: ['에너지', '화학 반응', '미래 기술'],
+          lat: 37.6094, // 서울시립과학관
+          lng: 127.0706
+        }
+      ];
+    },
+
+    // [id: 4] '장소(답사)' 데이터를 불러오는 함수
+    fetchPlaceData() {
+      // (id 값과 무관하게 하드코딩된 '장소' 데이터 로드)
+      // === 'this.place' 관련 객체에 데이터 삽입 ===
+      this.place = {
+        title: '해운대',
+        rating: 4.8,
+        reviewCount: 1500,
+        subjectTag: ['지구', '5학년'],
+        type: 'place', // 하위 컴포넌트 전달용
+        description: '부산광역시 해운대구에 위치한 대한민국 대표 해수욕장입니다. 다양한 해양 생태와 지질학적 특성을 관찰할 수 있습니다.\n부산광역시 해운대구에 위치한 대한민국 대표 해수욕장입니다. 다양한 해양 생태와 지질학적 특성을 관찰할 수 있습니다.',
+      };
+
+      this.placeInformation = {
+        exhibitionLocation: '부산광역시 해운대구',
+        operationPeriod: '연중무휴',
+        operationHours: '24시간 개방',
+        entranceFee: '무료'
+      };
+      this.reviews = [
+        { id: 1, avatar: '', name: '방문객', stars: 5, content: '아이와 모래놀이하기 좋았어요.', date: '2025.07.10', likes: 20 },
+      ];
+      // '장소' 추천 코스 (PlaceCourseCard용)
+      this.courseItems = [
+        {
+          id: 1,
+          number: 1,
+          color: '#e53e3e',
+          imageUrl: 'https://placehold.co/600x400',
+          subject: '지구',
+          grade: '3학년',
+          title: '해운대',
+          place: '부산시 해운대구',
+          hashtags: ['항상성과 몸의 조절', '생명과학과 인간의 생활'],
+          lat: 36.3758, // 국립중앙과학관
+          lng: 127.3845
+        },
+        {
+          id: 2,
+          number: 2,
+          color: '#e53e3e',
+          imageUrl: 'https://placehold.co/600x400',
+          subject: '물리',
+          grade: '4학년',
+          title: '서울숲',
+          place: '서울시 성동구',
+          hashtags: ['파동', '빛', '물리1', '체험'],
+          lat: 37.4363, // 국립과천과학관
+          lng: 126.9746
+        },
+        {
+          id: 3,
+          number: 3,
+          color: '#e53e3e',
+          imageUrl: 'https://placehold.co/600x400',
+          subject: '화학',
+          grade: '5학년',
+          title: '지질연구원',
+          place: '대전시 유성구',
+          hashtags: ['에너지', '화학 반응', '미래 기술'],
+          lat: 37.6094, // 서울시립과학관
+          lng: 127.0706
+        }
+      ];
+    },
+
+    // --- (기존 모달/리뷰 관련 메서드) ---
     // '후기작성' 버튼 클릭 시 모달을 표시하는 함수
     showModal() {
       this.showReviewModal = true;
@@ -208,5 +368,13 @@ export default {
   height: 10px;
   background-color: #f7f7f7;
   margin: 0;
+}
+
+/* 로딩 중일 때 스타일 */
+.loading-container {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+  font-size: 16px;
 }
 </style>

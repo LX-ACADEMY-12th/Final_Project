@@ -6,7 +6,7 @@
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
       </div>
       <div class="header-center fw-bold fs-6" style="flex: 1; text-align: center;">
-        관심 추천 코스 목록
+        관심 코스
       </div>
       <div class="header-right" style="flex: 1;">
       </div>
@@ -20,7 +20,7 @@
       </span>
     </div>
 
-    <div class="course-add-btn">
+    <div class="course-add-btn" v-if="pageType === 'place'">
       <button class="btn btn-primary" @click="openAddModal">
         <i class="bi bi-plus"></i> 경로추가
       </button>
@@ -28,8 +28,20 @@
 
     <div class="scrollable-content">
       <div class="course-list-container">
-        <CoursePlaceCard v-for="course in courseItems" :key="course.id" :item="course" @edit="handleEdit"
-          @delete="handleDelete" />
+        <div v-if="pageType === 'exhibition'">
+          <CourseExhibitionCard v-for="course in courseItems" :key="course.id" :item="course" :showControls="true"
+            couseType="전시" @edit="handleEdit" @delete="handleDelete" />
+        </div>
+
+        <div v-else-if="pageType === 'place'">
+          <CoursePlaceEditCard v-for="course in courseItems" :key="course.id" :item="course" :showControls="true"
+            couseType="답사" @edit="handleEdit" @delete="handleDelete" />
+        </div>
+
+        <div v-else>
+          <p>코스 상세 정보를 불러오는 중입니다....</p>
+        </div>
+
       </div>
     </div>
 
@@ -41,51 +53,100 @@
 </template>
 
 <script>
-// [추가] 모달 컴포넌트들을 import 합니다.
-import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
-import AddPlaceModal from '@/components/AddPlaceModal.vue';
-import CourseMap from '@/components/CourseMap.vue';
-import CoursePlaceCard from '@/components/CoursePlaceCard.vue';
+import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
+import AddPlaceModal from '@/components/modal/AddPlaceModal.vue';
+import CourseMap from '@/components/map/CourseMap.vue';
+import CourseExhibitionCard from '@/components/card/CourseExhibitionPlaceCard.vue';
+import CoursePlaceEditCard from '@/components/card/CoursePlaceEditCard.vue';
 
+// '전시명1', '전시명2' 등에서 사용할 전시 코스 데이터
+const exhibitionCourseData = [
+  {
+    id: 1,
+    number: 1,
+    color: '#e53e3e',
+    imageUrl: 'https://placehold.co/600x400',
+    subject: '지구',
+    grade: '3학년',
+    title: '습지생물코너',
+    type: '상설',
+    place: '국립중앙과학관 자연사관',
+    hashtags: ['항상성과 몸의 조절', '생명과학과 인간의 생활'],
+    lat: 36.3758,
+    lng: 127.3845
+  },
+  {
+    id: 2,
+    number: 2,
+    color: '#e53e3e',
+    imageUrl: 'https://placehold.co/600x400',
+    subject: '물리',
+    grade: '4학년',
+    title: '빛의 원리',
+    type: '기획',
+    place: '국립과천과학관',
+    hashtags: ['파동', '빛', '물리1', '체험'],
+    lat: 37.4363,
+    lng: 126.9746
+  },
+  {
+    id: 3,
+    number: 3,
+    color: '#e53e3e',
+    imageUrl: 'https://placehold.co/600x400',
+    subject: '화학',
+    grade: '5학년',
+    title: '미래 에너지',
+    type: '상설',
+    place: '서울시립과학관',
+    hashtags: ['에너지', '화학 반응', '미래 기술'],
+    lat: 37.6094,
+    lng: 127.0706
+  }
+];
 
-// ( ... mockCourseDatabase는 동일 ... )
-const mockCourseDatabase = {
-  '전시명1': [
-    {
-      id: 101, number: 1, color: '#8B5CF6',
-      category: '지구',
-      placeName: '과학탐구관',
-      address: '5학년 과학/물질과 운동 단원',
-      description: '전시물1, 전시물2, 전시물3',
-      imageSrc: 'https://via.placeholder.com/80/8B5CF6/FFFFFF?text=A',
-      latlng: [36.375788, 127.376580]
-    },
-    {
-      id: 102, number: 2, color: '#10B981',
-      category: '우주',
-      placeName: '첨단기술관',
-      address: '6학년 과학/전기와 자기',
-      description: '로봇, AI, 반도체',
-      imageSrc: 'https://via.placeholder.com/80/10B981/FFFFFF?text=B',
-      latlng: [36.377311, 127.388255]
-    },
-  ],
+// '장소명1', '장소명2' 등에서 사용할 답사 코스 데이터 (샘플)
+const placeCourseData = [
+  {
+    id: 9,
+    number: 1,
+    color: '#3B82F6',
+    imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
+    subject: '지구',
+    grade: '3학년',
+    title: '해운대',
+    type: '답사',
+    place: '부산시 해운대구',
+    hashtags: ['고체지구', '유체지구', '천체'],
+    lat: 35.1587,
+    lng: 129.1604
+  }
+];
+
+// ExhibitionName을 Key로 사용하는 "가짜 데이터베이스" 객체
+const courseDataBank = {
+  '전시명1': exhibitionCourseData,
+  '전시명2': exhibitionCourseData, // (임시로 동일 데이터 사용)
+  '전시명3': exhibitionCourseData, // (임시로 동일 데이터 사용)
+  '장소명1': placeCourseData,
+  '장소명2': placeCourseData, // (임시로 동일 데이터 사용)
 };
 
-
 export default {
-  name: 'CourseRecommendDetail',
+  name: 'UserLikeCourseDetail',
   components: {
     CourseMap,
-    CoursePlaceCard,
     ConfirmDeleteModal, // [추가]
-    AddPlaceModal      // [추가]
+    AddPlaceModal,      // [추가]
+    CourseExhibitionCard,
+    CoursePlaceEditCard
   },
 
   data() {
     return {
       exhibitionName: null,
       courseItems: [],
+      pageType: null,
 
       // [추가] 모달 상태 관리를 위한 데이터
       showDeleteModal: false,
@@ -96,18 +157,32 @@ export default {
 
   created() {
     const nameFromUrl = this.$route.params.ExhibitionName;
+    // URL 쿼리에서 type (?type=...)을 가져옵니다.
+    const typeFromQuery = this.$route.query.type; // '전시' 또는 '답사'
     this.exhibitionName = nameFromUrl;
+
+    // pageType을 쿼리 기준으로 정확히 설정
+    if (typeFromQuery === '답사') { // 목록에서 '답사'라고 넘겨줌
+      this.pageType = 'place';
+    } else { // '전시' 또는 기타
+      this.pageType = 'exhibition';
+    }
+
+    // 코스의 이름으로 데이터를 불러오는것
     this.fetchCourseData(nameFromUrl);
   },
 
   methods: {
+    // 데이터를 "데이터베이스"에서 이름(key)으로 찾아오는 로직
     fetchCourseData(name) {
-      const data = mockCourseDatabase[name];
+      // 객체에서 key로 데이터(배열)을 찾는다.
+      const data = courseDataBank[name];
       if (data) {
-        this.courseItems = data;
+        this.courseItems = data; // 찾은 배열을 courseItems에 할당
       } else {
         console.error(`'${name}'에 해당하는 코스 데이터를 찾을 수 없습니다.`);
-        this.courseItems = mockCourseDatabase['전시명1'];
+        // 데이터가 없으면 기본 전시 데이터 보여주기
+        this.courseItems = courseDataBank['전시명1'];
       }
     },
 

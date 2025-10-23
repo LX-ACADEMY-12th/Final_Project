@@ -27,7 +27,7 @@
 <script>
 // 1. 컴포넌트 import
 import ExhibitionAccordion from '@/components/ExhibitionAccordion.vue';
-import FloorGuideModal from '@/components/FloorGuideModal.vue';
+import FloorGuideModal from '@/components/modal/FloorGuideModal.vue';
 
 export default {
   name: 'ExhibitionHall',

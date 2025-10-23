@@ -80,7 +80,7 @@
 </template>
 
 <script>
-import SettingsModal from '@/components/SettingsModal.vue';
+import SettingsModal from '@/components/modal/SettingsModal.vue';
 
 export default {
   name: 'MyPageView',

@@ -151,9 +151,9 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import FilterModal from '@/components/FilterModal.vue';
+import FilterModal from '@/components/modal/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
-import PlaceCard from '@/components/PlaceCard.vue';
+import PlaceCard from '@/components/card/PlaceCard.vue';
 
 const router = useRouter();
 // 전시/탐험 버튼 상태 ('전시'가 활성화됨)

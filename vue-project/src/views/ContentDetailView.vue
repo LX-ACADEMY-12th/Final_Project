@@ -1,38 +1,24 @@
 <template>
   <div class="view-detail-page">
 
-      <LocationSection :exhibition-information="exhibitionInformation" />
+    <LocationSection :exhibition-information="exhibitionInformation" />
 
-      <hr class="divider" />
+    <hr class="divider" />
 
-      <ReviewSection 
-        :reviews="reviews"
-        :rating="exhibition.rating" 
-        :review-count="exhibition.reviewCount"
-        :photo-review-count="exhibition.photoReviewCount" :is-place="false"
-        @show-modal="showModal" 
-      />
+    <ReviewSection :reviews="reviews" :rating="exhibition.rating" :review-count="exhibition.reviewCount"
+      :photo-review-count="exhibition.photoReviewCount" :is-place="false" @show-modal="showModal" />
 
-    <ReviewModal
-      v-if="showReviewModal"
-      :reviewText="reviewText"
-      :selectedRating="selectedRating"
-      :uploadedImageCount="uploadedImageCount"
-      :isFormValid="isFormValid"
-      
-      @update:reviewText="reviewText = $event"
-      @update:selectedRating="selectedRating = $event"
-      @close="closeModal"
-      @submit="submitReview"
-    />
+    <ReviewModal v-if="showReviewModal" :reviewText="reviewText" :selectedRating="selectedRating"
+      :uploadedImageCount="uploadedImageCount" :isFormValid="isFormValid" @update:reviewText="reviewText = $event"
+      @update:selectedRating="selectedRating = $event" @close="closeModal" @submit="submitReview" />
   </div>
 </template>
 
 <script>
 // 필요한 모든 하위 컴포넌트들을 불러옵니다.
-import LocationSection from '@/components/LocationSection.vue';
-import ReviewSection from '@/components/ReviewSection.vue';
-import ReviewModal from '@/components/ReviewModal.vue';
+import LocationSection from '@/components/section/LocationSection.vue';
+import ReviewSection from '@/components/section/ReviewSection.vue';
+import ReviewModal from '@/components/modal/ReviewModal.vue';
 
 export default {
   // 컴포넌트들을 등록하여 사용할 수 있게 합니다.
@@ -41,7 +27,7 @@ export default {
     ReviewSection,
     ReviewModal,
   },
-  
+
   name: 'ViewDetailWithModal',
 
   // 모든 데이터를 중앙에서 관리합니다.
@@ -56,10 +42,10 @@ export default {
         rating: 4.7,
         reviewCount: 516,
         photoReviewCount: 120, // 사진 후기 개수 추가
-        
+
         // subjectTag는 배열 형태로 변경하여 InfoSection으로 전달되도록 수정
-        subjectTag: ['물리'], 
-        
+        subjectTag: ['물리'],
+
         description: `‘이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.`,
         mainImage: 'https://www.sciencecenter.go.kr/scipia/File/110062/CKEDITOR_ATTATCHMENTS/7551/7551.jpg',
       },
@@ -101,7 +87,7 @@ export default {
     showModal() {
       this.showReviewModal = true;
     },
-    
+
     // 'X' 버튼 또는 후기 제출 후 모달을 닫는 함수
     closeModal() {
       this.showReviewModal = false;
@@ -128,7 +114,7 @@ export default {
 
       // 2. reviews 배열의 맨 앞에 새 후기를 추가합니다.
       this.reviews.unshift(newReview);
-      
+
       console.log('후기 제출 완료:', newReview); // 제출 데이터 확인
 
       // 3. 제출 후 모달을 닫고 사용자에게 알림을 줍니다.
@@ -143,7 +129,7 @@ export default {
 /* === 공통 스타일 === */
 .view-detail-page {
   /* 전체 페이지의 높이를 뷰포트 높이(화면 높이)로 설정합니다. */
-  height: 100%; 
+  height: 100%;
   /* Flexbox를 사용하여 콘텐츠를 쌓고 높이 관리를 용이하게 합니다. */
   display: flex;
   flex-direction: column;
@@ -154,9 +140,9 @@ export default {
 /* TabSection 아래, 스크롤이 필요한 영역에 스타일 적용 */
 .scroll-content {
   /* 남은 모든 공간(높이)을 차지하도록 합니다. */
-  flex-grow: 1; 
+  flex-grow: 1;
   /* 필수: 이 영역에서만 스크롤이 발생하도록 합니다. */
-  overflow-y: auto; 
+  overflow-y: auto;
 }
 
 .divider {

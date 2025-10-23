@@ -7,7 +7,7 @@ import ChatView from '@/views/ChatView.vue'
 import IndoorMapView from '@/views/ExhibitionHall.vue'
 import UserLikeCourseListView from '@/views/UserLikeCourseListView.vue'
 import UserLikeCourseDetailView from '@/views/UserLikeCourseDetailView.vue'
-import PlaceDetailView from '@/views/PlaceDetailsView.vue'
+import PlaceDetailsView from '@/views/PlaceDetailsView.vue'
 import PlaceListView from '@/views/PlaceListView.vue'
 
 const router = createRouter({
@@ -58,10 +58,17 @@ const router = createRouter({
       name: 'UserLikeCourseDetail',
       component: UserLikeCourseDetailView,
     },
+    // 과학전시
     {
-      path: '/placedetail',
+      path: '/exhibition/:id',
+      name: 'ExhibitionDetail',
+      component: PlaceDetailsView,
+    },
+    // 답사장소
+    {
+      path: '/place/:id',
       name: 'PlaceDetail',
-      component: PlaceDetailView,
+      component: PlaceDetailsView, // 같은 뷰 재사용
     },
   ],
 })

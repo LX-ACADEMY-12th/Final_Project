@@ -17,9 +17,9 @@
     <div class=" segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
       <div class="segmented-control d-flex gap-3">
         <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-          @click="selectedTab = '전시'">전시</button>
+          @click="changeTab('전시')">전시</button>
         <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-          @click="selectedTab = '답사'">답사</button>
+          @click="changeTab('답사')">답사</button>
       </div>
     </div>
 
@@ -34,8 +34,8 @@
 </template>
 
 <script>
-import PlaceCard2 from '@/components/PlaceCard2.vue';
-import FilterModal from '@/components/FilterModal.vue';
+import PlaceCard2 from '@/components/card/PlaceCard2.vue';
+import FilterModal from '@/components/modal/FilterModal.vue';
 
 export default {
   name: 'PlaceList',
@@ -128,10 +128,26 @@ export default {
     }
   },
   methods: {
-    // 템플릿에 맞게 goToCourseDetail -> goToDetail로 이름 변경
+
+    // 탭 클릭 시 URL과 상태를 함께 변경하는 메서드
+    changeTab(tabName) {
+      this.selectedTab = tabName;
+      // 브라우저 히스토리에 쌓이지 않도록 'replace'를 사용
+      this.$router.replace({ query: { tab: tabName } });
+    },
+
+    // 장소 상세페이지 이동 함수
     goToDetail(item) {
-      // ExhibitionName 대신 id로 전달 (목데이터에 ExhibitionName이 없음)
-      this.$router.push(`/coursedetail/${item.id}`);
+      console.log(`상세 페이지로 이동:`, item.title);
+      if (this.selectedTab === '전시') {
+        // '전시' 탭이면 /exhibition/ID 로 이동
+        console.log(`전시 상세로 이동 (ID: ${item.id}):`, item.title);
+        this.$router.push(`/exhibition/${item.id}`);
+      } else {
+        // '답사' 탭이면 /place/ID 로 이동
+        console.log(`장소 상세로 이동 (ID: ${item.id}):`, item.title);
+        this.$router.push(`/place/${item.id}`);
+      }
     },
 
     // 뒤로가기 함수
@@ -157,8 +173,19 @@ export default {
         grade: this.selectedGrade
       });
       // TODO: 검색 API 호출 로직 구현
-    }
+    },
   },
+  created() {
+    // URL 에서 ?tab= ... 값을 읽어온다.
+    const tabFromQuery = this.$route.query.tab;
+
+    // 쿼리 값이 '답사' 이면 '답사' 탭을, 그 외에는 '전시'를 기본으로 선택
+    if (tabFromQuery === '답사') {
+      this.selectedTab = '답사';
+    } else {
+      this.selectedTab = '전시';
+    }
+  }
 }
 </script>
 
