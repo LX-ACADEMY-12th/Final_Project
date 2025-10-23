@@ -4,8 +4,9 @@
 
     <div class="modal-sheet d-flex flex-column" style="font-family: 'SUIT', sans-serif">
 
-      <div class="modal-header p-3 d-flex align-items-center flex-shrink-0" style="background-color: #4A7CEC">
-        <i class="bi bi-person-circle fs-2 me-3" style="color: white;"></i>
+      <div class="p-3 d-flex align-items-center flex-shrink-0"
+        style="background-color: #4A7CEC; border-top-left-radius: 20px; border-top-right-radius: 20px;">
+        <i class=" bi bi-person-circle fs-2 me-3" style="color: white;"></i>
         <div class="flex-grow-1">
           <h5 class="fw-bold m-0 fs-6 text-white">필터 선택</h5>
           <small class="text-black">탐구영역과 학년을 선택하세요.</small>
@@ -111,10 +112,9 @@ const grades = ref(['초등 3학년', '초등 4학년', '초등 5학년', '초�
   /* 내용물에 맞게 높이 자동 조절 */
   max-height: 90%;
   /* 최대 높이는 90%로 제한 */
-
   background: white;
-  border-radius: 20px;
   /* 3. 모든 모서리를 둥글게 */
+  border-radius: 20px;
   z-index: 1051;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   /* 그림자 수정 */
