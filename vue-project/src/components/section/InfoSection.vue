@@ -48,7 +48,7 @@
 <script>
 // ✨ 1. SubjectTag 컴포넌트를 가져옵니다.
 import PillTag from '@/components/tag/PillTag.vue';
-import Hashtag from '@/components/HashTag.vue';
+import Hashtag from '@/components/tag/HashTag.vue';
 
 export default {
   name: 'InfoSection',
