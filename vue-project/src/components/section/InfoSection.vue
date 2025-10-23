@@ -39,8 +39,6 @@
         </button>
       </div>
 
-
-
     </div>
   </section>
 </template>

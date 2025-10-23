@@ -7,7 +7,7 @@
     </div>
 
     <div class="map-area">
-      <CourseMap />
+      <CourseMap :items="mapItems" />
     </div>
 
     <ul class="operation-info">
@@ -42,20 +42,11 @@ export default {
     CourseMap
   },
 
-  // 🚀 지도 초기화를 위한 mounted 훅 추가
-  mounted() {
-    // 데이터가 있을 때만 지도를 초기화합니다.
-    if (this.infoItems.length > 0) {
-      // DOM이 완전히 그려진 후 initMap 함수를 실행하도록 보장합니다.
-      this.$nextTick(this.initMap);
-    }
-  },
-
   methods: {
     // 실내지도 버튼 클릭 시 호출 함수
     goToIndoorMap() {
       this.$router.push('/indoormap');
-    }
+    },
   },
 
   // 데이터를 목록 형태로 가공하는 계산된 속성
@@ -73,6 +64,27 @@ export default {
     // 템플릿에서 사용할 통합된 정보 객체를 결정합니다.
     information() {
       return this.placeInformation || this.exhibitionInformation || {};
+    },
+
+    // CourseMap에 전달할 핀(items) 배열 생성
+    mapItems() {
+      const info = this.information;
+
+      // 부모로부터 받은 정보에 lat, lng 좌표가 있는지 확인
+      if (info && info.lat && info.lng) {
+
+        // CourseMap은 [배열] 형태의 prop을 받으므로 배열로 감싸서 전달
+        return [{
+          lat: info.lat,
+          lng: info.lng,
+          // (선택) 핀 커스텀을 위한 정보 (CourseMap이 사용)
+          number: 1,      // 핀에 숫자 '1' 표시
+          color: '#e53e3e' // 핀 색상 (빨간색 예시)
+        }];
+      }
+      // 좌표가 없거나 info가 비어있으면
+      // CourseMap에 빈 배열 전달하여 오류 방지
+      return [];
     },
 
     // 최종적으로 목록에 표시할 배열 데이터를 생성합니다.
@@ -102,7 +114,7 @@ export default {
       }
     }
   },
-};
+}
 </script>
 
 <style scoped>

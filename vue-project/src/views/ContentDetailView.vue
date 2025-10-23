@@ -51,10 +51,13 @@ export default {
       },
       // LocationSection에 전달할 전시 정보
       exhibitionInformation: {
-        exhibitionLocation: '국립과천과학관 2층 첨단기술관',
+        exhibitionLocation: '국립과천과학관 첨단기술관 2층',
         operationPeriod: '2025.08.12(화) - 10.12(일)',
         operationHours: '오전 9:30 - 오후 5:30 (매주 월요일 정기 휴관)',
-        entranceFee: '무료'
+        entranceFee: '무료',
+        // CourseMap이 사용할 좌표 데이터
+        lat: 37.4363, // 예시: 국립과천과학관 위도
+        lng: 126.9746 // 예시: 국립과천과학관 경도
       },
       // ReviewSection에 전달할 리뷰 목록
       reviews: [
