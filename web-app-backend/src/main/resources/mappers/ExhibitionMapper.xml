@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.ExhibitionMapper">
+
+    <resultMap id="courseDetailResultMap" type="com.example.demo.dto.CourseDetailResponse">
+        <id property="exhibitionId" column="exhibition_id"/>
+        <result property="title" column="exhibition_title"/>
+        <result property="location" column="exhibition_location"/>
+        <collection property="course" ofType="com.example.demo.dto.SciencePlaceDto">
+            <id property="id" column="place_id"/>
+            <result property="name" column="place_name"/>
+            <result property="lat" column="latitude"/>
+            <result property="lng" column="longitude"/>
+        </collection>
+    </resultMap>
+
+    <select id="findByGrade" resultType="com.example.demo.dto.ExhibitionSummaryResponse">
+        SELECT
+            id, category, title, location, period
+        FROM exhibition
+        WHERE grade = #{grade}
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET#{offset}
+    </select>
+
+    <select id="findCourseByExhibitionId" resultMap="courseDetailResultMap">
+        SELECT
+            e.id AS exhibition_id,
+            e.title AS exhibition_title,
+            e.location AS exhibition_location,
+            sp.id AS place_id,
+            sp.name AS place_name,
+            sp.latitude,
+            sp.longitude
+        FROM exhibition e
+                 LEFT JOIN exhibition_course ec ON e.id = ec.exhibition_id
+                 LEFT JOIN science_place sp ON ec.science_place_id = sp.id
+        WHERE e.id = #{exhibitionId}
+        ORDER BY ec.course_order ASC
+    </select>
+
+    <select id="countByGrade" resultType="long">
+        SELECT COUNT(*)
+        FROM exhibition
+        WHERE grade = #{grade}
+    </select>
+
+    <insert id="saveSciencePlace" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO science_place (name, description, latitude, longitude)
+        VALUES (#{name}, #{description}, #{latitude}, #{longitude})
+    </insert>
+
+    <insert id="saveExhibition" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO exhibition (title, category, location, period, grade)
+        VALUES (#{title}, #{category}, #{location}, #{period}, #{grade})
+    </insert>
+
+    <insert id="saveExhibitionCourseLink">
+        INSERT INTO exhibition_course (exhibition_id, science_place_id, course_order)
+        VALUES (#{exhibitionId}, #{placeId}, #{order})
+    </insert>
+
+    <update id="createSciencePlaceTable">
+        CREATE TABLE science_place (
+                                       id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL,
+                                       description VARCHAR(255), latitude DOUBLE NOT NULL, longitude DOUBLE NOT NULL
+        );
+    </update>
+
+    <update id="createExhibitionTable">
+        CREATE TABLE exhibition (
+                                    id BIGINT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL,
+                                    category VARCHAR(255) NOT NULL, location VARCHAR(255) NOT NULL,
+                                    period VARCHAR(255) NOT NULL, grade INT NOT NULL
+        );
+    </update>
+
+    <update id="createExhibitionCourseTable">
+        CREATE TABLE exhibition_course (
+                                           exhibition_id BIGINT, science_place_id BIGINT, course_order INT,
+                                           PRIMARY KEY (exhibition_id, science_place_id),
+                                           FOREIGN KEY (exhibition_id) REFERENCES exhibition(id),
+                                           FOREIGN KEY (science_place_id) REFERENCES science_place(id)
+        );
+    </update>
+
+</mapper>
