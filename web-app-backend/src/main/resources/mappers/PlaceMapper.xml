@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.PlaceMapper">
+    <select id="findExhibitionsByFilter" resultType="com.example.demo.dto.PlaceResultDTO">
+        SELECT
+            e.exhibition_id as id,
+            e.exhibition_name as title,
+            e.main_image_url as imageUrl,
+            e.latitude as lat,
+            e.longitude as lng,
+            e.description,
+            e.address_detail as place,
+            cmc.category_name as subject,
+            gc.grade_name as grade
+          FROM exhibition e
+                   JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
+                   JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
+                   JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+                   JOIN grade_category gc ON csc.grade_id = gc.grade_id
+          WHERE cmc.category_name = #{subject}
+            AND gc.grade_name LIKE '%' || #{grade} || '%' -- '초등 ' 포함 검색
+    </select>
+
+    <select id="findExhibitionsByRadius" resultType="com.example.demo.dto.PlaceResultDTO">
+        SELECT
+            e.exhibition_id as id,
+            e.exhibition_name as title,
+            e.main_image_url as imageUrl,
+            e.latitude as lat,
+            e.longitude as lng,
+            e.description,
+            e.address_detail as place,
+            cmc.category_name as subject,
+            gc.grade_name as grade
+        FROM exhibition e
+                 JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
+                 JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
+                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+                 JOIN grade_category gc ON csc.grade_id = gc.grade_id
+        WHERE cmc.category_name = #{subject}
+          AND gc.grade_name LIKE '%' || #{grade} || '%'
+          AND ST_DWithin(
+                ST_MakePoint(e.longitude, e.latitude)::geography,
+                ST_MakePoint(#{lng}, #{lat})::geography,
+                #{radiusMeters}
+              )
+    </select>
+
+    <select id="findExhibitionsByRegion" resultType="com.example.demo.dto.PlaceResultDTO">
+        SELECT
+            e.exhibition_id as id,
+            e.exhibition_name as title,
+            e.main_image_url as imageUrl,
+            e.latitude as lat,
+            e.longitude as lng,
+            e.description,
+            e.address_detail as place,
+            cmc.category_name as subject,
+            gc.grade_name as grade
+        FROM exhibition e
+                 JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
+                 JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
+                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+                 JOIN grade_category gc ON csc.grade_id = gc.grade_id
+        WHERE cmc.category_name = #{subject}
+          AND gc.grade_name LIKE '%' || #{grade} || '%'
+          AND e.address_detail LIKE #{regionPattern}
+    </select>
+
+    <select id="findPlacesByFilter" resultType="com.example.demo.dto.PlaceResultDTO">
+        SELECT
+            sp.place_id as id,
+            sp.place_name as title,
+            sp.main_image_url as imageUrl,
+            sp.latitude as lat,
+            sp.longitude as lng,
+            sp.description,
+            sp.address_detail as place,
+            cmc.category_name as subject,
+            gc.grade_name as grade
+        FROM science_place sp
+                 JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
+                 JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+                 JOIN grade_category gc ON csc.grade_id = gc.grade_id
+        WHERE cmc.category_name = #{subject}
+          AND gc.grade_name LIKE '%' || #{grade} || '%'
+    </select>
+
+    <select id="findPlacesByRadius" resultType="com.example.demo.dto.PlaceResultDTO">
+        SELECT
+            sp.place_id as id,
+            sp.place_name as title,
+            sp.main_image_url as imageUrl,
+            sp.latitude as lat,
+            sp.longitude as lng,
+            sp.description,
+            sp.address_detail as place,
+            cmc.category_name as subject,
+            gc.grade_name as grade
+        FROM science_place sp
+                 JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
+                 JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+                 JOIN grade_category gc ON csc.grade_id = gc.grade_id
+        WHERE cmc.category_name = #{subject}
+          AND gc.grade_name LIKE '%' || #{grade} || '%'
+          AND ST_DWithin(
+                ST_MakePoint(sp.longitude, sp.latitude)::geography,
+                ST_MakePoint(#{lng}, #{lat})::geography,
+                #{radiusMeters}
+              )
+    </select>
+
+    <select id="findPlacesByRegion" resultType="com.example.demo.dto.PlaceResultDTO">
+        SELECT
+            sp.place_id as id,
+            sp.place_name as title,
+            sp.main_image_url as imageUrl,
+            sp.latitude as lat,
+            sp.longitude as lng,
+            sp.description,
+            sp.address_detail as place,
+            cmc.category_name as subject,
+            gc.grade_name as grade
+        FROM science_place sp
+                 JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
+                 JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+                 JOIN grade_category gc ON csc.grade_id = gc.grade_id
+        WHERE cmc.category_name = #{subject}
+          AND gc.grade_name LIKE '%' || #{grade} || '%'
+          AND sp.address_detail LIKE #{regionPattern}
+    </select>
+
+</mapper>
