@@ -62,7 +62,7 @@
           </div>
           <div v-else-if="displayedItems.length === 0" class="text-center p-5 text-muted w-100">
             <div>표시할 장소가 없습니다.</div>
-            <div v-if="searchType === 'radius'" class="text-sm mt-2">
+            <div v-if="locationType === 'radius'" class="text-sm mt-2">
               현재위치: {{ currentUserLocation ? `${currentUserLocation.lat.toFixed(4)},
               ${currentUserLocation.lng.toFixed(4)}` : '없음' }}<br>
               반경: {{ searchRadius }}km / 과목: {{ selectedSubject }} / 학년: {{ selectedGrade }}
@@ -74,7 +74,7 @@
       </div>
     </div>
 
-    <FilterModal v-if="isModalOpen" :initialSearchType="searchType" :initialRadius="searchRadius"
+    <FilterModal v-if="isModalOpen" :initialLocationType="locationType" :initialRadius="searchRadius"
       :initialRegion="selectedRegion" :initialSubject="selectedSubject" :initialGrade="selectedGrade"
       @close="isModalOpen = false" @complete="handleFilterComplete" />
 
@@ -108,9 +108,9 @@ const markers = ref([]);
 const currentLocationMarker = ref(null);
 
 // --- 필터 및 검색 상태 ---
-const searchType = ref('filter'); // 'filter', 'radius', 'region'
-const searchRadius = ref(300);     // km
-const selectedRegion = ref('');  // 예: "서울시 강남구"
+const locationType = ref('all'); // 'all', 'radius', 'region' (이름 및 기본값 변경)
+const searchRadius = ref(5); // km (모달 기본값과 일치)
+const selectedRegion = ref(''); // 예: "서울시 강남구"
 const selectedSubject = ref('물리');
 const selectedGrade = ref('초등 3학년'); // 모달 기본값과 일치
 
@@ -120,6 +120,7 @@ const isSearching = ref(false);      // (선택) 로딩 상태
 
 // --- 목 데이터 ---
 const exhibitionItems = ref([
+  // --- 기존 데이터 (10개) ---
   { id: 1, imageUrl: 'https://placehold.co/600x400', city: '대전', district: '유성구', grade: '3학년', subject: '지구', title: '습지생물코너', type: '상설', place: '국립중앙과학관 자연사관', hashtags: ['생명과학'], lat: 36.3758, lng: 127.3845 },
   { id: 2, imageUrl: 'https://placehold.co/600x400', city: '과천', district: '', grade: '4학년', subject: '물리', title: '빛의 원리', type: '기획', place: '국립과천과학관', hashtags: ['파동', '빛'], lat: 37.4363, lng: 126.9746 },
   { id: 3, imageUrl: 'https://placehold.co/600x400', city: '서울', district: '노원구', grade: '5학년', subject: '화학', title: '미래 에너지', type: '상설', place: '서울시립과학관', hashtags: ['에너지', '화학 반응'], lat: 37.6094, lng: 127.0706 },
@@ -130,8 +131,42 @@ const exhibitionItems = ref([
   { id: 105, imageUrl: 'https://placehold.co/600x400/CC99FF/000', city: '대전', district: '유성구', grade: '6학년', subject: '지구', title: '움직이는 대륙', type: '상설', place: '국립중앙과학관', hashtags: ['판 구조론', '화산'], lat: 36.3758, lng: 127.3845 },
   { id: 106, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '과천', district: '', grade: '5학년', subject: '물리', title: '전기와 자기', type: '상설', place: '국립과천과학관', hashtags: ['전자기', '회로'], lat: 37.4363, lng: 126.9746 },
   { id: 107, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '서울', district: '노원구', grade: '3학년', subject: '생명', title: '동물의 한살이', type: '기획', place: '서울시립과학관', hashtags: ['곤충', '동물'], lat: 37.6094, lng: 127.0706 },
+
+  // --- 추가 데이터 (20개) ---
+  // 부산: 35.3151, 129.2105
+  // 대구: 35.8288, 128.4238
+
+  // 물리
+  { id: 108, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '부산', district: '기장군', grade: '3학년', subject: '물리', title: '소리의 파동', type: '상설', place: '부산국립과학관', hashtags: ['소리', '진동'], lat: 35.3151, lng: 129.2105 },
+  { id: 109, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '대구', district: '달성군', grade: '4학년', subject: '물리', title: '빛과 렌즈', type: '기획', place: '대구국립과학관', hashtags: ['굴절', '반사'], lat: 35.8288, lng: 128.4238 },
+  { id: 110, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '대전', district: '유성구', grade: '5학년', subject: '물리', title: '전자기 유도', type: '상설', place: '국립중앙과학관', hashtags: ['전기', '자기장'], lat: 36.3758, lng: 127.3845 },
+  { id: 111, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '서울', district: '노원구', grade: '6학년', subject: '물리', title: '운동과 에너지', type: '기획', place: '서울시립과학관', hashtags: ['역학', '에너지 보존'], lat: 37.6094, lng: 127.0706 },
+  { id: 112, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '과천', district: '', grade: '6학년', subject: '물리', title: '도구와 일', type: '상설', place: '국립과천과학관', hashtags: ['지렛대', '도르래'], lat: 37.4363, lng: 126.9746 },
+
+  // 화학
+  { id: 113, imageUrl: 'https://placehold.co/600x400/FF99CC/000', city: '부산', district: '기장군', grade: '3학년', subject: '화학', title: '물질의 상태', type: '상설', place: '부산국립과학관', hashtags: ['고체', '액체', '기체'], lat: 35.3151, lng: 129.2105 },
+  { id: 114, imageUrl: 'https://placehold.co/600x400/FF99CC/000', city: '대구', district: '달성군', grade: '3학년', subject: '화학', title: '용해와 용액', type: '기획', place: '대구국립과학관', hashtags: ['설탕물', '소금물'], lat: 35.8288, lng: 128.4238 },
+  { id: 115, imageUrl: 'https://placehold.co/600x400/FF99CC/000', city: '대전', district: '유성구', grade: '4학년', subject: '화학', title: '산과 염기', type: '상설', place: '국립중앙과학관', hashtags: ['지시약', '중화 반응'], lat: 36.3758, lng: 127.3845 },
+  { id: 116, imageUrl: 'https://placehold.co/600x400/FF99CC/000', city: '과천', district: '', grade: '5학년', subject: '화학', title: '연소와 소화', type: '상설', place: '국립과천과학관', hashtags: ['연소 조건', '소화기'], lat: 37.4363, lng: 126.9746 },
+  { id: 117, imageUrl: 'https://placehold.co/600x400/FF99CC/000', city: '서울', district: '노원구', grade: '6학년', subject: '화학', title: '우리 몸의 화학', type: '기획', place: '서울시립과학관', hashtags: ['소화효소', '화학물질'], lat: 37.6094, lng: 127.0706 },
+
+  // 생명
+  { id: 118, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '부산', district: '기장군', grade: '3학년', subject: '생명', title: '식물의 한살이', type: '기획', place: '부산국립과학관', hashtags: ['씨앗', '발아'], lat: 35.3151, lng: 129.2105 },
+  { id: 119, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '대구', district: '달성군', grade: '4학년', subject: '생명', title: '동물의 분류', type: '상설', place: '대구국립과학관', hashtags: ['척추동물', '무척추동물'], lat: 35.8288, lng: 128.4238 },
+  { id: 120, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '대전', district: '유성구', grade: '4학년', subject: '생명', title: '작은 생물의 세계', type: '상설', place: '국립중앙과학관', hashtags: ['짚신벌레', '현미경'], lat: 36.3758, lng: 127.3845 },
+  { id: 121, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '과천', district: '', grade: '5학년', subject: '생명', title: '환경과 생태계', type: '상설', place: '국립과천과학관', hashtags: ['먹이그물', '환경오염'], lat: 37.4363, lng: 126.9746 },
+  { id: 122, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '서울', district: '노원구', grade: '5학년', subject: '생명', title: '유전과 진화', type: '기획', place: '서울시립과학관', hashtags: ['멘델', 'DNA'], lat: 37.6094, lng: 127.0706 },
+
+  // 지구
+  { id: 123, imageUrl: 'https://placehold.co/600x400/00CCFF/000', city: '부산', district: '기장군', grade: '3학년', subject: '지구', title: '지구의 모습', type: '상설', place: '부산국립과학관', hashtags: ['육지', '바다'], lat: 35.3151, lng: 129.2105 },
+  { id: 124, imageUrl: 'https://placehold.co/600x400/00CCFF/000', city: '대구', district: '달성군', grade: '4학년', subject: '지구', title: '화산과 지진', type: '상설', place: '대구국립과학관', hashtags: ['마그마', '지진파'], lat: 35.8288, lng: 128.4238 },
+  { id: 125, imageUrl: 'https://placehold.co/600x400/00CCFF/000', city: '과천', district: '', grade: '4학년', subject: '지구', title: '암석과 광물', type: '상설', place: '국립과천과학관', hashtags: ['화성암', '퇴적암'], lat: 37.4363, lng: 126.9746 },
+  { id: 126, imageUrl: 'https://placehold.co/600x400/00CCFF/000', city: '대전', district: '유성구', grade: '5학년', subject: '지구', title: '날씨와 기후', type: '기획', place: '국립중앙과학관', hashtags: ['기단', '전선'], lat: 36.3758, lng: 127.3845 },
+  { id: 127, imageUrl: 'https://placehold.co/600x400/00CCFF/000', city: '과천', district: '', grade: '6학년', subject: '지구', title: '계절의 변화', type: '상설', place: '국립과천과학관', hashtags: ['자전축', '태양'], lat: 37.4363, lng: 126.9746 },
 ]);
+
 const fieldTripItems = ref([
+  // --- 기존 데이터 (10개) ---
   { id: 4, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '부산', district: '해운대구', grade: '5학년', subject: '지구', title: '해운대 (지질 탐사)', place: '부산시 해운대구', hashtags: ['고체지구', '퇴적암'], lat: 35.1587, lng: 129.1604 },
   { id: 5, imageUrl: 'https://placehold.co/600x400/CCBBAA/000000', city: '서울', district: '성동구', grade: '4학년', subject: '물리', title: '서울숲 (공원 산책)', place: '서울시 성동구', hashtags: ['운동', '자연'], lat: 37.5445, lng: 127.0374 },
   { id: 201, imageUrl: 'https://placehold.co/600x400/FF99AA/000', city: '인천', district: '남동구', grade: '3학년', subject: '화학', title: '갯벌 체험 (염전)', place: '인천 소래습지', hashtags: ['소금', '물질의 특성'], lat: 37.4021, lng: 126.7301 },
@@ -140,7 +175,41 @@ const fieldTripItems = ref([
   { id: 204, imageUrl: 'https://placehold.co/600x400/FF99CC/000', city: '서울', district: '강서구', grade: '6학년', subject: '화학', title: '암모니아 분수 실험장', place: 'LG사이언스파크', hashtags: ['산염기', '기체'], lat: 37.5649, lng: 126.8300 },
   { id: 205, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '서울', district: '광진구', grade: '3학년', subject: '물리', title: '그림자 놀이 체험', place: '어린이대공원', hashtags: ['빛', '그림자'], lat: 37.5492, lng: 127.0747 },
   { id: 206, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '서울', district: '강서구', grade: '4학년', subject: '생명', title: '서울 식물원', place: '서울 식물원', hashtags: ['식물', '광합성'], lat: 37.5704, lng: 126.8359 },
-  { id: 207, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '포천', district: '', grade: '4학년', subject: '지구', title: '화성암 관찰 (한탄강)', place: '포천 한탄강', hashtags: ['화성암', '지층'], lat: 38.0069, lng: 127.2088 }
+  { id: 207, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '포천', district: '', grade: '4학년', subject: '지구', title: '화성암 관찰 (한탄강)', place: '포천 한탄강', hashtags: ['화성암', '지층'], lat: 38.0069, lng: 127.2088 },
+  { id: 208, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '과천', district: '', grade: '3학년', subject: '물리', title: '놀이기구 속 과학', place: '서울랜드', hashtags: ['원심력', '관성'], lat: 37.4334, lng: 126.9922 },
+
+  // --- 추가 데이터 (23개) ---
+
+  // 물리
+  { id: 209, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '춘천', district: '', grade: '4학년', subject: '물리', title: '소양강댐 수력발전', place: '소양강댐', hashtags: ['위치에너지', '전기에너지'], lat: 37.9546, lng: 127.7963 },
+  { id: 210, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '인천', district: '중구', grade: '5학년', subject: '물리', title: '비행기의 양력', place: '인천국제공항 전망대', hashtags: ['공기저항', '양력'], lat: 37.4692, lng: 126.4350 },
+  { id: 211, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '제주', district: '제주시', grade: '5학년', subject: '물리', title: '행원 풍력발전단지', place: '행원 풍력발전', hashtags: ['신재생에너지', '터빈'], lat: 33.5283, lng: 126.8522 },
+  { id: 212, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '부산', district: '수영구', grade: '6학년', subject: '물리', title: '다리의 과학 (광안대교)', place: '광안대교', hashtags: ['트러스 구조', '현수교'], lat: 35.1472, lng: 129.1301 },
+  { id: 213, imageUrl: 'https://placehold.co/600x400/FFCC00/000', city: '서울', district: '용산구', grade: '6학년', subject: '물리', title: 'N서울타워 (도르래)', place: 'N서울타워', hashtags: ['도르래', '엘리베이터'], lat: 37.5512, lng: 126.9882 },
+
+  // 화학
+  { id: 214, imageUrl: 'https://placehold.co/600x400/FF99AA/000', city: '포항', district: '남구', grade: '3학년', subject: '화학', title: '포스코 (철의 제련)', place: '포스코 역사박물관', hashtags: ['용광로', '철'], lat: 35.9932, lng: 129.3734 },
+  { id: 215, imageUrl: 'https://placehold.co/600x400/FF99AA/000', city: '서울', district: '강북구', grade: '4학년', subject: '화학', title: '아리수 정수센터', place: '아리수 정수센터', hashtags: ['물의 정화', '여과'], lat: 37.6409, lng: 127.0135 },
+  { id: 216, imageUrl: 'https://placehold.co/600x400/FF99AA/000', city: '하남', district: '', grade: '4학년', subject: '화학', title: '유니온타워 (소각장)', place: '하남 유니온타워', hashtags: ['연소', '재활용'], lat: 37.5678, lng: 127.2064 },
+  { id: 217, imageUrl: 'https://placehold.co/600x400/FF99AA/000', city: '울산', district: '남구', grade: '5학년', subject: '화학', title: '석유화학단지 견학', place: 'SK이노베이션 울산CLX', hashtags: ['원유', '플라스틱'], lat: 35.5311, lng: 129.3519 },
+  { id: 218, imageUrl: 'https://placehold.co/600x400/FF99AA/000', city: '용인', district: '', grade: '5학년', subject: '화학', title: '천연 비누 만들기', place: '용인 농촌테마파크', hashtags: ['비누화 반응', '산과 염기'], lat: 37.2301, lng: 127.2510 },
+  { id: 219, imageUrl: 'https://placehold.co/600x400/FF99AA/000', city: '안산', district: '단원구', grade: '6학년', subject: '화학', title: '시화호 수질 관찰', place: '시화호 조력발전소', hashtags: ['수질 오염', '산성비'], lat: 37.3060, lng: 126.7214 },
+
+  // 생명
+  { id: 220, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '양평', district: '', grade: '3학년', subject: '생명', title: '양평 곤충 박물관', place: '양평 곤충 박물관', hashtags: ['곤충', '한살이'], lat: 37.4913, lng: 127.5028 },
+  { id: 221, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '이천', district: '', grade: '3학년', subject: '생명', title: '농장 체험 (작물 재배)', place: '이천 돼지박물관', hashtags: ['식물', '농업'], lat: 37.1959, lng: 127.4200 },
+  { id: 222, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '파주', district: '', grade: '4학년', subject: '생명', title: 'DMZ 생태 공원', place: '임진각 평화누리', hashtags: ['DMZ', '야생동물'], lat: 37.8906, lng: 126.7443 },
+  { id: 223, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '순천', district: '', grade: '5학년', subject: '생명', title: '순천만 국가정원', place: '순천만 국가정원', hashtags: ['습지', '생태계'], lat: 34.9304, lng: 127.5147 },
+  { id: 224, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '포천', district: '', grade: '5학년', subject: '생명', title: '국립수목원 (광릉숲)', place: '국립수목원', hashtags: ['산림 생태계', '피톤치드'], lat: 37.7562, lng: 127.1681 },
+  { id: 225, imageUrl: 'https://placehold.co/600x400/99FF99/000', city: '부산', district: '중구', grade: '6학년', subject: '생명', title: '자갈치 시장 (해양생물)', place: '자갈치 시장', hashtags: ['어류', '해양 생태계'], lat: 35.0970, lng: 129.0323 },
+
+  // 지구
+  { id: 226, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '서울', district: '동작구', grade: '3학년', subject: '지구', title: '기상청 견학', place: '기상청', hashtags: ['날씨', '기상관측'], lat: 37.5042, lng: 126.9197 },
+  { id: 227, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '영월', district: '', grade: '3학년', subject: '지구', title: '별마로 천문대', place: '별마로 천문대', hashtags: ['별자리', '천체관측'], lat: 37.1882, lng: 128.4682 },
+  { id: 228, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '고성', district: '', grade: '4학년', subject: '지구', title: '공룡 발자국 화석지', place: '경남고성공룡세계엑스포', hashtags: ['공룡', '화석'], lat: 34.9605, lng: 128.3227 },
+  { id: 229, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '태백', district: '', grade: '5학년', subject: '지구', title: '태백 고생대자연사박물관', place: '태백고생대자연사박물관', hashtags: ['고생대', '삼엽충'], lat: 37.1633, lng: 128.9881 },
+  { id: 230, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '제주', district: '서귀포시', grade: '6학년', subject: '지구', title: '서귀포 화석 산지', place: '서귀포층패류화석', hashtags: ['신생대', '화석'], lat: 33.2435, lng: 126.4255 },
+  { id: 231, imageUrl: 'https://placehold.co/600x400/AACCFF/000000', city: '태안', district: '', grade: '6학년', subject: '지구', title: '해안 침식 지형 (신두리)', place: '신두리 해안사구', hashtags: ['침식', '퇴적', '사구'], lat: 36.8123, lng: 126.2163 },
 ]);
 
 // URL 쿼리 복원
@@ -246,7 +315,7 @@ const moveMapToItem = (lat, lng) => {
   if (map.value) {
     const itemLatLng = new window.kakao.maps.LatLng(lat, lng);
     map.value.setCenter(itemLatLng);
-    map.value.setLevel(2); // 줌인
+    map.value.setLevel(7); // 줌인
   }
 };
 
@@ -276,21 +345,10 @@ const drawMarkers = (items) => {
   });
 };
 
-// 모든 마커가 보이도록 지도 범위 조정
-const fitMapToBounds = (items) => {
-  if (!map.value || !items.length) return;
-
-  const bounds = new window.kakao.maps.LatLngBounds();
-  items.forEach(item => {
-    bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng));
-  });
-  map.value.setBounds(bounds);
-};
-
 // 검색 실행 함수
 const performSearch = async () => {
   console.log('==== 검색 실행 시작 ====');
-  console.log('검색 타입:', searchType.value);
+  console.log('검색 타입:', locationType.value);
   console.log('탭:', selectedTab.value);
   console.log('과목:', selectedSubject.value);
   console.log('학년:', selectedGrade.value);
@@ -304,18 +362,38 @@ const performSearch = async () => {
   console.log('기본 목록 개수:', baseList.length);
 
   try {
-    if (searchType.value === 'radius') {
+
+    // --- [수정] 디버깅을 위해 거리 계산 및 콘솔 로깅을 맨 위로 이동 ---
+    if (currentUserLocation.value) {
+      console.log('--- [디버그] 현재 위치 기준 거리 계산 ---');
+      console.log(`현재 위치: lat ${currentUserLocation.value.lat.toFixed(4)}, lng ${currentUserLocation.value.lng.toFixed(4)}`);
+
+      baseList.forEach(item => {
+        const distance = calculateDistance(
+          currentUserLocation.value.lat, currentUserLocation.value.lng,
+          item.lat, item.lng
+        );
+        console.log(
+          `[${item.title}] (lat: ${item.lat}, lng: ${item.lng}) -> 거리: ${distance.toFixed(1)}km`
+        );
+      });
+      console.log('--- [디버그] 거리 계산 완료 ---');
+    } else {
+      // 'all'이나 'region' 검색은 현위치 없이도 가능하므로 에러를 발생시키지 않음
+      console.log('--- [디버그] 현재 위치 정보가 없어 거리 계산을 건너뜁니다 ---');
+    }
+
+    if (locationType.value === 'radius') {
       console.log('반경 검색 모드');
 
+      // 'radius' 모드일 때만 현위치가 필수임
       if (!currentUserLocation.value) {
-        console.log('현재 위치 없음, 위치 정보 요청');
+        console.log('현재 위치 없음, 위치 정보 요청 (반경 검색용)');
         await getCurrentLocation();
       }
 
       if (currentUserLocation.value) {
-        console.log('현재 위치:', currentUserLocation.value);
-
-        // 거리별 정보 수집 (디버깅용)
+        // 필터링을 위해 거리 정보가 포함된 배열을 새로 생성
         const itemsWithDistance = baseList.map(item => {
           const distance = calculateDistance(
             currentUserLocation.value.lat, currentUserLocation.value.lng,
@@ -324,18 +402,14 @@ const performSearch = async () => {
           return { ...item, distance };
         });
 
-        console.log('모든 아이템 거리 정보:');
-        itemsWithDistance.forEach(item => {
-          console.log(`${item.title}: ${item.distance.toFixed(1)}km, 과목: ${item.subject}, 학년: ${item.grade}`);
-        });
-
         // 실제 필터링
         filteredList = itemsWithDistance.filter(item => {
           const withinRadius = item.distance <= searchRadius.value;
           const subjectMatch = item.subject === selectedSubject.value;
           const gradeMatch = item.grade === selectedGrade.value.replace('초등 ', '');
 
-          console.log(`${item.title}: 반경내(${withinRadius}) 과목일치(${subjectMatch}) 학년일치(${gradeMatch})`);
+          // 'radius' 모드일 때의 상세 필터링 로그 (선택적)
+          // console.log(`${item.title}: 반경내(${withinRadius}) 과목일치(${subjectMatch}) 학년일치(${gradeMatch})`);
 
           return withinRadius && subjectMatch && gradeMatch;
         });
@@ -343,9 +417,10 @@ const performSearch = async () => {
         console.log('반경 내 필터링 결과:', filteredList.length, '개');
 
       } else {
-        throw new Error("현재 위치 정보 없음");
+        // 반경 검색을 시도했으나 끝내 위치 정보를 얻지 못한 경우
+        throw new Error("현재 위치 정보 없음 (반경 검색 실패)");
       }
-    } else if (searchType.value === 'region') {
+    } else if (locationType.value === 'region') {
       console.log('지역 검색 모드');
       filteredList = baseList.filter(item => {
         const regionString = `${item.city} ${item.district}`.trim();
@@ -353,12 +428,11 @@ const performSearch = async () => {
           item.subject === selectedSubject.value &&
           item.grade === selectedGrade.value.replace('초등 ', '');
       });
-    } else { // 'filter'
-      console.log('일반 필터 검색 모드');
+    } else { // 'all'
+      console.log('전체 지역 검색 모드');
       filteredList = baseList.filter(item => {
         return item.subject === selectedSubject.value &&
           item.grade === selectedGrade.value.replace('초등 ', '');
-
       });
     }
 
@@ -426,16 +500,45 @@ onMounted(async () => {
 // displayedItems 변경 감지하여 마커 업데이트
 watch(displayedItems, (newItems) => {
   if (!map.value) return;
+
+  // 마커는 항상 새로 그림
   clearMarkers();
   drawMarkers(newItems);
-  fitMapToBounds(newItems);
+
+  // === [수정된 줌 레벨 로직] ===
+  if (newItems.length === 1) {
+    // 검색 결과가 1개일 때:
+    // 해당 위치로 이동하고 고정된 레벨(예: 3)을 사용합니다.
+    const item = newItems[0];
+    const itemLatLng = new window.kakao.maps.LatLng(item.lat, item.lng);
+    map.value.setCenter(itemLatLng);
+
+    // 여기 레벨을 수정하세요 (카드 클릭 시 레벨과 맞추는 것을 권장)
+    map.value.setLevel(7);
+
+  } else if (newItems.length > 1) {
+    // 검색 결과가 여러 개일 때:
+    // 모든 마커가 보이도록 지도의 경계(bounds)를 설정합니다.
+    const bounds = new window.kakao.maps.LatLngBounds();
+    newItems.forEach(item => {
+      bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng));
+    });
+    map.value.setBounds(bounds);
+
+    // (선택 사항) bounds가 너무 타이트(꽉 차게) 보인다면,
+    // 아래 주석을 풀어 한 레벨 줌 아웃 할 수 있습니다.
+    // map.value.setLevel(map.value.getLevel() + 1);
+
+  }
+  // 4. 검색 결과가 0개일 때는 지도 위치를 변경하지 않습니다.
+
 });
 
 // 모달 완료 핸들러
 const handleFilterComplete = (filterData) => {
   console.log(`필터 선택 완료:`, filterData);
-  searchType.value = filterData.searchType;
-  searchRadius.value = filterData.radius;
+  locationType.value = filterData.locationType; // 'searchType' -> 'locationType'
+  searchRadius.value = filterData.radius;     // 'radius' 모드가 아니면 null이 됨 (정상)
   selectedRegion.value = filterData.region;
   selectedSubject.value = filterData.subject;
   selectedGrade.value = filterData.grade;

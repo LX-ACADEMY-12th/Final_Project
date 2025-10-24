@@ -7,74 +7,62 @@
       <div class="p-3 d-flex align-items-center flex-shrink-0 rounded-top" style="background-color: #4A7CEC;">
         <i class=" bi bi-person-circle fs-2 me-3" style="color: white;"></i>
         <div class="flex-grow-1">
-          <h5 class="fw-bold m-0 fs-6 text-white">{{ showSearchOptions ? '검색 옵션 선택' : '필터 선택' }}</h5>
-          <small class="text-white">{{ showSearchOptions ? '원하는 방식으로 장소를 찾아보세요.' : '탐구영역과 학년을 선택하세요.' }}</small>
+          <h5 class="fw-bold m-0 fs-6 text-white">필터 선택</h5>
+          <small class="text-white">탐구영역, 학년, 위치를 선택하세요.</small>
         </div>
         <button class="btn-close btn-close-white fs-5" @click="$emit('close')"></button>
       </div>
 
       <div class="modal-body flex-grow-1 overflow-auto p-4">
 
-        <template v-if="showSearchOptions">
-          <h6 class="fw-bold mb-3">검색 방식</h6>
-          <div class="btn-group w-100 mb-4" role="group">
-            <input type="radio" class="btn-check" name="searchType" id="searchTypeFilter" autocomplete="off"
-              value="filter" v-model="localSearchType" checked>
-            <label class="btn btn-outline-primary" for="searchTypeFilter">필터</label>
-
-            <input type="radio" class="btn-check" name="searchType" id="searchTypeRadius" autocomplete="off"
-              value="radius" v-model="localSearchType">
-            <label class="btn btn-outline-primary" for="searchTypeRadius">내 주변</label>
-
-            <input type="radio" class="btn-check" name="searchType" id="searchTypeRegion" autocomplete="off"
-              value="region" v-model="localSearchType">
-            <label class="btn btn-outline-primary" for="searchTypeRegion">지역</label>
+        <h6 class="fw-bold mb-3">탐구영역</h6>
+        <div class="row g-3">
+          <div class="col-6" v-for="subject in subjects" :key="subject">
+            <button type="button" class="filter-btn" :class="{ 'active': localSubject === subject }"
+              @click="localSubject = subject">
+              {{ subject }}
+            </button>
           </div>
-          <hr v-if="localSearchType !== 'filter'">
-        </template>
+        </div>
 
-        <div v-if="!showSearchOptions || localSearchType === 'filter'">
-          <h6 class="fw-bold mb-3">탐구영역</h6>
-          <div class="row g-3">
-            <div class="col-6" v-for="subject in subjects" :key="subject">
-              <button type="button" class="filter-btn" :class="{ 'active': localSubject === subject }"
-                @click="localSubject = subject">
-                {{ subject }}
-              </button>
-            </div>
+        <h6 class="fw-bold mb-3 mt-4 pt-2">초등학교</h6>
+        <div class="row g-3">
+          <div class="col-6" v-for="grade in grades" :key="grade">
+            <button type="button" class="filter-btn" :class="{ 'active': localGrade === grade }"
+              @click="localGrade = grade">
+              {{ grade }}
+            </button>
           </div>
+        </div>
 
-          <h6 class="fw-bold mb-3 mt-4 pt-2">초등학교</h6>
+        <h6 class="fw-bold mb-3 mt-4 pt-2">위치 기준</h6>
+        <div class="btn-group w-100 mb-3" role="group">
+          <input type="radio" class="btn-check" name="locationType" id="locTypeAll" autocomplete="off" value="all"
+            v-model="localLocationType" checked>
+          <label class="btn btn-outline-primary" for="locTypeAll">전체 지역</label>
+          <input type="radio" class="btn-check" name="locationType" id="locTypeRadius" autocomplete="off" value="radius"
+            v-model="localLocationType">
+          <label class="btn btn-outline-primary" for="locTypeRadius">내 주변</label>
+          <input type="radio" class="btn-check" name="locationType" id="locTypeRegion" autocomplete="off" value="region"
+            v-model="localLocationType">
+          <label class="btn btn-outline-primary" for="locTypeRegion">지역 선택</label>
+        </div>
+
+        <div v-if="localLocationType === 'radius'">
+          <h6 class="fw-bold mb-3">검색 반경</h6>
           <div class="row g-3">
-            <div class="col-6" v-for="grade in grades" :key="grade">
-              <button type="button" class="filter-btn" :class="{ 'active': localGrade === grade }"
-                @click="localGrade = grade">
-                {{ grade }}
+            <div class="col-6" v-for="radius in radiusOptions" :key="radius">
+              <button type="button" class="filter-btn" :class="{ 'active': localRadius === radius }"
+                @click="localRadius = radius">
+                {{ radius }}km 이내
               </button>
             </div>
           </div>
         </div>
 
-        <div v-if="showSearchOptions && localSearchType === 'radius'">
-          <h6 class="fw-bold mb-3">검색 반경 (km)</h6>
-          <div class="d-flex align-items-center mb-4">
-            <input type="range" class="form-range flex-grow-1 me-3" min="1" max="300" step="1"
-              v-model.number="localRadius">
-            <span class="fw-bold">{{ localRadius }}km</span>
-          </div>
-          <hr>
-          <p class="text-muted mt-4 mb-2"><small>선택한 과목/학년 기준으로 주변 장소를 찾습니다.</small></p>
-          <h6 class="fw-bold mb-3">탐구영역: {{ localSubject }}</h6>
-          <h6 class="fw-bold mb-3">학년: {{ localGrade }}</h6>
-        </div>
-
-        <div v-if="showSearchOptions && localSearchType === 'region'">
+        <div v-if="localLocationType === 'region'">
           <h6 class="fw-bold mb-3">지역 선택</h6>
-          <input type="text" class="form-control mb-3" placeholder="예: 서울시 강남구, 부산 해운대" v-model="localRegion">
-          <hr>
-          <p class="text-muted mt-4 mb-2"><small>선택한 과목/학년 기준으로 지역 내 장소를 찾습니다.</small></p>
-          <h6 class="fw-bold mb-3">탐구영역: {{ localSubject }}</h6>
-          <h6 class="fw-bold mb-3">학년: {{ localGrade }}</h6>
+          <input type="text" class="form-control" placeholder="예: 서울시 강남구, 부산 해운대" v-model="localRegion">
         </div>
 
       </div>
@@ -91,12 +79,11 @@
 <script setup>
 import { ref } from 'vue';
 
-// Define Props received from parent
+// Define Props received from parent (showSearchOptions 제거)
 const props = defineProps({
-  // 검색 방식 UI 표시 여부 (기본값: true)
-  showSearchOptions: { type: Boolean, default: true },
-
-  initialSearchType: { type: String, default: 'filter' },
+  // 'all', 'radius', 'region'
+  initialLocationType: { type: String, default: 'all' },
+  // 필터 모달 반경 선택 초기값은 5km
   initialRadius: { type: Number, default: 5 },
   initialRegion: { type: String, default: '' },
   initialSubject: String,
@@ -107,7 +94,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'complete']);
 
 // Local state for the modal, initialized with props
-const localSearchType = ref(props.initialSearchType);
+const localLocationType = ref(props.initialLocationType);
 const localRadius = ref(props.initialRadius);
 const localRegion = ref(props.initialRegion);
 const localSubject = ref(props.initialSubject);
@@ -116,15 +103,25 @@ const localGrade = ref(props.initialGrade);
 // Data for v-for loops
 const subjects = ref(['물리', '화학', '생명', '지구']);
 const grades = ref(['초등 3학년', '초등 4학년', '초등 5학년', '초등 6학년']);
+// 반경 검색 프리셋 (슬라이더 대신 버튼 제공)
+const radiusOptions = ref([3, 5, 10, 30]);
 
 // Function to emit all selected values on completion
 const completeSelection = () => {
-  // region 값 처리: localRegion.value가 존재하고 문자열이면 trim(), 아니면 빈 문자열('') 할당
-  const regionValue = (typeof localRegion.value === 'string' ? localRegion.value.trim() : '');
+  let radiusValue = null;
+  let regionValue = '';
+
+  // 선택된 위치 기준에 따라 radius와 region 값을 정리
+  if (localLocationType.value === 'radius') {
+    radiusValue = localRadius.value;
+  } else if (localLocationType.value === 'region') {
+    regionValue = (typeof localRegion.value === 'string' ? localRegion.value.trim() : '');
+  }
+
   emit('complete', {
-    searchType: localSearchType.value,
-    radius: localRadius.value,
-    region: regionValue,
+    locationType: localLocationType.value, // 'all', 'radius', 'region'
+    radius: radiusValue, // 'radius'일 때만 값, 아니면 null
+    region: regionValue, // 'region'일 때만 값, 아니면 ''
     subject: localSubject.value,
     grade: localGrade.value
   });
@@ -220,7 +217,7 @@ const completeSelection = () => {
   overflow-y: auto;
 }
 
-/* Style range input */
+/* Style range input (현재 사용하지 않지만 유지) */
 .form-range {
   cursor: pointer;
 }
