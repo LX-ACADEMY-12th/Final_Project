@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# 민감한 정보 포함 파일들
+application-dev.properties
+application-local.properties
+
 ### STS ###
 .apt_generated
 .classpath
