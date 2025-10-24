@@ -304,7 +304,7 @@ const performSearch = async () => {
 
     // 2. API 호출 (axios 사용)
     //    (URL은 실제 백엔드 엔드포인트로 변경해야 함)
-    const response = await axios.get('/api/places/search', { params });
+    const response = await axios.get('http://localhost:8080/api/places/search', { params });
 
     // 3. 결과 처리
     if (response.data && Array.isArray(response.data)) {
