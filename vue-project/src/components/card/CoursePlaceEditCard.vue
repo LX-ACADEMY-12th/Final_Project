@@ -3,9 +3,7 @@
     <!-- 타임라인 섹션 -->
     <div class="timeline-marker-wrapper">
       <!-- 당구공 -->
-      <div class="timeline-marker" :style="{ backgroundColor: item.color }">
-        {{ item.number }}
-      </div>
+      <div class="timeline-marker" :style="{ '--marker-url': `url('${markerSvgUrl}')` }"></div>
       <!-- 일직선 줄 -->
       <div class="timeline-line"></div>
     </div>
@@ -98,8 +96,44 @@ export default {
     onDelete() {
       this.$emit('delete', this.item.id);
     },
+
+    // ⚠️ **추가:** 지도 컴포넌트와 동일한 색상 결정 로직
+    getMarkerColor(index) {
+      // 코스 순서에 따른 색상 배열 (지도와 통일)
+      const colors = ['#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
+      return colors[index % colors.length];
+    },
+    
+    // ⚠️ **추가:** 지도 컴포넌트와 동일한 SVG 마커 이미지 생성 로직
+    createMarkerImage(number, color) {
+      const svg = `
+        <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 23 12 23s12-14 12-23c0-6.627-5.373-12-12-12z"
+              fill="${color}" stroke="#fff" stroke-width="2"/>
+          <circle cx="12" cy="12" r="8" fill="#fff"/>
+          <text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif"
+              font-size="10" font-weight="bold" fill="${color}">${number}</text>
+        </svg>
+      `;
+
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    },
   },
   computed: {
+    // ⚠️ **추가:** 코스 순서에 따른 마커 색상 계산
+    itemColor() {
+      // item.number는 보통 1부터 시작합니다. 배열 인덱스를 위해 1을 뺍니다.
+      const index = (this.item.number || 1) - 1;
+      return this.getMarkerColor(index);
+    },
+    
+    // ⚠️ **추가:** 계산된 색상과 번호로 SVG Data URL 생성
+    markerSvgUrl() {
+      const number = this.item.number || 1;
+      const color = this.itemColor; 
+      return this.createMarkerImage(number, color);
+    },
+
     // 화면에 표시할 해시태그 목록 (최대 2개)
     visibleHashtags() {
       // item.hashtags가 배열이 아니거나 비어있으면 빈 배열 반환
@@ -149,17 +183,30 @@ export default {
   margin-right: 12px;
 }
 
+/* ⚠️ **수정:** SVG 배경 이미지로 설정하여 지도 마커와 완벽 통일 */
 .timeline-marker {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 14px;
+  /* SVG 크기(24x35)에 맞추어 마커 영역 조정 */
+  width: 24px;
+  height: 35px;
+
+  /* Computed 속성에서 받아온 SVG Data URL을 배경 이미지로 사용 */
+  background-image: var(--marker-url);
+  background-size: contain; 
+  background-repeat: no-repeat;
+  background-position: center bottom; 
+
+  /* 내부 텍스트(숫자)는 SVG에 포함되므로 숨김 */
+  display: block; 
+  text-indent: -9999px; 
+
   z-index: 2;
+  position: relative;
+
+  /* 기존 원형 마커 관련 스타일 제거 */
+  border-radius: 0; 
+  color: transparent;
+  font-weight: normal;
+font-size: 0;
 }
 
 .timeline-line {
@@ -279,8 +326,6 @@ export default {
   /* 라벨과 주소 사이 간격 */
   font-size: 14px;
   font-weight: 500;
-  color: #4A7CEC;
-  /* 파란색 계열 */
   flex-shrink: 0;
   /* 글자가 길어져도 줄어들지 않게 */
 }
