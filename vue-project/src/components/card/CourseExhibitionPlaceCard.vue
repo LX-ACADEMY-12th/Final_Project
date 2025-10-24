@@ -3,9 +3,7 @@
     <!-- 타임라인 섹션 -->
     <div class="timeline-marker-wrapper">
       <!-- 당구공 -->
-      <div class="timeline-marker" :style="{ backgroundColor: item.color }">
-        {{ item.number }}
-      </div>
+      <div class="timeline-marker" :style="{ '--marker-url': `url('${markerSvgUrl}')` }"></div>
       <!-- 일직선 줄 -->
       <div class="timeline-line"></div>
     </div>
@@ -88,6 +86,21 @@ export default {
     },
   },
   computed: {
+    // ⚠️ **새로 추가된 computed 속성:** 지도와 동일한 색상 결정
+    itemColor() {
+      // item.number는 보통 1부터 시작합니다. 배열 인덱스를 위해 1을 뺌.
+      const index = (this.item.number || 1) - 1;
+      return this.getMarkerColor(index);
+    },
+
+    // ⚠️ **수정된 computed 속성:** SVG 이미지 Data URL을 생성
+    markerSvgUrl() {
+      const number = this.item.number || 1;
+      // ⚠️ 결정된 색상을 사용
+      const color = this.itemColor; 
+      return this.createMarkerImage(number, color);
+    },
+
     // 화면에 표시할 해시태그 목록 (최대 2개)
     visibleHashtags() {
       // item.hashtags가 배열이 아니거나 비어있으면 빈 배열 반환
@@ -110,8 +123,34 @@ export default {
         return 0;
       }
       return this.item.hashtags.length - 2;
-    }
+    },
   },
+
+  // ⚠️ **새로 추가된 methods:** 마커 이미지 생성 함수
+  methods: {
+    // ⚠️ **추가된 methods:** 지도 컴포넌트의 색상 규칙과 동일
+    getMarkerColor(index) {
+      // 지도 컴포넌트와 동일한 색상 배열
+      const colors = ['#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
+      return colors[index % colors.length];
+    },
+
+    createMarkerImage(number, color) {
+      // 지도 컴포넌트에서 가져온 SVG 코드
+      const svg = `
+        <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 23 12 23s12-14 12-23c0-6.627-5.373-12-12-12z"
+              fill="${color}" stroke="#fff" stroke-width="2"/>
+          <circle cx="12" cy="12" r="8" fill="#fff"/>
+          <text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif"
+              font-size="10" font-weight="bold" fill="${color}">${number}</text>
+        </svg>
+      `;
+
+      // Data URL로 인코딩하여 반환합니다.
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    },
+  }
 };
 </script>
 
@@ -138,16 +177,23 @@ export default {
 }
 
 .timeline-marker {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 14px;
+  /* ⚠️ **수정:** SVG 배경 이미지로 설정 *
+  /* SVG 크기(24x35)에 맞추어 마커 영역 조정 */
+  width: 24px;
+  height: 35px;
+
+  /* Computed 속성에서 받아온 SVG Data URL을 배경 이미지로 사용 */
+  background-image: var(--marker-url);
+  background-size: contain; /* 영역에 맞게 SVG를 표시 */
+  background-repeat: no-repeat;
+  background-position: center bottom; /* 물방울 꼬리가 아래쪽으로 오도록 */
+
+  /* 기존의 숫자 표시를 제거하고, 배경 이미지만 사용 */
+  display: block; 
+  text-indent: -9999px; /* 내부 텍스트(숫자) 숨김 */
+
   z-index: 2;
+  position: relative;
 }
 
 .timeline-line {
@@ -267,8 +313,6 @@ export default {
   /* 라벨과 주소 사이 간격 */
   font-size: 14px;
   font-weight: 500;
-  color: #4A7CEC;
-  /* 파란색 계열 */
   flex-shrink: 0;
   /* 글자가 길어져도 줄어들지 않게 */
 }
