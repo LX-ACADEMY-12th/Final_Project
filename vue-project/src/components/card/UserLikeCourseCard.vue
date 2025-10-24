@@ -130,13 +130,10 @@ export default {
         return;
       }
 
-      // 지도 범위 계산
-      const { center, level } = this.calculateMapBounds();
-
-      // 지도 옵션
       const options = {
-        center: new window.kakao.maps.LatLng(center.lat, center.lng),
-        level: level,
+        // 초기에 중심점과 레벨을 임의로 설정 (bounds를 사용하여 실제 조정 예정)
+        center: new window.kakao.maps.LatLng(37.566826, 126.9786567),
+        level: 5, 
         draggable: false,
         scrollwheel: false,
         disableDoubleClick: true,
@@ -147,7 +144,8 @@ export default {
       // 지도 생성
       this.map = new window.kakao.maps.Map(container, options);
 
-      // 코스 경로와 마커 추가
+      // ⚠️ **추가/수정된 부분:** 지도 경계 설정 및 마커 추가 로직 호출
+      this.updateMapBounds(); // 새로 추가된 지도 경계 설정 함수 호출
       this.addCourseMarkersAndRoute();
 
       // 지도 컨트롤 숨기기
@@ -163,39 +161,39 @@ export default {
         return { center: { lat: 37.566826, lng: 126.9786567 }, level: 5 };
       }
 
-      if (coordinates.length === 1) {
-        return { center: coordinates[0], level: 3 };
-      }
+      // 1. **Bounds 객체 생성:** 카카오맵의 LatLngBounds 객체를 생성합니다.
+      // 이 객체는 지도에 표시할 마커들의 영역을 담아주는 역할을 합니다.
+      const bounds = new window.kakao.maps.LatLngBounds();
 
-      // 경계 계산
-      const latitudes = coordinates.map(coord => coord.lat);
-      const longitudes = coordinates.map(coord => coord.lng);
+      // 2. **좌표 추가:** 모든 코스 좌표를 bounds 객체에 추가하여 영역을 확장합니다.
+      coordinates.forEach(coord => {
+        // LatLng 객체를 생성하여 bounds에 넣습니다.
+        bounds.extend(new window.kakao.maps.LatLng(coord.lat, coord.lng));
+      });
 
-      const minLat = Math.min(...latitudes);
-      const maxLat = Math.max(...latitudes);
-      const minLng = Math.min(...longitudes);
-      const maxLng = Math.max(...longitudes);
-
-      // 중심점
-      const centerLat = (minLat + maxLat) / 2;
-      const centerLng = (minLng + maxLng) / 2;
-
-      // 적절한 줌 레벨 계산
-      const latDiff = maxLat - minLat;
-      const lngDiff = maxLng - minLng;
-      const maxDiff = Math.max(latDiff, lngDiff);
-
-      let level = 1;
-      if (maxDiff > 0.002) level = 2;
-      if (maxDiff > 0.005) level = 3;
-      if (maxDiff > 0.01) level = 4;
-      if (maxDiff > 0.02) level = 5;
-      if (maxDiff > 0.05) level = 6;
-
+      // 3. **결과 반환:** 지도 설정을 위해 bounds 객체를 반환합니다.
       return {
-        center: { lat: centerLat, lng: centerLng },
-        level
+          bounds: bounds
       };
+    },
+
+    // ⚠️ **새로 추가된 메서드:** 계산된 경계를 지도에 적용합니다.
+    updateMapBounds() {
+        if (!this.map || this.courseCoordinates.length === 0) return;
+
+        // calculateMapBounds()에서 계산된 bounds 객체를 가져옵니다.
+        const { bounds } = this.calculateMapBounds();
+
+        if (bounds) {
+            // 1. **경계 적용:** `setBounds()` 메서드를 사용하여 지도의 중심과 줌 레벨을
+            //    계산된 bounds 영역에 딱 맞게 자동으로 조정합니다.
+            this.map.setBounds(bounds);
+
+            // 2. **레벨 조정:** 카드 크기가 작아 너무 타이트하게 보일 수 있으므로,
+            //    지도 레벨(줌)을 약간만 조정하여 여백을 줍니다. (선택적)
+            //    현재 레벨에서 1을 더하면(숫자가 클수록 줌 아웃) 더 넓은 영역이 보입니다.
+            //    this.map.setLevel(this.map.getLevel() + 1);
+        }
     },
 
     addCourseMarkersAndRoute() {
@@ -246,15 +244,16 @@ export default {
       }
     },
 
+    // ⚠️ **수정된 메서드:** 코스 아이템 변경 시 지도 업데이트
     updateMapWithCourse() {
       if (!this.map) return;
 
-      // 새로운 코스 데이터로 지도 업데이트
-      const { center, level } = this.calculateMapBounds();
+      // 기존 마커와 라인 제거
+      this.clearMapElements();
 
       if (this.courseCoordinates.length > 0) {
-        this.map.setCenter(new window.kakao.maps.LatLng(center.lat, center.lng));
-        this.map.setLevel(level);
+        // ⚠️ **수정된 부분:** 중심점/레벨 대신 경계(bounds)를 설정하는 함수 호출
+        this.updateMapBounds();
         this.addCourseMarkersAndRoute();
       }
     },
