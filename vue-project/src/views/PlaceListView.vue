@@ -25,12 +25,13 @@
 
     <div class="user-like-course">
       <!-- 카드 아이템 반복 -->
-      <PlaceCard2 v-for="item in currentCarouselItems" :key="item.id" :item="item" @add=goToDetail(item)
+      <PlaceCard2 v-for="item in currentCarouselItems" :key="item.id" :item="item" @add="goToDetail(item)"
         @item-click="handleItemClick(item)" />
     </div>
-    <FilterModal v-if="isModalOpen" :showSearchOptions="false" :initialSearchType="'filter'"
-      :initialSubject="selectedSubject" :initialGrade="selectedGrade" @close="isModalOpen = false"
-      @complete="handleFilterComplete" />
+
+    <!-- 필터모달: 학년과 과학영역만 선택 가능하도록 설정 -->
+    <FilterModal v-if="isModalOpen" :showLocationOptions="false" :initialSubject="selectedSubject"
+      :initialGrade="selectedGrade" @close="isModalOpen = false" @complete="handleFilterComplete" />
   </div>
 </template>
 
@@ -51,13 +52,14 @@ export default {
       // 필터 상태를 data에 추가
       selectedSubject: '물리',
       selectedGrade: '초등 3학년',
-      // '전시' 탭을 위한 목데이터
+      // '전시' 탭을 위한 목데이터 (맵뷰의 모든 전시 장소 포함)
       exhibitionItems: [
+        // 기존 전시 아이템들
         {
           id: 1,
           imageUrl: 'https://placehold.co/600x400',
           subject: '지구',
-          grade: '3학년', // [수정] 형식 통일
+          grade: '3학년',
           title: '습지생물코너',
           type: '상설',
           place: '국립중앙과학관 자연사관',
@@ -69,7 +71,7 @@ export default {
           id: 2,
           imageUrl: 'https://placehold.co/600x400',
           subject: '물리',
-          grade: '4학년', // [수정] 형식 통일
+          grade: '4학년',
           title: '빛의 원리',
           type: '기획',
           place: '국립과천과학관',
@@ -81,7 +83,7 @@ export default {
           id: 3,
           imageUrl: 'https://placehold.co/600x400',
           subject: '화학',
-          grade: '5학년', // [수정] 형식 통일
+          grade: '5학년',
           title: '미래 에너지',
           type: '상설',
           place: '서울시립과학관',
@@ -93,7 +95,7 @@ export default {
           id: 101,
           imageUrl: 'https://placehold.co/600x400/FFCC00/000',
           subject: '물리',
-          grade: '3학년', // [수정] 형식 통일
+          grade: '3학년',
           title: '떠오르는 힘, 부력',
           type: '상설',
           place: '국립중앙과학관',
@@ -105,7 +107,7 @@ export default {
           id: 102,
           imageUrl: 'https://placehold.co/600x400/00CCFF/000',
           subject: '지구',
-          grade: '5학년', // [수정] 형식 통일
+          grade: '5학년',
           title: '태양계 행성 탐험',
           type: '기획',
           place: '서울시립과학관',
@@ -113,7 +115,6 @@ export default {
           lat: 37.6094,
           lng: 127.0706
         },
-        // --- [신규 추가 5개] ---
         {
           id: 103,
           imageUrl: 'https://placehold.co/600x400/99FF99/000',
@@ -174,14 +175,136 @@ export default {
           lat: 37.6094,
           lng: 127.0706
         },
+        // 맵뷰에서 추가된 전시 장소들
+        {
+          id: 108,
+          imageUrl: 'https://placehold.co/600x400/FFAA66/000',
+          subject: '화학',
+          grade: '3학년',
+          title: '물의 변화',
+          type: '상설',
+          place: '국립중앙과학관',
+          hashtags: ['상태변화', '물질'],
+          lat: 36.3758,
+          lng: 127.3845
+        },
+        {
+          id: 109,
+          imageUrl: 'https://placehold.co/600x400/66AAFF/000',
+          subject: '생명',
+          grade: '4학년',
+          title: '식물의 구조',
+          type: '상설',
+          place: '국립과천과학관',
+          hashtags: ['식물', '광합성'],
+          lat: 37.4363,
+          lng: 126.9746
+        },
+        {
+          id: 110,
+          imageUrl: 'https://placehold.co/600x400/AA66FF/000',
+          subject: '물리',
+          grade: '6학년',
+          title: '소리의 전달',
+          type: '기획',
+          place: '서울시립과학관',
+          hashtags: ['파동', '소리'],
+          lat: 37.6094,
+          lng: 127.0706
+        },
+        {
+          id: 111,
+          imageUrl: 'https://placehold.co/600x400/FF6666/000',
+          subject: '지구',
+          grade: '4학년',
+          title: '날씨와 기후',
+          type: '상설',
+          place: '국립중앙과학관',
+          hashtags: ['기상', '기후'],
+          lat: 36.3758,
+          lng: 127.3845
+        },
+        {
+          id: 112,
+          imageUrl: 'https://placehold.co/600x400/66FF66/000',
+          subject: '화학',
+          grade: '6학년',
+          title: '산과 염기',
+          type: '기획',
+          place: '국립과천과학관',
+          hashtags: ['산염기', '지시약'],
+          lat: 37.4363,
+          lng: 126.9746
+        },
+        {
+          id: 113,
+          imageUrl: 'https://placehold.co/600x400/FFFF66/000',
+          subject: '생명',
+          grade: '5학년',
+          title: '생태계와 환경',
+          type: '상설',
+          place: '서울시립과학관',
+          hashtags: ['생태계', '환경'],
+          lat: 37.6094,
+          lng: 127.0706
+        },
+        {
+          id: 114,
+          imageUrl: 'https://placehold.co/600x400/FF66AA/000',
+          subject: '물리',
+          grade: '4학년',
+          title: '자석의 성질',
+          type: '상설',
+          place: '국립중앙과학관',
+          hashtags: ['자석', '자기장'],
+          lat: 36.3758,
+          lng: 127.3845
+        },
+        {
+          id: 115,
+          imageUrl: 'https://placehold.co/600x400/66FFFF/000',
+          subject: '지구',
+          grade: '3학년',
+          title: '지표의 변화',
+          type: '기획',
+          place: '국립과천과학관',
+          hashtags: ['침식', '퇴적'],
+          lat: 37.4363,
+          lng: 126.9746
+        },
+        {
+          id: 116,
+          imageUrl: 'https://placehold.co/600x400/AAFF66/000',
+          subject: '화학',
+          grade: '5학년',
+          title: '혼합물의 분리',
+          type: '상설',
+          place: '서울시립과학관',
+          hashtags: ['혼합물', '분리'],
+          lat: 37.6094,
+          lng: 127.0706
+        },
+        {
+          id: 117,
+          imageUrl: 'https://placehold.co/600x400/FFAA99/000',
+          subject: '생명',
+          grade: '6학년',
+          title: '유전과 진화',
+          type: '기획',
+          place: '국립중앙과학관',
+          hashtags: ['유전', '진화'],
+          lat: 36.3758,
+          lng: 127.3845
+        }
       ],
-      // '답사' 탭을 위한 목데이터 추가
+      //  답사' 탭을 위한 목데이터 (맵뷰의 모든 답사 장소 포함)
       fieldTripItems: [
+        // 기존 답사 아이템들
         {
           id: 4,
           imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
           subject: '지구',
-          grade: '5학년', // [수정] 형식 통일
+          grade: '5학년',
           title: '해운대 (지질 탐사)',
           place: '부산시 해운대구',
           hashtags: ['고체지구', '퇴적암'],
@@ -192,7 +315,7 @@ export default {
           id: 5,
           imageUrl: 'https://placehold.co/600x400/CCBBAA/000000',
           subject: '물리',
-          grade: '4학년', // [수정] 형식 통일
+          grade: '4학년',
           title: '서울숲 (공원 산책)',
           place: '서울시 성동구',
           hashtags: ['운동', '자연'],
@@ -203,7 +326,7 @@ export default {
           id: 201,
           imageUrl: 'https://placehold.co/600x400/FF99AA/000',
           subject: '화학',
-          grade: '3학년', // [수정] 형식 통일
+          grade: '3학년',
           title: '갯벌 체험 (염전)',
           place: '인천 소래습지',
           hashtags: ['소금', '물질의 특성'],
@@ -214,14 +337,13 @@ export default {
           id: 202,
           imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
           subject: '지구',
-          grade: '5학년', // [수정] 형식 통일
+          grade: '5학년',
           title: '영월 한반도 지형',
           place: '강원도 영월군',
           hashtags: ['침식', '퇴적'],
           lat: 37.2045,
           lng: 128.4557
         },
-        // --- [신규 추가 5개] ---
         {
           id: 203,
           imageUrl: 'https://placehold.co/600x400/99FF99/000',
@@ -276,12 +398,101 @@ export default {
           hashtags: ['화성암', '지층'],
           lat: 38.0069,
           lng: 127.2088
+        },
+        // 맵뷰에서 추가된 답사 장소들
+        {
+          id: 208,
+          imageUrl: 'https://placehold.co/600x400/FFAA66/000',
+          subject: '화학',
+          grade: '4학년',
+          title: '천일염 만들기 체험',
+          place: '신안 염전',
+          hashtags: ['결정', '증발'],
+          lat: 34.8266,
+          lng: 126.1003
+        },
+        {
+          id: 209,
+          imageUrl: 'https://placehold.co/600x400/66AAFF/000',
+          subject: '생명',
+          grade: '5학년',
+          title: '철새 도래지 관찰',
+          place: '순천만습지',
+          hashtags: ['생태계', '조류'],
+          lat: 34.8841,
+          lng: 127.5060
+        },
+        {
+          id: 210,
+          imageUrl: 'https://placehold.co/600x400/AA66FF/000',
+          subject: '물리',
+          grade: '5학년',
+          title: '풍력발전기 견학',
+          place: '제주 풍력발전단지',
+          hashtags: ['에너지', '발전'],
+          lat: 33.3846,
+          lng: 126.5597
+        },
+        {
+          id: 211,
+          imageUrl: 'https://placehold.co/600x400/FF6666/000',
+          subject: '지구',
+          grade: '6학년',
+          title: '화산활동 흔적 탐사',
+          place: '제주 용머리해안',
+          hashtags: ['화산', '응회암'],
+          lat: 33.2379,
+          lng: 126.3081
+        },
+        {
+          id: 212,
+          imageUrl: 'https://placehold.co/600x400/66FF66/000',
+          subject: '화학',
+          grade: '3학년',
+          title: '온천수 성분 분석',
+          place: '온양온천',
+          hashtags: ['용해', '무기물'],
+          lat: 36.7829,
+          lng: 127.0022
+        },
+        {
+          id: 213,
+          imageUrl: 'https://placehold.co/600x400/FFFF66/000',
+          subject: '생명',
+          grade: '3학년',
+          title: '곤충 서식지 관찰',
+          place: '국립공원 덕유산',
+          hashtags: ['곤충', '서식지'],
+          lat: 35.8583,
+          lng: 127.7486
+        },
+        {
+          id: 214,
+          imageUrl: 'https://placehold.co/600x400/FF66AA/000',
+          subject: '물리',
+          grade: '6학년',
+          title: '파도의 원리 관찰',
+          place: '강릉 경포해변',
+          hashtags: ['파동', '해안'],
+          lat: 37.7888,
+          lng: 128.9086
+        },
+        {
+          id: 215,
+          imageUrl: 'https://placehold.co/600x400/66FFFF/000',
+          subject: '지구',
+          grade: '5학년',
+          title: '석회동굴 탐험',
+          place: '단양 고수동굴',
+          hashtags: ['용식', '종유석'],
+          lat: 36.9833,
+          lng: 128.3667
         }
       ]
     };
   },
   computed: {
-    // selectedTab + selectedSubject + selectedGrade 따라 표시할 아이템을 동적으로 결정하는 computed 속성
+    // selectedTab + selectedSubject + selectedGrade에 따라 표시할 아이템을 동적으로 결정하는 computed 속성
     currentCarouselItems() {
       // 1. 탭에 따라 기본 목록 선택
       let baseList = [];
@@ -296,15 +507,9 @@ export default {
         // A. 과목이 일치하는가?
         const subjectMatch = item.subject === this.selectedSubject;
 
-        // B. 학년이 일치하는가? (예: "3학년" === "초등 3학년" 방지)
-        //    Modal에서 "초등 3학년"을 보내므로, 데이터의 "3학년"과 비교하려면 가공이 필요합니다.
-        //    (여기서는 목데이터의 학년("3학년")과 모달의 학년("초등 3학년")이 다르다고 가정)
-
-        //    [가정] 모달은 '초등 3학년', 데이터는 '3학년'
+        // B. 학년이 일치하는가?
+        // Modal에서 "초등 3학년"을 보내므로, 데이터의 "3학년"과 비교하려면 가공이 필요
         const gradeMatch = item.grade === this.selectedGrade.replace('초등 ', '');
-
-        //    [가정] 모달과 데이터 형식이 '3학년'으로 동일
-        // const gradeMatch = item.grade === this.selectedGrade;
 
         // 둘 다 일치해야 함
         return subjectMatch && gradeMatch;
@@ -336,6 +541,11 @@ export default {
       }
     },
 
+    // 아이템 클릭 핸들러 (카드 클릭 시)
+    handleItemClick(item) {
+      this.goToDetail(item);
+    },
+
     // 뒤로가기 함수
     goBack() {
       // Vue.Router를 이용하여 이전페이지로 이동
@@ -343,7 +553,7 @@ export default {
     },
 
     // 모달에서 '선택 완료를 눌렀을 때 실행되는 함수'
-    handleFilterComplete(filterData) { // [!!] filterData 인자 추가
+    handleFilterComplete(filterData) {
       console.log(`필터 선택 완료:`, filterData);
 
       this.selectedSubject = filterData.subject;
@@ -353,7 +563,8 @@ export default {
 
       this.performSearch();
     },
-    performSearch() {
+
+    performch() {
       console.log(`검색 실행:`, {
         subject: this.selectedSubject,
         grade: this.selectedGrade
@@ -382,16 +593,10 @@ export default {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  /* [!!] padding 수정 (좌우 16px) */
   padding: 5px 16px;
   gap: 8px;
-
   position: relative;
-  /* [!!] absolute -> relative (부모 div가 위치를 잡음) */
-  /* [!!] 고정 width 제거 -> 텍스트 길이에 맞게 자동 조절 */
-  /* width: 84px; */
   height: 38px;
-
   border-radius: 20px;
   background: #FFFFFF;
   color: #333;
@@ -402,29 +607,21 @@ export default {
 }
 
 .spec-button.active {
-  /* [!!] Figma 디자인의 파란색으로 변경 */
   background: #4A7CEC;
   color: white;
   border: none;
   font-weight: 700;
 }
 
-
-/* 페이지 전체 컨테이너
-  - 화면 전체 높이(100vh)를 차지
-  - flex-direction: column (자식 요소를 세로로 배치)
-*/
+/* 페이지 전체 컨테이너 */
 .page-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  /* 이 컨테이너 자체가 스크롤되는 것을 방지 */
 }
 
-/* [헤더]
-   채팅방 헤더와 동일한 구조
-*/
+/* 헤더 */
 .chat-header {
   position: relative;
 }
@@ -440,24 +637,17 @@ export default {
   font-weight: 600;
 }
 
-/* 카드 목록 영역 (자식 2)
-  - flex: 1 (나머지 세로 공간을 모두 차지)
-  - overflow-y: auto (내용이 넘칠 경우에만 세로 스크롤바 생성)
-*/
+/* 카드 목록 영역 */
 .user-like-course {
   flex: 1;
   overflow-y: auto;
 
   /* 스크롤바 숨기기 */
-  /* Chrome, Safari, Edge 등 (웹킷 브라우저) */
   &::-webkit-scrollbar {
     display: none;
   }
 
-  /* Firefox */
   scrollbar-width: none;
-
-  /* IE (구형) */
   -ms-overflow-style: none;
 
   /* 카드 목록이 잘 보이도록 패딩 추가 */

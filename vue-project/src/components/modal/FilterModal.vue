@@ -8,7 +8,7 @@
         <i class=" bi bi-person-circle fs-2 me-3" style="color: white;"></i>
         <div class="flex-grow-1">
           <h5 class="fw-bold m-0 fs-6 text-white">필터 선택</h5>
-          <small class="text-white">탐구영역, 학년, 위치를 선택하세요.</small>
+          <small class="text-white">탐구영역과 학년을 선택하세요.</small>
         </div>
         <button class="btn-close btn-close-white fs-5" @click="$emit('close')"></button>
       </div>
@@ -35,35 +35,38 @@
           </div>
         </div>
 
-        <h6 class="fw-bold mb-3 mt-4 pt-2">위치 기준</h6>
-        <div class="btn-group w-100 mb-3" role="group">
-          <input type="radio" class="btn-check" name="locationType" id="locTypeAll" autocomplete="off" value="all"
-            v-model="localLocationType" checked>
-          <label class="btn btn-outline-primary" for="locTypeAll">전체 지역</label>
-          <input type="radio" class="btn-check" name="locationType" id="locTypeRadius" autocomplete="off" value="radius"
-            v-model="localLocationType">
-          <label class="btn btn-outline-primary" for="locTypeRadius">내 주변</label>
-          <input type="radio" class="btn-check" name="locationType" id="locTypeRegion" autocomplete="off" value="region"
-            v-model="localLocationType">
-          <label class="btn btn-outline-primary" for="locTypeRegion">지역 선택</label>
-        </div>
+        <!-- 위치 기준 섹션: showLocationOptions가 true일 때만 표시 -->
+        <template v-if="showLocationOptions">
+          <h6 class="fw-bold mb-3 mt-4 pt-2">위치 기준</h6>
+          <div class="btn-group w-100 mb-3" role="group">
+            <input type="radio" class="btn-check" name="locationType" id="locTypeAll" autocomplete="off" value="all"
+              v-model="localLocationType" checked>
+            <label class="btn btn-outline-primary" for="locTypeAll">전체 지역</label>
+            <input type="radio" class="btn-check" name="locationType" id="locTypeRadius" autocomplete="off"
+              value="radius" v-model="localLocationType">
+            <label class="btn btn-outline-primary" for="locTypeRadius">내 주변</label>
+            <input type="radio" class="btn-check" name="locationType" id="locTypeRegion" autocomplete="off"
+              value="region" v-model="localLocationType">
+            <label class="btn btn-outline-primary" for="locTypeRegion">지역 선택</label>
+          </div>
 
-        <div v-if="localLocationType === 'radius'">
-          <h6 class="fw-bold mb-3">검색 반경</h6>
-          <div class="row g-3">
-            <div class="col-6" v-for="radius in radiusOptions" :key="radius">
-              <button type="button" class="filter-btn" :class="{ 'active': localRadius === radius }"
-                @click="localRadius = radius">
-                {{ radius }}km 이내
-              </button>
+          <div v-if="localLocationType === 'radius'">
+            <h6 class="fw-bold mb-3">검색 반경</h6>
+            <div class="row g-3">
+              <div class="col-6" v-for="radius in radiusOptions" :key="radius">
+                <button type="button" class="filter-btn" :class="{ 'active': localRadius === radius }"
+                  @click="localRadius = radius">
+                  {{ radius }}km 이내
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div v-if="localLocationType === 'region'">
-          <h6 class="fw-bold mb-3">지역 선택</h6>
-          <input type="text" class="form-control" placeholder="예: 서울시 강남구, 부산 해운대" v-model="localRegion">
-        </div>
+          <div v-if="localLocationType === 'region'">
+            <h6 class="fw-bold mb-3">지역 선택</h6>
+            <input type="text" class="form-control" placeholder="예: 서울시 강남구, 부산 해운대" v-model="localRegion">
+          </div>
+        </template>
 
       </div>
 
@@ -79,13 +82,15 @@
 <script setup>
 import { ref } from 'vue';
 
-// Define Props received from parent (showSearchOptions 제거)
+// Define Props received from parent
 const props = defineProps({
-  // 'all', 'radius', 'region'
+  // 위치 옵션 표시 여부 (기본값: true, 장소 목록에서는 false로 설정)
+  showLocationOptions: { type: Boolean, default: true },
+  // 위치 관련 초기값들 (showLocationOptions가 true일 때만 사용)
   initialLocationType: { type: String, default: 'all' },
-  // 필터 모달 반경 선택 초기값은 5km
   initialRadius: { type: Number, default: 5 },
   initialRegion: { type: String, default: '' },
+  // 필터 관련 초기값들
   initialSubject: String,
   initialGrade: String
 })
@@ -108,23 +113,29 @@ const radiusOptions = ref([3, 5, 10, 30]);
 
 // Function to emit all selected values on completion
 const completeSelection = () => {
-  let radiusValue = null;
-  let regionValue = '';
-
-  // 선택된 위치 기준에 따라 radius와 region 값을 정리
-  if (localLocationType.value === 'radius') {
-    radiusValue = localRadius.value;
-  } else if (localLocationType.value === 'region') {
-    regionValue = (typeof localRegion.value === 'string' ? localRegion.value.trim() : '');
-  }
-
-  emit('complete', {
-    locationType: localLocationType.value, // 'all', 'radius', 'region'
-    radius: radiusValue, // 'radius'일 때만 값, 아니면 null
-    region: regionValue, // 'region'일 때만 값, 아니면 ''
+  const result = {
     subject: localSubject.value,
     grade: localGrade.value
-  });
+  };
+
+  // 위치 옵션이 활성화된 경우에만 위치 관련 데이터 추가
+  if (props.showLocationOptions) {
+    let radiusValue = null;
+    let regionValue = '';
+
+    // 선택된 위치 기준에 따라 radius와 region 값을 정리
+    if (localLocationType.value === 'radius') {
+      radiusValue = localRadius.value;
+    } else if (localLocationType.value === 'region') {
+      regionValue = (typeof localRegion.value === 'string' ? localRegion.value.trim() : '');
+    }
+
+    result.locationType = localLocationType.value; // 'all', 'radius', 'region'
+    result.radius = radiusValue; // 'radius'일 때만 값, 아니면 null
+    result.region = regionValue; // 'region'일 때만 값, 아니면 ''
+  }
+
+  emit('complete', result);
 };
 </script>
 
@@ -132,44 +143,35 @@ const completeSelection = () => {
 /* Modal Backdrop */
 .modal-backdrop {
   position: absolute;
-  /* Use fixed to cover the whole screen */
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1050;
-  /* Bootstrap modal z-index */
 }
 
 /* Modal Sheet (Centered) */
 .modal-sheet {
   position: absolute;
-  /* Use fixed for centering */
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 90%;
-  /* Adjust width as needed */
   max-width: 500px;
-  /* Optional: Set a max-width */
   height: auto;
   max-height: 90vh;
-  /* Use vh for viewport height */
   background: white;
   border-radius: 20px;
-  /* Apply to all corners */
   z-index: 1051;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  /* Prevent content overflow */
 }
 
 /* Search Type Button Group */
 .btn-group .btn {
   border-radius: 0;
   padding-top: 0.75rem;
-  /* Adjust padding for better look */
   padding-bottom: 0.75rem;
 }
 
@@ -184,7 +186,6 @@ const completeSelection = () => {
 }
 
 .btn-check:checked+.btn-outline-primary {
-  /* Ensure active state looks correct */
   color: #fff;
   background-color: #0d6efd;
   border-color: #0d6efd;
@@ -217,7 +218,7 @@ const completeSelection = () => {
   overflow-y: auto;
 }
 
-/* Style range input (현재 사용하지 않지만 유지) */
+/* Style range input */
 .form-range {
   cursor: pointer;
 }
