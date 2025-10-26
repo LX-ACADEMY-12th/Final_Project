@@ -6,18 +6,57 @@
 <mapper namespace="com.example.demo.mapper.ExhibitionDetailMapper">
 
   <select id="findExhibitionById" 
-          resultType="com.example.demo.dto.ExhibitionDetailDTO"
-          parameterType="long">
+        resultType="com.example.demo.dto.ExhibitionDetailDTO"
+        parameterType="long">
     
   	SELECT
-	    ex.*  -- exhibition 테이블의 모든 컬럼
-	FROM
-    	exhibition ex
-	LEFT JOIN
-    	exhibition_hall eh ON ex.hall_id = eh.hall_id
-	WHERE
-    	ex.exhibition_id = #{exhibitionId};
+        e.exhibition_id,
+        e.exhibition_name,
+        e.description,
+        e.main_image_url,
+        e.latitude,
+        e.longitude,
+        e.start_date,
+        e.end_date,
+        e.opening_hours,
+        e.admission_fee,
+        e.average_rating,
+        e.total_reviews,
+        
+        -- 1. 위치 정보
+        CONCAT_WS(' ', eh.science_center_name, eh.hall_name) AS location,
+        
+        -- 2. 메인 카테고리 태그 (e.g., "물리, 생명")
+        STRING_AGG(DISTINCT cmc.category_name, ', ') AS main_category_tags,
+        
+        -- 3. 서브 카테고리 태그 (e.g., "#빛과 파동, #물질의 성질")
+        STRING_AGG(DISTINCT csc.sub_category_name, ', ') AS sub_category_tags,
+        
+        -- 4. 학년 태그 (e.g., "3학년, 4학년")
+        STRING_AGG(DISTINCT gc.grade_name, ', ') AS grade_tags
+        
+    FROM 
+        exhibition e
+    LEFT JOIN 
+        exhibition_hall eh ON e.hall_id = eh.hall_id
+    -- 교과 과정 태그 JOIN
+    LEFT JOIN 
+        exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
+    LEFT JOIN 
+        curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
+    LEFT JOIN 
+        curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+    -- 학년 태그 JOIN
+    LEFT JOIN 
+        exhibition_grade_mapping egm ON e.exhibition_id = egm.exhibition_id
+    LEFT JOIN 
+        grade_category gc ON egm.grade_id = gc.grade_id
+    WHERE 
+        e.exhibition_id = #{exhibitionId}
+    GROUP BY
+        e.exhibition_id,  -- PK로 그룹화
+        eh.hall_id;       -- JOIN된 테이블의 정보도 그룹화에 포함
   
-  </select>
+	</select>
 
   </mapper>

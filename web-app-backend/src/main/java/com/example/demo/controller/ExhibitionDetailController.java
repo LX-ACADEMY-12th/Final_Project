@@ -21,7 +21,7 @@ public class ExhibitionDetailController {
 	 * 전시 상세 정보를 ID로 조회하는 API
 	 * GET /api/exhibition/id <-- 이 url을 처리
 	 * */
-	@GetMapping("/{exhibitionId}") // {exhibitionId} 부분의 값을 가져옴
+	@GetMapping
 	public ResponseEntity<ExhibitionDetailDTO> getExhibitionById(@RequestParam Long exhibitionId) {
 		// 1. URL에서 받은 ID(101)를 서비스(Service)로 전달
 		ExhibitionDetailDTO dto = exhibitionDetailService.getfindExhibitionDetails(exhibitionId);
