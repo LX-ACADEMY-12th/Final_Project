@@ -5,6 +5,10 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+// 1. 테스트에 필요한 DTO와 Service를 임포트합니다.
+import com.example.demo.dto.ExhibitionDetailDTO;
+import com.example.demo.service.ExhibitionDetailService;
+
 @SpringBootApplication
 @MapperScan("com.example.demo.mapper")
 public class DemoApplication {
