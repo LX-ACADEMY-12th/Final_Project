@@ -5,16 +5,15 @@ import java.util.List;
 
 @Data
 public class PlaceResultDTO {
-    private Long id; // 또는 exhibitionId / placeId
-    private String title;
-    private String subject;
-    private String grade; // "3학년", "4학년" ... (서버에서 '초등 ' 제거)
-    private String city;
-    private String district;
-    private String place; // 장소명 (과학관 이름 등)
-    private String imageUrl;
-    private List<String> hashtags;
-    private Double lat;
-    private Double lng;
-    // 필요에 따라 type('상설'/'기획'), distance(거리) 등 추가 가능
+    private Long id;            // e.exhibition_id as id
+    private String title;       // e.exhibition_name as title
+    private String subject;     // cmc.category_name as subject
+    private String grade;       // MIN(gc.grade_name) as grade
+    private String place;       // eh.science_center_name || ' ' || eh.hall_name as place
+    private String imageUrl;    // e.main_image_url as imageUrl
+    private List<String> hashtags; // ARRAY_AGG(DISTINCT csc.sub_category_name) as hashtags
+    private Double lat;         // e.latitude as lat
+    private Double lng;         // e.longitude as lng
+    private String type;        // e.type as type <-- 추가됨
+    // city, district 필드는 쿼리에서 직접 선택하지 않으므로 제거
 }

@@ -119,9 +119,6 @@ const currentUserLocation = ref(null); // { lat: number, lng: number }
 const displayedItems = ref([]);      // 최종적으로 화면/지도에 보여줄 목록
 const isSearching = ref(false);      // (선택) 로딩 상태
 
-const exhibitionItems = ref([]);
-const fieldTripItems = ref([]);
-
 // URL 쿼리 복원
 const tabFromQuery = router.currentRoute.value.query.tab;
 if (tabFromQuery === '답사') {
@@ -271,7 +268,6 @@ const performSearch = async () => {
     searchType: locationType.value, // 'all', 'radius', 'region'
     itemType: selectedTab.value,   // '전시' or '답사' (서버에서 구분용)
     subject: selectedSubject.value,
-    // 서버에서 '초등 ' 제거 처리 가정, 필요시 Vue에서 제거: selectedGrade.value.replace('초등 ', '')
     grade: selectedGrade.value,
   };
 
