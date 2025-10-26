@@ -33,9 +33,9 @@ public class MapService {
 
                 // Mapper 메소드 호출 (PostGIS 함수 사용)
                 if (isExhibition) {
-                    results = placeMapper.findExhibitionsByRadius(dto.getSubject(), dto.getGrade(), dto.getLat(), dto.getLng(), radiusInMeters);
+                    results = placeMapper.findExhibitionsByRadius(dto.getSubject(), dto.getGrade(), dto.getLat(), dto.getLng(), dto.getRadius());
                 } else {
-                    results = placeMapper.findPlacesByRadius(dto.getSubject(), dto.getGrade(), dto.getLat(), dto.getLng(), radiusInMeters);
+                    results = placeMapper.findPlacesByRadius(dto.getSubject(), dto.getGrade(), dto.getLat(), dto.getLng(), dto.getRadius());
                 }
                 break;
             case "region":
