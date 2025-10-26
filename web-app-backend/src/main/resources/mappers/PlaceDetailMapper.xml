@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.PlaceDetailMapper">
+
+	<select id="findPlaceDetailDTO" parameterType="java.util.Map" resultType="com.example.demo.dto.PlaceDetailDTO">
+		SELECT
+	        p.place_id,
+	        p.place_name,
+	        p.description,
+	        p.main_image_url,
+	        p.address_detail,
+	        p.latitude,
+	        p.longitude,
+	        p.admission_fee,
+	        p.opening_hours,
+	        p.place_type,
+	        p.average_rating,
+	        p.total_reviews,
+	        
+	        -- 1. 메인 카테고리 태그 (버그 수정됨)
+            array_to_string(
+                array_agg(
+                    DISTINCT (CASE
+                        -- (1) 파라미터가 null이면 모든 태그를 반환
+                        WHEN #{mainCategoryTags, jdbcType=VARCHAR} IS NULL 
+                        	THEN cmc.category_name
+                        -- (2) 파라미터가 null이 아니면, 콤마로 쪼갠 배열에 포함되는지(ANY) 확인
+                        WHEN cmc.category_name = ANY(string_to_array(#{mainCategoryTags, jdbcType=VARCHAR}, ', ')) 
+                        	THEN cmc.category_name
+                        ELSE NULL
+                    END)
+                ),
+                ', '
+            ) AS categoryName,
+
+            -- 2. 서브 카테고리 태그 (버그 수정됨)
+            array_to_string(
+                array_agg(
+                    DISTINCT (CASE
+                        WHEN #{subCategoryTags, jdbcType=VARCHAR} IS NULL 
+                        	THEN csc.sub_category_name
+                        WHEN csc.sub_category_name = ANY(string_to_array(#{subCategoryTags, jdbcType=VARCHAR}, ', ')) 
+                        	THEN csc.sub_category_name
+                        ELSE NULL
+                    END)
+                ),
+                ', '
+            ) AS subCategoryName,
+
+            -- 3. 학년 태그 (버그 수정됨)
+            array_to_string(
+                array_agg(
+                    DISTINCT (CASE
+                        WHEN #{gradeTags, jdbcType=VARCHAR} IS NULL 
+                        	THEN gc.grade_name
+                        WHEN gc.grade_name = ANY(string_to_array(#{gradeTags, jdbcType=VARCHAR}, ', ')) 
+                        	THEN gc.grade_name
+                        ELSE NULL
+                    END)
+                ),
+                ', '
+            ) AS grade
+	        
+	    FROM 
+	        science_place p
+	    LEFT JOIN 
+	        place_curriculum_mapping pcm ON p.place_id = pcm.place_id
+	    LEFT JOIN 
+	        curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+	    LEFT JOIN 
+	        curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+	    LEFT JOIN 
+	        place_grade_mapping pgm ON p.place_id = pgm.place_id
+	    LEFT JOIN 
+	        grade_category gc ON pgm.grade_id = gc.grade_id
+	    WHERE
+	        p.place_id = #{placeId}
+	    GROUP BY
+	        p.place_id
+	</select>
+</mapper>
+

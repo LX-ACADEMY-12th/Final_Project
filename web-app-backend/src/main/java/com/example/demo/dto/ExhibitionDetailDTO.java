@@ -24,9 +24,9 @@ public class ExhibitionDetailDTO {
 	
 	// Join으로 나오는 값들
 	private String location; // ex) 국립과천과학관 + 미래전시관
-	private String mainCategoryTags; // 물,화,생,지
-	private String subCategoryTags; // 빛과 파동 -- 이런식으로 중분류
-	private String gradeTags; // 학년 태그
+	private String categoryName; // 물,화,생,지
+	private String subCategoryName; // 빛과 파동 -- 이런식으로 중분류
+	private String grade; // 학년 태그
 	
 	
 }

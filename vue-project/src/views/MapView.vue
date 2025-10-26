@@ -139,10 +139,25 @@ const changeTab = (tabName) => {
 
 // 상세 페이지 이동
 const goToDetail = (item) => {
+
   if (selectedTab.value === '전시') {
-    router.push(`/exhibition/${item.id}`);
+    router.push({
+      path: `/exhibition/${item.id}`,
+      query: {
+        mainCategoryTags: selectedSubject.value,
+        subCategoryTags: item.subCategoryTags,
+        gradeTags: selectedGrade.value,
+      }
+    });
   } else {
-    router.push(`/place/${item.id}`);
+    router.push({
+      path: `/place/${item.id}`,
+      query: {
+        mainCategoryTags: selectedSubject.value,
+        subCategoryTags: item.subCategoryTags,
+        gradeTags: selectedGrade.value,
+      }
+    });
   }
 };
 
