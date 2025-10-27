@@ -22,6 +22,10 @@
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
+          <div v-if="isRecommending" class="recommend-loading">
+            <p>🤖 AI가 코스를 생성 중입니다.</p>
+            <p>잠시만 기다려 주세요...</p>
+          </div>
           <CourseRecommend :course-items="courseItems" type="exhibition" />
         </div>
       </div>
@@ -39,6 +43,10 @@
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
+          <div v-if="isRecommending" class="recommend-loading">
+            <p>🤖 AI가 코스를 생성 중입니다.</p>
+            <p>잠시만 기다려 주세요...</p>
+          </div>
           <CourseRecommend :course-items="courseItems" type="place" />
         </div>
       </div>
@@ -134,6 +142,9 @@ export default {
 
       // 추천 코스를 이미 로드했는지 추적하는 플래그
       hasLoadedRecommendations: false,
+
+      // AI 추천 API 로딩 상태를 추적할 변수 추가
+      isRecommending: false,
     };
   },
 
@@ -332,38 +343,78 @@ export default {
       }
     },
 
-    // AI 코스 API를 호출하는 메서드
     async fetchRecommendedCourse() {
-      // 이미 로딩 중이거나 로드 완료됐다면 중복 실행 방지
+      // 이미 로드했다면 중복 실행 방지
       if (this.hasLoadedRecommendations) return;
-      console.log('AI 추천 코스를 검색합니다.');
+      console.log('🤖 AI 추천 코스를 검색합니다...');
+
+      // 로딩 상태를 true로 변경
+      this.isRecommending = true;
 
       try {
-        // 백엔드에 만들어야 할 API 엔드포인트
+        // 1. AI 추천 API 호출 (2번, 3번... 항목들)
         const apiUrl = `${API_BASE}/api/recommend/course`;
-
-        // API에 보내야 할 파라미터
         const params = {
-          type: this.pageType, // 'exhibition' 또는 'place'
-          // $route 대신 data()에 저장된 ID 사용
+          type: this.pageType,
           currentId: this.currentId,
-          // 현재 페이지의 태그(쿼리) 정보를 그대로 전달
           mainCategoryTags: this.$route.query.mainCategoryTags,
-          subCategoryTags: this.$route.query.subCategoryTags, // (이전 대화에서 subCategories로 키를 잡음)
+          subCategoryTags: this.$route.query.subCategoryTags,
           gradeTags: this.$route.query.gradeTags,
         };
-
         const res = await axios.get(apiUrl, { params });
+        const aiRecommendedDtos = res.data; // (백엔드가 보낸 DTO 리스트)
 
-        // API 응답 결과를 courseItems 데이터에 저장
-        this.courseItems = res.data;
-        this.hasLoadedRecommendations = true; // 로드 완료 플래그 설정
+        // 2. "1번 항목" (현재 페이지 장소) 데이터 준비
+        // (created()에서 이미 불러온 this.place 또는 this.exhibition 객체 활용)
+        const currentItemData = (this.pageType === 'place') ? this.place : this.exhibition;
+        const currentItemInfo = (this.pageType === 'place') ? this.placeInformation : this.exhibitionInformation;
 
-        console.log('🤖 AI 추천 코스 수신 완료:', this.courseItems);
+        // 3. "1번 항목"을 카드 형식으로 포맷
+        const currentItemFormatted = {
+          id: this.currentId, // 고유 ID
+          number: 1,               // [!!] 1번으로 고정
+          color: '#FF5A5A',     // 1번 항목 강조색
+          imageUrl: currentItemData.mainImage || 'https://via.placeholder.com/60x60',
+          title: currentItemData.title,
+          subject: currentItemData.mainCategory,
+          grade: currentItemData.gradeTag,
+          hashtags: Array.isArray(currentItemData.subCategories) ? currentItemData.subCategories : [currentItemData.subCategories].filter(Boolean),
+          place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation,
+          // [!!] 지도(CourseMap)를 위한 1번 항목의 좌표
+          lat: currentItemInfo.lat,
+          lng: currentItemInfo.lng
+        };
+
+        // 4. "2번, 3번..." (AI 추천 목록)을 카드 형식으로 포맷
+        const aiItemsFormatted = aiRecommendedDtos.map((item, index) => {
+          // (item = 백엔드 DTO: { placeId, placeName, imageUrl, address, latitude, longitude ... })
+          return {
+            id: item.placeId,
+            number: index + 2,     // [!!] 2번부터 시작
+            color: '#4A7CEC',    // 일반 항목 색상
+            imageUrl: item.imageUrl || 'https://via.placeholder.com/60x60',
+            title: item.placeName,
+            subject: item.subjectName,
+            grade: item.gradeName,
+            hashtags: [item.placeType].filter(Boolean), // 이거 해시태그로 수정이 필요함.
+            place: item.address || '주소 정보 없음',
+            // [!!] 지도(CourseMap)를 위한 2,3,4번 항목의 좌표
+            lat: item.latitude,
+            lng: item.longitude
+          };
+        });
+
+        // 1번 항목과 (2,3,4..) 항목 리스트를 합쳐서 최종 저장
+        this.courseItems = [currentItemFormatted, ...aiItemsFormatted];
+        this.hasLoadedRecommendations = true; // 에러 시 무한 재시도 방지
+        console.log('🤖 AI 추천 코스 수신 완료 (1번 + 추천 리스트):', this.courseItems);
+
       } catch (error) {
         console.error("AI 추천 코스 로딩 실패:", error);
-        // (에러가 나도 한 번 시도했으므로 플래그를 true로 설정하여 무한 재시도 방지)
         this.hasLoadedRecommendations = true;
+      } finally {
+        this.isRecommending = false;
+        console.log('🏁 fetchRecommendedCourse 완료. isRecommending:', this.isRecommending);
       }
     }
   }
@@ -419,5 +470,22 @@ export default {
   text-align: center;
   color: #888;
   font-size: 16px;
+}
+
+/* [!!] 5. AI 추천 로딩 스타일 추가 */
+.recommend-loading {
+  padding: 60px 20px;
+  text-align: center;
+  color: #555;
+  font-size: 1.1rem;
+  font-weight: 500;
+  background-color: #fff;
+  /* 또는 f7f7f7 */
+}
+
+.recommend-loading p:last-child {
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 8px;
 }
 </style>

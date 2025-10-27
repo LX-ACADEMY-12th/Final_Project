@@ -9,12 +9,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CourseItemDTO {
-    // AI 한테 넘길 장소의 속성들
+    // AI + UI 공통
     private Long placeId;         // (place_id)
     private String placeName;     // (place_name)
-    private String description;   // (description)
-    private String placeType;     // (place_type)
     private String subjectName;   // (subject_name)
     private String gradeName;     // (grade_name)
+
+    // AI가 주로 사용
+    private String description;   // (description)
+    private String placeType;     // (place_type)
+
+    // UI가 주로 사용
+    private String imageUrl;
+    private String address;
+    private Double latitude;
+    private Double longitude;
 
 }

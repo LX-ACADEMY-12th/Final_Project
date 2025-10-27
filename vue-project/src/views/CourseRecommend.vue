@@ -5,11 +5,11 @@
 
     <div class="timeline-list">
       <div v-if="type === 'exhibition'">
-        <ExhibitionCourseCard v-for="item in courseItems" :key="item.number" :item="item" courseType="전시" />
+        <ExhibitionCourseCard v-for="item in courseItems" :key="item.id" :item="item" courseType="전시" />
       </div>
 
       <div v-else>
-        <CoursePlaceCard v-for="item in courseItems" :key="item.number" :item="item" />
+        <CoursePlaceCard v-for="item in courseItems" :key="item.id" :item="item" />
       </div>
 
     </div>

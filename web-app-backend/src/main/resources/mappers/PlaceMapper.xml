@@ -238,11 +238,16 @@
 
     <!-- 과학 장소 AI 추천 검색  -->
     <resultMap id="courseItemResultMap" type="com.example.demo.dto.CourseItemDTO">
-        <result property="id"       column="id"/>
-        <result property="title"    column="exhibition_name"/>
-        <result property="imageUrl" column="main_image_url"/>
-        <result property="subject"  column="subject"/>
-        <result property="grade"    column="grade"/>
+        <result property="placeId"     column="place_id"/>
+        <result property="placeName"   column="place_name"/>
+        <result property="description" column="description"/>
+        <result property="placeType"   column="place_type"/>
+        <result property="subjectName" column="subject_name"/>
+        <result property="gradeName"   column="grade_name"/>
+        <result property="imageUrl"    column="main_image_url"/>
+        <result property="address"     column="address_detail"/>
+        <result property="latitude"    column="latitude"/>
+        <result property="longitude"   column="longitude"/>
     </resultMap>
 
     <select id="findSimilarSciencePlace" resultMap="courseItemResultMap">
@@ -266,7 +271,11 @@
              JOIN place_grade_mapping pgm_sub ON g.grade_id = pgm_sub.grade_id
              WHERE pgm_sub.place_id = P.place_id
                AND g.grade_name = #{grade}
-             LIMIT 1) AS grade_name
+             LIMIT 1) AS grade_name,
+            P.main_image_url,
+            P.address_detail,
+            P.latitude,
+            P.longitude
         FROM science_place P
         WHERE EXISTS (
             SELECT 1

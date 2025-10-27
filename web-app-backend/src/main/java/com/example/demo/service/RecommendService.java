@@ -33,7 +33,7 @@ public class RecommendService {
             );
         } else {
             List<CourseItemDTO> candidates = placeMapper.findSimilarSciencePlace(currentId, mainCategory, grade);
-            return llmApiService.getAiRecommendations(currentId, candidates); // AI 호출
+            return llmApiService.getAiRecommendations(currentId, candidates); // AI 호출 -> ID 3개 값 배열을 리턴
         }
     }
 

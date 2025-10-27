@@ -126,10 +126,10 @@ public class LlmApiService {
             return candidates.stream().limit(3).toList();
         }
 
-        // 원본 후보 리스트를 Map<ID, DTO>로 변환 (빠른 조회용)
+        // DB에서 받은 후보 DTO 10개를 Map으로 변환합니다
         Map<Long, CourseItemDTO> candidateMap = candidates.stream()
                 .collect(Collectors.toMap(CourseItemDTO::getPlaceId, item -> item));
-
+        // AI가 추천한 ID 리스트([12, 5, 7]) 순서대로 Map에서 DTO를 꺼냅니다.
         // .distinct()를 추가하여 AI가 중복 ID를 반환해도 고유한 리스트만 생성
         return recommendedIds.stream()
                 .map(candidateMap::get)
