@@ -1,5 +1,6 @@
 package com.example.demo.mapper;
 
+import com.example.demo.dto.CourseItemDTO;
 import com.example.demo.dto.PlaceResultDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -25,4 +26,11 @@ public interface PlaceMapper {
                                                 @Param("lat") double lat, @Param("lng") double lng, @Param("radius") double radius);
 
         List<PlaceResultDTO> findPlacesByRegion(@Param("subject") String subject, @Param("grade") String grade, @Param("regionPattern") String regionPattern);
+
+        // 추천 장소 검색
+        List<CourseItemDTO> findSimilarSciencePlace(
+                @Param("currentId") Long currentId,
+                @Param("mainCategory") String mainCategory,
+                @Param("grade") String grade
+        );
     }

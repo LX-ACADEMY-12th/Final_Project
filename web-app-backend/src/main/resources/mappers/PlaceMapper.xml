@@ -105,7 +105,6 @@
         ORDER BY
             distance_km; -- 가까운 순서로 정렬
     </select>
-
     <select id="findExhibitionsByRegion" resultType="com.example.demo.dto.PlaceResultDTO">
         SELECT
             e.exhibition_id as id,
@@ -126,6 +125,7 @@
           AND gc.grade_name LIKE '%' || #{grade} || '%'
           AND e.address_detail LIKE #{regionPattern}
     </select>
+
     <!-- 과학 장소 일반 필터  -->
     <select id="findPlacesByFilter" resultMap="PlaceResultMap">
         SELECT
@@ -215,7 +215,6 @@
         ORDER BY
             distance_km; -- 가까운 순서로 정렬
     </select>
-
     <select id="findPlacesByRegion" resultType="com.example.demo.dto.PlaceResultDTO">
         SELECT
             sp.place_id as id,
@@ -235,6 +234,60 @@
         WHERE cmc.category_name = #{subject}
           AND gc.grade_name LIKE '%' || #{grade} || '%'
           AND sp.address_detail LIKE #{regionPattern}
+    </select>
+
+    <!-- 과학 장소 AI 추천 검색  -->
+    <resultMap id="courseItemResultMap" type="com.example.demo.dto.CourseItemDTO">
+        <result property="id"       column="id"/>
+        <result property="title"    column="exhibition_name"/>
+        <result property="imageUrl" column="main_image_url"/>
+        <result property="subject"  column="subject"/>
+        <result property="grade"    column="grade"/>
+    </resultMap>
+
+    <select id="findSimilarSciencePlace" resultMap="courseItemResultMap">
+        WITH TargetGeom AS (
+            SELECT geog FROM science_place WHERE place_id = #{currentId}
+        )
+        SELECT
+            P.place_id,
+            P.place_name,
+            P.description,
+            P.place_type,
+            (SELECT cat.category_name
+             FROM curriculum_main_category cat
+                      JOIN curriculum_sub_category sub ON cat.main_category_id = sub.main_category_id
+                      JOIN place_curriculum_mapping pcm_sub ON pcm_sub.sub_category_id = sub.sub_category_id
+             WHERE pcm_sub.place_id = P.place_id
+               AND cat.category_name = #{mainCategory}
+                LIMIT 1) AS subject_name,
+            (SELECT g.grade_name
+             FROM grade_category g
+             JOIN place_grade_mapping pgm_sub ON g.grade_id = pgm_sub.grade_id
+             WHERE pgm_sub.place_id = P.place_id
+               AND g.grade_name = #{grade}
+             LIMIT 1) AS grade_name
+        FROM science_place P
+        WHERE EXISTS (
+            SELECT 1
+            FROM place_curriculum_mapping pcm
+            INNER JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+            INNER JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+            WHERE pcm.place_id = P.place_id
+          AND cmc.category_name = #{mainCategory}
+            )
+          AND EXISTS (
+            SELECT 1
+            FROM place_grade_mapping pgm
+            INNER JOIN grade_category gc ON pgm.grade_id = gc.grade_id
+            WHERE pgm.place_id = P.place_id
+          AND gc.grade_name = #{grade}
+            )
+          AND P.place_id != #{currentId}
+          AND ST_DWithin(P.geog, (SELECT geog FROM TargetGeom), 1000000)
+        ORDER BY P.average_rating DESC, P.total_reviews DESC
+            LIMIT 10
+
     </select>
 
 </mapper>

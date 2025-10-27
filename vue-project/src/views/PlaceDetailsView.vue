@@ -14,7 +14,7 @@
         <InfoSection :exhibition="exhibition" imageTag="전시 태그" :mainCategory="exhibition.mainCategory"
           :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag" />
         <hr class="divider" />
-        <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="(tabName) => currentTab = tabName" />
+        <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
           <ContentDetailView :exhibitionInformation="exhibitionInformation" :exhibition="exhibition" :reviews="reviews"
@@ -31,7 +31,7 @@
         <InfoSection :exhibition="place" imageTag="장소 태그" :mainCategory="place.mainCategory"
           :subCategories="place.subCategories" :gradeTag="place.gradeTag" />
         <hr class="divider" />
-        <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="(tabName) => currentTab = tabName" />
+        <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
           <ContentDetailView :exhibitionInformation="placeInformation" :exhibition="place" :reviews="reviews"
@@ -77,6 +77,8 @@ export default {
 
   data() {
     return {
+      // 현재 ID를 저장할 변수
+      currentId: null,
       // 화면 상태
       pageType: null,     // 'exhibition' | 'place'
       currentTab: 'detail',
@@ -127,7 +129,11 @@ export default {
 
       // 공통
       reviews: [],
+      // AI 추천 코스 결과를 담을 배열
       courseItems: [],
+
+      // 추천 코스를 이미 로드했는지 추적하는 플래그
+      hasLoadedRecommendations: false,
     };
   },
 
@@ -135,6 +141,8 @@ export default {
   created() {
     // URL에서 ID 가져오기
     const id = this.$route.params.id;
+    // ID를 data()에 저장
+    this.currentId = id;
     // URL 경로가 place 시작인지 판별
     const isPlace = this.$route.path.startsWith('/place/');
     // 장소인 경우
@@ -312,8 +320,54 @@ export default {
       console.log('✅ [PlaceDetailsView] 새 리뷰 받음:', newReview);
       alert('후기가 성공적으로 등록되었습니다.');
     },
-  },
-};
+
+    // 탭 변경시 호출될 메서드
+    handleTabChange(tabName) {
+      this.currentTab = tabName;
+
+      // 추천 탭을 클릭했고,
+      // 아직 추천 데이터를 로드한 적이 없으면 API 호출
+      if (tabName === 'recommend' && !this.hasLoadedRecommendations) {
+        this.fetchRecommendedCourse();
+      }
+    },
+
+    // AI 코스 API를 호출하는 메서드
+    async fetchRecommendedCourse() {
+      // 이미 로딩 중이거나 로드 완료됐다면 중복 실행 방지
+      if (this.hasLoadedRecommendations) return;
+      console.log('AI 추천 코스를 검색합니다.');
+
+      try {
+        // 백엔드에 만들어야 할 API 엔드포인트
+        const apiUrl = `${API_BASE}/api/recommend/course`;
+
+        // API에 보내야 할 파라미터
+        const params = {
+          type: this.pageType, // 'exhibition' 또는 'place'
+          // $route 대신 data()에 저장된 ID 사용
+          currentId: this.currentId,
+          // 현재 페이지의 태그(쿼리) 정보를 그대로 전달
+          mainCategoryTags: this.$route.query.mainCategoryTags,
+          subCategoryTags: this.$route.query.subCategoryTags, // (이전 대화에서 subCategories로 키를 잡음)
+          gradeTags: this.$route.query.gradeTags,
+        };
+
+        const res = await axios.get(apiUrl, { params });
+
+        // API 응답 결과를 courseItems 데이터에 저장
+        this.courseItems = res.data;
+        this.hasLoadedRecommendations = true; // 로드 완료 플래그 설정
+
+        console.log('🤖 AI 추천 코스 수신 완료:', this.courseItems);
+      } catch (error) {
+        console.error("AI 추천 코스 로딩 실패:", error);
+        // (에러가 나도 한 번 시도했으므로 플래그를 true로 설정하여 무한 재시도 방지)
+        this.hasLoadedRecommendations = true;
+      }
+    }
+  }
+}
 </script>
 
 <style scoped>
