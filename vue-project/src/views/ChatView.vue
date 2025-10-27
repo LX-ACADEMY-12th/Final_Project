@@ -196,8 +196,35 @@ const sendMessage = async () => {
   채팅방 배경색 (이미지와 동일하게)
 */
 .chat-body {
-  background-color: #f0f2f5;
   /* 이미지의 연한 회색 배경 */
+  background-color: #f0f2f5;
+  /* 이 줄을 추가하여 flex 아이템이 넘치지 않도록 수정 */
+  overflow: auto;
+  min-height: 0;
+}
+
+/* 스크롤바 숨기기 (표준 CSS) */
+.chat-body::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chat-page-container {
+  font-family: 'SUIT', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* 모바일 화면처럼 보이도록 최대 너비 및 그림자 설정 (선택 사항) */
+  margin: 0 auto;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+
+  /* 자식 요소(chat-body)가 부모(vh-100)의 높이를
+    넘어서 팽창하려 할 때, 부모가 그 팽창을 무시하고
+    자신의 높이를 강제로 지키게 만듭니다.
+  */
+  overflow: hidden;
 }
 
 /* [메시지 그룹]
