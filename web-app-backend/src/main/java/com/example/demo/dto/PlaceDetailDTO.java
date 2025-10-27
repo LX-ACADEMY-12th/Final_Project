@@ -26,7 +26,6 @@ public class PlaceDetailDTO {
     private Long totalReviews;
 
     // 3. Join으로 나오는 값들 (ExhibitionDTO와 동일한 방식)
-    
     /**
      * 'place_curriculum_mapping' -> ... -> 'curriculum_main_category'
      * (e.g., "과학, 사회")

@@ -54,6 +54,7 @@ import HashTag from '@/components/tag/HashTag.vue';
 import { computed } from 'vue';
 const emit = defineEmits(['add']);
 
+// 부모로부터 item 객체 전달받기
 const props = defineProps({
   item: {
     type: Object,
@@ -61,8 +62,8 @@ const props = defineProps({
     /* item 객체 예시:
       {
         imageUrl: 'https://example.com/some-image.jpg',
+        grade: '초등 3학년',
         subject: '과학',
-        grade: '초등',
         type: '상설',
         place: '국립중앙과학관',
         title: '과학 탐험대',

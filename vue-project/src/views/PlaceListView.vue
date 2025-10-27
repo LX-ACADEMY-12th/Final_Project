@@ -87,14 +87,30 @@ export default {
     // 장소 상세페이지 이동 함수
     goToDetail(item) {
       console.log(`상세 페이지로 이동:`, item.title);
+
+      // 상세 페이지로 전달할 쿼리 파라미터 정의
+      const queryParams = {
+        mainCategoryTags: this.selectedSubject, // data의 selectedSubject
+        subCategories: item.hashtags,
+        gradeTags: this.selectedGrade,          // data의 selectedGrade
+      };
+
       if (this.selectedTab === '전시') {
         // '전시' 탭이면 /exhibition/ID 로 이동
         console.log(`전시 상세로 이동 (ID: ${item.id}):`, item.title);
-        this.$router.push(`/exhibition/${item.id}`);
+        // push하여 query 전달
+        this.$router.push({
+          path: `/exhibition/${item.id}`,
+          query: queryParams
+        });
       } else {
         // '답사' 탭이면 /place/ID 로 이동
         console.log(`장소 상세로 이동 (ID: ${item.id}):`, item.title);
-        this.$router.push(`/place/${item.id}`);
+        // push하여 query 전달
+        this.$router.push({
+          path: `/place/${item.id}`,
+          query: queryParams
+        });
       }
     },
 
@@ -147,6 +163,7 @@ export default {
         if (response.data && Array.isArray(response.data)) {
           this.displayedItems = response.data;
           console.log('API 응답 결과: ', this.displayedItems.length, '개');
+          console.log(response.data);
         } else {
           console.error('API 응답 형식이 잘못되었습니다.', response.data);
           this.displayedItems = [];

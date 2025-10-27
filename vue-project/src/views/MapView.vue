@@ -145,7 +145,7 @@ const goToDetail = (item) => {
       path: `/exhibition/${item.id}`,
       query: {
         mainCategoryTags: selectedSubject.value,
-        subCategoryTags: item.subCategoryTags,
+        subCategoryTags: item.hashtags,
         gradeTags: selectedGrade.value,
       }
     });
@@ -154,7 +154,7 @@ const goToDetail = (item) => {
       path: `/place/${item.id}`,
       query: {
         mainCategoryTags: selectedSubject.value,
-        subCategoryTags: item.subCategoryTags,
+        subCategoryTags: item.hashtags,
         gradeTags: selectedGrade.value,
       }
     });
@@ -321,6 +321,7 @@ const performSearch = async () => {
     if (response.data && Array.isArray(response.data)) {
       displayedItems.value = response.data;
       console.log('API 응답 결과:', displayedItems.value.length, '개');
+      console.log(displayedItems.value)
     } else {
       console.error('API 응답 형식이 잘못되었습니다:', response.data);
       displayedItems.value = [];

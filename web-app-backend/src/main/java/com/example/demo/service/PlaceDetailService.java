@@ -21,7 +21,6 @@ public class PlaceDetailService {
      * 컨트롤러(Controller)가 호출할 메서드입니다.
      * 장소 ID를 받아서 상세 정보를 반환합니다.
      */
-	
 	public PlaceDetailDTO getfindPlaceDetails(
 			Long placeId, String mainCategoryTags, 
 			String subCategoryTags,String gradeTags) {

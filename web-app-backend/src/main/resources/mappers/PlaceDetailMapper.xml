@@ -3,7 +3,6 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.demo.mapper.PlaceDetailMapper">
-
 	<select id="findPlaceDetailDTO" parameterType="java.util.Map" resultType="com.example.demo.dto.PlaceDetailDTO">
 		SELECT
 	        p.place_id,
@@ -24,10 +23,10 @@
                 array_agg(
                     DISTINCT (CASE
                         -- (1) 파라미터가 null이면 모든 태그를 반환
-                        WHEN #{mainCategoryTags, jdbcType=VARCHAR} IS NULL 
+                        WHEN #{mainCategoryTags, jdbcType=VARCHAR} IS NULL
                         	THEN cmc.category_name
                         -- (2) 파라미터가 null이 아니면, 콤마로 쪼갠 배열에 포함되는지(ANY) 확인
-                        WHEN cmc.category_name = ANY(string_to_array(#{mainCategoryTags, jdbcType=VARCHAR}, ', ')) 
+                        WHEN cmc.category_name = ANY(string_to_array(#{mainCategoryTags, jdbcType=VARCHAR}, ', '))
                         	THEN cmc.category_name
                         ELSE NULL
                     END)
@@ -39,9 +38,9 @@
             array_to_string(
                 array_agg(
                     DISTINCT (CASE
-                        WHEN #{subCategoryTags, jdbcType=VARCHAR} IS NULL 
+                        WHEN #{subCategoryTags, jdbcType=VARCHAR} IS NULL
                         	THEN csc.sub_category_name
-                        WHEN csc.sub_category_name = ANY(string_to_array(#{subCategoryTags, jdbcType=VARCHAR}, ', ')) 
+                        WHEN csc.sub_category_name = ANY(string_to_array(#{subCategoryTags, jdbcType=VARCHAR}, ', '))
                         	THEN csc.sub_category_name
                         ELSE NULL
                     END)
@@ -53,9 +52,9 @@
             array_to_string(
                 array_agg(
                     DISTINCT (CASE
-                        WHEN #{gradeTags, jdbcType=VARCHAR} IS NULL 
+                        WHEN #{gradeTags, jdbcType=VARCHAR} IS NULL
                         	THEN gc.grade_name
-                        WHEN gc.grade_name = ANY(string_to_array(#{gradeTags, jdbcType=VARCHAR}, ', ')) 
+                        WHEN gc.grade_name = ANY(string_to_array(#{gradeTags, jdbcType=VARCHAR}, ', '))
                         	THEN gc.grade_name
                         ELSE NULL
                     END)

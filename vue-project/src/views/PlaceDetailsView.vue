@@ -131,14 +131,17 @@ export default {
     };
   },
 
+  // 컴포넌트 로드 시 훅 설정
   created() {
+    // URL에서 ID 가져오기
     const id = this.$route.params.id;
-    // ★ 수정: .includes() 보다 .startsWith()가 더 안전합니다.
+    // URL 경로가 place 시작인지 판별
     const isPlace = this.$route.path.startsWith('/place/');
-
+    // 장소인 경우
     if (isPlace) {
       this.pageType = 'place';
       this.fetchPlaceData(id);
+      // 전시인 경우
     } else {
       this.pageType = 'exhibition';
       this.fetchExhibitionData(id);
@@ -152,19 +155,17 @@ export default {
   methods: {
     /** DTO -> 프론트 상태 매핑 (Exhibition) */
     mapExhibitionDTO(dto) {
-      const title = dto.exhibitionName ?? '제목 없음';
-      const category = dto.categoryName ?? '';       // 대분류
-      const subCategory = dto.subCategoryName ?? '';   // (중분류)
-      const grade = (dto.grade ?? dto.gradeName ?? '').toString();
+      const title = dto.placeName ?? '제목 없음';
+      const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
+      const subCategory = this.$route.query.subCategories ?? '';   // (중분류)
+      const grade = this.$route.query.gradeTags;
 
       this.exhibition = {
         title,
         rating: dto.averageRating ?? 0,
         reviewCount: dto.totalReviews ?? 0,
         mainCategory: category, // PillTag
-        subCategories: subCategory.split(',')
-          .map(s => s.trim()) // 양쪽 공백 제거
-          .filter(Boolean), // 빈 문자열 제거
+        subCategories: subCategory, // HashTag
         gradeTag: grade, // PillTag
         type: 'exhibition',
         description: dto.description ?? '',
@@ -191,29 +192,27 @@ export default {
 
     /** DFile.save('PlaceDetailsView.vue');TO -> 프론트 상태 매핑 (Place) ★★★ 버그 수정 ★★★ */
     mapPlaceDTO(dto) {
-      // ★ 수정: dto.PlaceName -> dto.placeName (case-sensitive)
+
       const title = dto.placeName ?? '제목 없음';
-      const category = dto.categoryName ?? '';       // 대분류
-      const subCategory = dto.subCategoryName ?? '';   // (중분류)
-      const grade = (dto.grade ?? dto.gradeName ?? '').toString();
+      const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
+      const subCategory = this.$route.query.subCategories ?? '';   // (중분류)
+      const grade = this.$route.query.gradeTags;
 
       this.place = {
         title,
         rating: dto.averageRating ?? 0,
         reviewCount: dto.totalReviews ?? 0,
         mainCategory: category, // PillTag
-        subCategories: subCategory.split(',')
-          .map(s => s.trim()) // 양쪽 공백 제거
-          .filter(Boolean), // 빈 문자열 제거
+        subCategories: subCategory, // HashTag
         gradeTag: grade, // PillTag
         type: 'place',
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
       };
 
-      // ★ 수정: LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
+      // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
       this.placeInformation = {
-        // ★ 수정: dto.location -> dto.addressDetail
+        // dto.location -> dto.addressDetail
         placeAddress: dto.addressDetail ?? '정보 없음',
         // DTO에 기간 정보가 없으므로 '상시 운영' 또는 '정보 없음' 처리
         operationPeriod: this.formatPeriod(null, null),
@@ -231,7 +230,6 @@ export default {
       this.reviews = [];
       this.courseItems = [];
     },
-
 
     // ✨ (Helper) 날짜 포맷 함수 추가
     formatPeriod(start, end) {
@@ -251,15 +249,10 @@ export default {
     /** 전시 상세 - 백엔드 연동 */
     async fetchExhibitionData(id) {
       try {
-        // (Exhibition 백엔드는 gradeTags를 받는다고 가정)
-        const { mainCategoryTags, subCategoryTags, gradeTags } = this.$route.query;
 
         const res = await axios.get(`${API_BASE}/api/exhibitions`, {
           params: {
             exhibitionId: id,
-            mainCategoryTags,
-            subCategoryTags,
-            gradeTags,
           },
         });
 
@@ -281,18 +274,14 @@ export default {
     /** 장소 상세 - 백엔드 연동 ★★★ 버그 수정 ★★★ */
     async fetchPlaceData(id) {
       try {
-        // ★ 수정: 백엔드 컨트롤러 스펙에 맞게 'gradeTags' -> 'grade'
-        const { mainCategoryTags, subCategoryTags, gradeTags, } = this.$route.query;
-
+        // API 호출
         const res = await axios.get(`${API_BASE}/api/place`, {
           params: {
             placeId: id,
-            mainCategoryTags,
-            subCategoryTags,
-            gradeTags, // ★ 수정: 파라미터 키 'grade'
           },
         });
 
+        // DTO에 API 응답 담기
         const dto = res.data;
         console.log('✅ [PlaceDetailsView] API 원본 응답 (place dto):', dto);
 
@@ -301,8 +290,7 @@ export default {
           return;
         }
 
-        
-        // ★ 수정: mapExhibitionDTO -> mapPlaceDTO
+        // 지도 정보
         this.mapPlaceDTO(dto);
 
       } catch (error) {

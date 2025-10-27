@@ -10,22 +10,11 @@
       <h2 class="title">{{ item.title }}</h2>
       <div class="rating">
         <span class="stars">
-          <i 
-            v-for="i in Math.floor(item.rating)" 
-            :key="'full-' + i" 
-            class="bi bi-star-fill"
-          ></i>
-  
-          <i 
-            v-if="item.rating % 1 >= 0.5" 
-            class="bi bi-star-half"
-          ></i>
-  
-          <i 
-            v-for="i in (5 - Math.ceil(item.rating))" 
-            :key="'empty-' + i" 
-            class="bi bi-star"
-          ></i>
+          <i v-for="i in Math.floor(item.rating)" :key="'full-' + i" class="bi bi-star-fill"></i>
+
+          <i v-if="item.rating % 1 >= 0.5" class="bi bi-star-half"></i>
+
+          <i v-for="i in (5 - Math.ceil(item.rating))" :key="'empty-' + i" class="bi bi-star"></i>
         </span>
 
         <span class="score">
@@ -33,31 +22,20 @@
           <span class="review-count-value">({{ item.reviewCount }})</span>
         </span>
 
-        <!-- 과목 태그 -->
+        <!-- 과목 및 학년태그 -->
         <div v-if="mainCategory || gradeTag" class="subject-tags-container">
-          <PillTag 
-                v-if="mainCategory" 
-                :text="mainCategory" 
-                type="subject" 
-              />
-          <PillTag 
-                v-if="gradeTag" 
-                :text="gradeTag" 
-                type="grade" 
-              />
-          </div>
+          <PillTag v-if="mainCategory" :text="mainCategory" type="subject" />
+          <PillTag v-if="gradeTag" :text="gradeTag.replace('초등 ', '')" type="grade" />
+        </div>
 
-    </div>
+      </div>
 
-   <div v-if="subCategories.length > 0" class="hashtags-area">
-      <Hashtag 
-          v-for="tag in subCategories" 
-          :key="tag" 
-          :text="tag" 
-        />
-   </div>
+      <!-- 중분류 태그 -->
+      <div v-if="subCategories.length > 0" class="hashtags-area">
+        <Hashtag v-for="tag in subCategories" :key="tag" :text="tag" />
+      </div>
 
-   <div class="description" :class="{ 'expanded': isExpanded }">
+      <div class="description" :class="{ 'expanded': isExpanded }">
         {{ displayedDescription }}
         <button v-if="isLongText" @click="toggleDescription" class="btn btn-white">
           {{ isExpanded ? '접기' : '(더보기)' }}
@@ -125,7 +103,7 @@ export default {
       type: Array,
       default: () => [] // HashTag용
     },
-    gradeTag : {
+    gradeTag: {
       type: String,
       default: ''
     }
