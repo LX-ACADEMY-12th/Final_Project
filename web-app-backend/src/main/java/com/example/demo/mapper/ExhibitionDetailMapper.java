@@ -1,6 +1,6 @@
 package com.example.demo.mapper;
 
-import java.util.List;
+import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
 
@@ -17,6 +17,6 @@ public interface ExhibitionDetailMapper {
      */
 	
 	// 아이디를 통해 전시 상세정보를 가져올 메서드
-	public ExhibitionDetailDTO findExhibitionById(Long exhibitionId);
+	public ExhibitionDetailDTO findExhibitionById(Map<String, Object> params);
 
 }

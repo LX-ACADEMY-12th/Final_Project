@@ -1,5 +1,8 @@
 package com.example.demo.service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,24 +25,25 @@ public class ExhibitionDetailService {
      * 컨트롤러(Controller)가 호출할 메서드입니다.
      * 전시 ID를 받아서 상세 정보를 반환합니다.
      */
-	public ExhibitionDetailDTO getfindExhibitionDetails(Long exhibitionId) {
+	public ExhibitionDetailDTO getfindExhibitionDetails(Long exhibitionId,String mainCategoryTags, String subCategoryTags,String gradeTags) {
 		
-		// 3. Mapper 메서드 호출
-        // 실제 DB 작업은 Mapper에게 시킵니다.
-        // exhibitionMapper.findExhibitionById(exhibitionId)가
-        // ExhibitionMapper.xml의 SQL을 실행하고
-        // 그 결과를 ExhibitionDetailDTO 객체로 반환해 줍니다.
-		ExhibitionDetailDTO dto = exhibitionDetailMapper.findExhibitionById(exhibitionId);
+		// 파라미터를 담을 Map 생성
+		Map<String, Object> params = new HashMap<>();
 		
-		// 4. (선택) 비즈니스 로직
-        // 만약 DB에서 가져온 데이터로 추가적인 처리가 필요하면 여기서 합니다.
-        // 예: if (dto == null) {
-        //         // 또는 throw new CustomException("해당 전시를 찾을 수 없습니다.");
-        //         return null; 
-        //     }
-        // 예: dto.setExhibitionName(dto.getExhibitionName() + " [특별 할인 중]");
+		// 2. (수정) Map에 파라미터를 "Key", "Value" 쌍으로 담습니다.
+        // 이 "Key" 이름(문자열)이 Mapper.xml의 #{...} 이름과 일치해야 합니다.
+		// 메인 / 서브 / 학년
+		params.put("exhibitionId", exhibitionId);
+		params.put("mainCategoryTags", mainCategoryTags);
+		params.put("subCategoryTags", subCategoryTags);
+		params.put("gradeTags", gradeTags);
+
+		// 3. (수정) Mapper 메서드 호출 시, 3개의 값이 아닌 'Map' 객체 1개를 전달합니다.
+		ExhibitionDetailDTO dto = exhibitionDetailMapper.findExhibitionById(params);
 		
-		//5. 컨트롤러에게 결과 반환
+		// 4. (선택) 비즈니스 로직 ...
+		
+		// 5. 컨트롤러에게 결과 반환
 		return dto;
 	}
 }
