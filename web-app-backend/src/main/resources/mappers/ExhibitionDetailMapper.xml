@@ -1,23 +1,107 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.example.demo.mapper.ExhibitionDetailMapper">
 
-  <select id="findExhibitionById" 
-          resultType="com.example.demo.dto.ExhibitionDetailDTO"
-          parameterType="long">
-    
-  	SELECT
-	    ex.*  -- exhibition 테이블의 모든 컬럼
-	FROM
-    	exhibition ex
-	LEFT JOIN
-    	exhibition_hall eh ON ex.hall_id = eh.hall_id
-	WHERE
-    	ex.exhibition_id = #{exhibitionId};
-  
-  </select>
+    <select id="findExhibitionById" resultType="com.example.demo.dto.ExhibitionDetailDTO">
+        SELECT
+            e.exhibition_id,
+            e.exhibition_name,
+            e.description,
+            e.main_image_url,
+            e.latitude,
+            e.longitude,
+            e.start_date,
+            e.end_date,
+            e.opening_hours,
+            e.admission_fee,
+            e.average_rating,
+            e.total_reviews,
+            e.hall_id,
+            e.type,
+            e.average_rating,
+            e.total_reviews,
 
-  </mapper>
+            -- 1. 위치 정보 (DTO 필드명: location)
+            CONCAT_WS(' ', eh.science_center_name, eh.hall_name) AS location,
+
+            -- 2. 메인 카테고리 태그 (DTO 필드명: categoryName)
+            array_to_string(
+                array_agg(
+                    DISTINCT (CASE
+                        -- ★ 수정: jdbcType=VARCHAR 추가
+                        WHEN #{mainCategoryTags, jdbcType=VARCHAR} IS NULL OR cmc.category_name = #{mainCategoryTags, jdbcType=VARCHAR}
+                        THEN cmc.category_name
+                        ELSE NULL
+                    END)
+                ),
+                ', '
+            ) AS categoryName,
+
+            -- 3. 서브 카테고리 태그 (DTO 필드명: subCategoryName)
+            array_to_string(
+                array_agg(
+                    DISTINCT (CASE
+                        -- ★ 수정: jdbcType=VARCHAR 추가 (오류 발생 지점)
+                        WHEN #{subCategoryTags, jdbcType=VARCHAR} IS NULL OR csc.sub_category_name = #{subCategoryTags, jdbcType=VARCHAR}
+                        THEN csc.sub_category_name
+                        ELSE NULL
+                    END)
+                ),
+                ', '
+            ) AS subCategoryName,
+
+            -- 4. 학년 태그 (DTO 필드명: grade)
+            array_to_string(
+                array_agg(
+                    DISTINCT (CASE
+                        -- ★ 수정: jdbcType=VARCHAR 추가
+                        WHEN #{gradeTags, jdbcType=VARCHAR} IS NULL OR gc.grade_name LIKE CONCAT(#{gradeTags, jdbcType=VARCHAR}, '%')
+                        THEN gc.grade_name
+                        ELSE NULL
+                    END)
+                ),
+                ', '
+            ) AS grade
+
+        FROM
+            exhibition e
+        LEFT JOIN
+            exhibition_hall eh ON e.hall_id = eh.hall_id
+        -- 교과 과정 태그 JOIN
+        LEFT JOIN
+            exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
+        LEFT JOIN
+            curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
+        LEFT JOIN
+            curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+        -- 학년 태그 JOIN
+        LEFT JOIN
+            exhibition_grade_mapping egm ON e.exhibition_id = egm.exhibition_id
+        LEFT JOIN
+            grade_category gc ON egm.grade_id = gc.grade_id
+        WHERE
+            e.exhibition_id = #{exhibitionId}
+        GROUP BY
+            e.exhibition_id,
+            e.exhibition_name,
+            e.description,
+            e.main_image_url,
+            e.latitude,
+            e.longitude,
+            e.start_date,
+            e.end_date,
+            e.opening_hours,
+            e.admission_fee,
+            e.average_rating,
+            e.total_reviews,
+            e.hall_id,
+            e.type,
+            eh.hall_id,
+            eh.science_center_name,
+            eh.hall_name
+    </select>
+
+</mapper>

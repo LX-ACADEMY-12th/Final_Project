@@ -1,12 +1,13 @@
 <template>
   <div class="view-detail-page">
 
-    <LocationSection :exhibition-information="exhibitionInformation" />
+    <LocationSection v-if="isPlace" :placeInformation="exhibitionInformation" />
+    <LocationSection v-else :exhibitionInformation="exhibitionInformation" />
 
     <hr class="divider" />
 
     <ReviewSection :reviews="reviews" :rating="exhibition.rating" :review-count="exhibition.reviewCount"
-      :photo-review-count="exhibition.photoReviewCount" :is-place="false" @show-modal="showModal" />
+      :photo-review-count="exhibition.photoReviewCount" :is-place="isPlace" @show-modal="showModal" />
 
     <ReviewModal v-if="showReviewModal" :reviewText="reviewText" :selectedRating="selectedRating"
       :uploadedImageCount="uploadedImageCount" :isFormValid="isFormValid" @update:reviewText="reviewText = $event"
@@ -30,43 +31,36 @@ export default {
 
   name: 'ViewDetailWithModal',
 
+  // 1. Props 정의
+  // 부모인 PlaceDetailsView로부터 데이터를 받도록 Props를 정의
+  props: {
+    // LocationSection에 전달할 정보
+    exhibitionInformation: {
+      type: Object,
+      default: () => ({}) // 기본값을 빈 객체로 설정
+    },
+    // ReviewSection에 전달할 정보 (rating, reviewCount 포함)
+    exhibition: {
+      type: Object,
+      default: () => ({})
+    },
+    // ReviewSection에 전달할 리뷰 목록
+    reviews: {
+      type: Array,
+      default: () => [] // 기본값을 빈 배열로 설정
+    },
+    // ✨ (추가) 현재 '장소' 상세인지 '전시' 상세인지 구분
+    isPlace: {
+      type: Boolean,
+      default: false
+    }
+  },
+
   // 모든 데이터를 중앙에서 관리합니다.
   data() {
     return {
       // **모달 제어 데이터:**
       showReviewModal: false,
-
-      // === 메인 상세 페이지 데이터 ===
-      exhibition: {
-        title: '단위와 양자 나라의 앨리스 - 큐빗(Cubit)에서 큐비트(Qubit)까지',
-        rating: 4.7,
-        reviewCount: 516,
-        photoReviewCount: 120, // 사진 후기 개수 추가
-
-        // subjectTag는 배열 형태로 변경하여 InfoSection으로 전달되도록 수정
-        subjectTag: ['물리'],
-
-        description: `‘이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.`,
-        mainImage: 'https://www.sciencecenter.go.kr/scipia/File/110062/CKEDITOR_ATTATCHMENTS/7551/7551.jpg',
-      },
-      // LocationSection에 전달할 전시 정보
-      exhibitionInformation: {
-        exhibitionLocation: '국립과천과학관 첨단기술관 2층',
-        operationPeriod: '2025.08.12(화) - 10.12(일)',
-        operationHours: '오전 9:30 - 오후 5:30 (매주 월요일 정기 휴관)',
-        entranceFee: '무료',
-        // CourseMap이 사용할 좌표 데이터
-        lat: 37.4363, // 예시: 국립과천과학관 위도
-        lng: 126.9746 // 예시: 국립과천과학관 경도
-      },
-      // ReviewSection에 전달할 리뷰 목록
-      reviews: [
-        { id: 1, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-        { id: 2, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-        { id: 3, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-        { id: 4, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-        { id: 5, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요! 특히 화학 실험실에서 직접 실험해볼 수 있어서 재미있었습니다.', date: '2025.05.15', likes: 12 },
-      ],
 
       // === 모달 폼 데이터 ===
       reviewText: '', // 모달 내 후기 텍스트 입력값
@@ -115,14 +109,14 @@ export default {
         dislikes: 0
       };
 
-      // 2. reviews 배열의 맨 앞에 새 후기를 추가합니다.
-      this.reviews.unshift(newReview);
+      // 2. ✨ [수정] prop을 직접 수정하는 대신, 부모에게 이벤트를 보냅니다.
+      this.$emit('submit-review', newReview);
 
-      console.log('후기 제출 완료:', newReview); // 제출 데이터 확인
+      console.log('후기 제출 이벤트 발생:', newReview); // 제출 데이터 확인
 
-      // 3. 제출 후 모달을 닫고 사용자에게 알림을 줍니다.
+      // 3. 제출 후 모달을 닫습니다. (알림은 부모가 처리)
       this.closeModal();
-      alert('후기가 성공적으로 등록되었습니다.'); // 사용자에게 알림
+      // alert('후기가 성공적으로 등록되었습니다.'); // (PlaceDetailsView가 처리)
     }
   }
 };

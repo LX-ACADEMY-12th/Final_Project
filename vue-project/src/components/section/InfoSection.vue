@@ -10,35 +10,59 @@
       <h2 class="title">{{ item.title }}</h2>
       <div class="rating">
         <span class="stars">
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-half"></i>
+          <i 
+            v-for="i in Math.floor(item.rating)" 
+            :key="'full-' + i" 
+            class="bi bi-star-fill"
+          ></i>
+  
+          <i 
+            v-if="item.rating % 1 >= 0.5" 
+            class="bi bi-star-half"
+          ></i>
+  
+          <i 
+            v-for="i in (5 - Math.ceil(item.rating))" 
+            :key="'empty-' + i" 
+            class="bi bi-star"
+          ></i>
         </span>
+
         <span class="score">
           <span class="rating-value">{{ item.rating }}점</span>
           <span class="review-count-value">({{ item.reviewCount }})</span>
         </span>
 
         <!-- 과목 태그 -->
-        <div v-if="subjectTags && subjectTags.length > 0" class="subject-tags-container">
-          <PillTag v-for="(tag, index) in subjectTags" :key="index" :text="tag" type="subject" />
-        </div>
+        <div v-if="mainCategory || gradeTag" class="subject-tags-container">
+          <PillTag 
+                v-if="mainCategory" 
+                :text="mainCategory" 
+                type="subject" 
+              />
+          <PillTag 
+                v-if="gradeTag" 
+                :text="gradeTag" 
+                type="grade" 
+              />
+          </div>
 
-      </div>
+    </div>
 
-      <div v-if="hashTags.length > 0" class="hashtags-area">
-        <Hashtag v-for="(tag, index) in hashTags" :key="'hash-' + index" :text="tag" />
-      </div>
+   <div v-if="subCategories.length > 0" class="hashtags-area">
+      <Hashtag 
+          v-for="tag in subCategories" 
+          :key="tag" 
+          :text="tag" 
+        />
+   </div>
 
-      <div class="description" :class="{ 'expanded': isExpanded }">
+   <div class="description" :class="{ 'expanded': isExpanded }">
         {{ displayedDescription }}
         <button v-if="isLongText" @click="toggleDescription" class="btn btn-white">
           {{ isExpanded ? '접기' : '(더보기)' }}
         </button>
       </div>
-
     </div>
   </section>
 </template>
@@ -57,12 +81,18 @@ export default {
     Hashtag,
   },
 
+  // ✨ [로그 3] 컴포넌트 생성 시 props 확인
+  created() {
+    console.log('✅ [InfoSection] created - 전달받은 Props:', {
+      mainCategory: this.mainCategory,
+      subCategories: this.subCategories,
+      gradeTag: this.gradeTag
+    });
+  },
   // isExpanded: 전시 소개 글이 펼쳐져있나 확인하는 변수
   data() {
     return {
       isExpanded: false, // 기본값은 '접힌' 상태
-
-      hashTags: ['빛과 파동'],
     };
   },
 
@@ -82,11 +112,23 @@ export default {
     },
 
     // ✨ 3. subject-tags prop을 추가합니다. (ExhibitionDetailWithModal에서 전달받음)
-    subjectTags: {
-      type: Array, // 배열 형태로 과목 이름들을 받습니다.
-      required: false,
-      default: () => [], // 기본값은 빈 배열로 설정합니다.
+    // subjectTags: {
+    //   type: Array, // 배열 형태로 과목 이름들을 받습니다.
+    //   required: false,
+    //   default: () => [], // 기본값은 빈 배열로 설정합니다.
+    // },
+    mainCategory: {
+      type: String,
+      default: '' // HashTag용
     },
+    subCategories: {
+      type: Array,
+      default: () => [] // HashTag용
+    },
+    gradeTag : {
+      type: String,
+      default: ''
+    }
   },
 
   // 계산된 속성(Computed Properties)을 사용하여 템플릿에서 사용할 데이터를 통합합니다.

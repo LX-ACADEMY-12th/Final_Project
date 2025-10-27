@@ -9,27 +9,35 @@
 
     <div class="scroll-content">
 
+      <!--전시일때-->
       <div v-if="pageType === 'exhibition'">
-        <InfoSection :exhibition="exhibition" imageTag="전시 태그" :subjectTags="exhibition.subjectTag" />
+        <InfoSection :exhibition="exhibition" imageTag="전시 태그" :mainCategory="exhibition.mainCategory"
+          :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag" />
         <hr class="divider" />
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="(tabName) => currentTab = tabName" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :info="exhibitionInformation" :description="exhibition.description" />
+          <ContentDetailView :exhibitionInformation="exhibitionInformation" :exhibition="exhibition" :reviews="reviews"
+            :isPlace="false" @submit-review="handleReviewSubmit" />
         </div>
+        <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
           <CourseRecommend :course-items="courseItems" type="exhibition" />
         </div>
       </div>
 
+      <!--장소일때-->
       <div v-else-if="pageType === 'place'">
-        <InfoSection :exhibition="place" imageTag="장소 태그" :subjectTags="place.subjectTag" />
+        <InfoSection :exhibition="place" imageTag="장소 태그" :mainCategory="place.mainCategory"
+          :subCategories="place.subCategories" :gradeTag="place.gradeTag" />
         <hr class="divider" />
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="(tabName) => currentTab = tabName" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :info="placeInformation" :description="place.description" />
+          <ContentDetailView :exhibitionInformation="placeInformation" :exhibition="place" :reviews="reviews"
+            :isPlace="true" @submit-review="handleReviewSubmit" />
         </div>
+        <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
           <CourseRecommend :course-items="courseItems" type="place" />
         </div>
@@ -44,298 +52,279 @@
 </template>
 
 <script>
-// 6개의 하위 컴포넌트를 불러옵니다.
+import axios from 'axios';
+
+// 하위 컴포넌트들
 import ExhibitionHeader from '@/components/header/ExhibitionHeader.vue';
 import InfoSection from '@/components/section/InfoSection.vue';
 import TabSection from '@/components/section/TabSection.vue';
-import ContentDetailView from './ContentDetailView.vue'; // 전시/ 장소 상세 정보 vue
-import CourseRecommend from './CourseRecommend.vue'; // 추천 연계 / 실내 관람 코스 보여주는 vue
-// import ReviewModal from '@/components/ReviewModal.vue'; // 후기 모달 (필요시)
+import ContentDetailView from './ContentDetailView.vue';
+import CourseRecommend from './CourseRecommend.vue';
+
+// API 베이스 (Vite 환경변수 우선)
+const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
 
 export default {
   name: 'PlaceDetailsView',
-  // 컴포넌트들을 등록하여 사용할 수 있게 합니다.
+
   components: {
     ExhibitionHeader,
     InfoSection,
     TabSection,
     CourseRecommend,
-    ContentDetailView
+    ContentDetailView,
   },
 
-  // 모든 데이터를 중앙에서 관리합니다.
   data() {
     return {
-      // 템플릿 v-if 분기용 변수
-      pageType: null, // 'exhibition' 또는 'place'가 저장될 곳
-      currentTab: 'detail', // 초기값
-      // **모달 제어 데이터:**
-      showReviewModal: false,
+      // 화면 상태
+      pageType: null,     // 'exhibition' | 'place'
+      currentTab: 'detail',
 
-      // --- '전시' 데이터를 담을 객체 (초기 상태) ---
+      // 전시 상세
       exhibition: {
         title: '데이터 로딩 중...',
         rating: 0,
         reviewCount: 0,
-        subjectTag: [],
-        type: '', // 'exhibition' 또는 'place'가 채워질 곳
+        mainCategory: '',   // (PillTag용)
+        subCategories: [],  // (HashTag용)
+        gradeTag: '',    // (PillTag용)
+        type: '',
         description: '',
-        mainImage: 'https://via.placeholder.com/600x400', // 로딩 이미지
+        mainImage: 'https://via.placeholder.com/600x400',
       },
+      // 이게 LocationSection에 들어갈 부분
       exhibitionInformation: {
         exhibitionLocation: '',
         operationPeriod: '',
         operationHours: '',
-        entranceFee: ''
+        entranceFee: '',
+        lat: 0,
+        lng: 0,
       },
 
-      // --- '장소' 데이터를 담을 객체 (초기 상태) ---
+      // 장소 상세
       place: {
         title: '데이터 로딩 중...',
         rating: 0,
         reviewCount: 0,
-        subjectTag: [],
-        type: '', // 'exhibition' 또는 'place'가 채워질 곳
+        mainCategory: '',   // (PillTag용)
+        subCategories: [],  // (HashTag용)
+        gradeTag: '',    // (PillTag용)
+        type: '',
         description: '',
-        mainImage: 'https://via.placeholder.com/600x400', // 로딩 이미지
+        mainImage: 'https://via.placeholder.com/600x400',
       },
-
+      // (LocationSection이 'placeAddress'를 사용)
       placeInformation: {
-        exhibitionLocation: '',
+        placeAddress: '',
         operationPeriod: '',
         operationHours: '',
-        entranceFee: ''
+        entranceFee: '',
+        lat: 0,
+        lng: 0,
       },
 
-      // --- 공통 데이터 (리뷰, 추천 코스) ---
+      // 공통
       reviews: [],
-      courseItems: [], // 추천 코스 데이터 (초기 상태)
-
-      // === 모달 폼 데이터 ===
-      reviewText: '',
-      selectedRating: 4.0,
-      uploadedImageCount: 0,
+      courseItems: [],
     };
   },
 
-  // [추가] 컴포넌트 생성 시 URL을 확인하여 데이터 로드
   created() {
-    // URL에서 ID 값을 가져옵니다. (예: "1" 또는 "4")
     const id = this.$route.params.id;
-    // URL 경로에 '/place/'가 포함되어 있는지 확인합니다.
-    const isPlace = this.$route.path.includes('/place/');
+    // ★ 수정: .includes() 보다 .startsWith()가 더 안전합니다.
+    const isPlace = this.$route.path.startsWith('/place/');
 
     if (isPlace) {
-      // 1. pageType을 'place'로 설정
       this.pageType = 'place';
-      console.log(`장소 상세 페이지 로드 (ID: ${id})`);
-      // 2. '장소' 데이터 fetch 함수 호출
       this.fetchPlaceData(id);
     } else {
-      // 1. pageType을 'exhibition'으로 설정
       this.pageType = 'exhibition';
-      console.log(`전시 상세 페이지 로드 (ID: ${id})`);
-      // 2. '전시' 데이터 fetch 함수 호출
       this.fetchExhibitionData(id);
     }
   },
 
-  // 계산된 속성 (Computed Properties)
   computed: {
-    // (기존 코드와 동일)
-    isFormValid() {
-      return this.reviewText.trim().length > 0 && this.selectedRating > 0;
-    }
+    // isFormValid() { ... } // (ContentDetailView가 관리)
   },
 
-  // 사용자 정의 함수 (메서드)
   methods: {
+    /** DTO -> 프론트 상태 매핑 (Exhibition) */
+    mapExhibitionDTO(dto) {
+      const title = dto.exhibitionName ?? '제목 없음';
+      const category = dto.categoryName ?? '';       // 대분류
+      const subCategory = dto.subCategoryName ?? '';   // (중분류)
+      const grade = (dto.grade ?? dto.gradeName ?? '').toString();
 
-    // [id: 1] '전시' 데이터를 불러오는 함수
-    fetchExhibitionData() {
-      // (id 값과 무관하게 하드코딩된 '전시' 데이터 로드)
-      // === 'this.exhibition' 관련 객체에 데이터 삽입 ===
       this.exhibition = {
-        title: '단위와 양자 나라의 앨리스 - 큐빗(Cubit)에서 큐비트(Qubit)까지',
-        rating: 4.7,
-        reviewCount: 516,
-        subjectTag: ['물리', '생명'],
-        type: 'exhibition', // 하위 컴포넌트 전달용
-        description: `이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
-             이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
-             이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다.
-             이상한 나라의 앨리스’를 모티브로, 유아부터 성인까지 \n 단위와 양자 기술의 발전사를 쉽고 재미있게 \n 체험할 수 있도록 기획되었습니다`,
-        mainImage: 'https://www.sciencecenter.go.kr/scipia/File/110062/CKEDITOR_ATTATCHMENTS/7551/7551.jpg',
+        title,
+        rating: dto.averageRating ?? 0,
+        reviewCount: dto.totalReviews ?? 0,
+        mainCategory: category, // PillTag
+        subCategories: subCategory.split(',')
+          .map(s => s.trim()) // 양쪽 공백 제거
+          .filter(Boolean), // 빈 문자열 제거
+        gradeTag: grade, // PillTag
+        type: 'exhibition',
+        description: dto.description ?? '',
+        mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
       };
+
+      // LocationSection이 사용할 데이터
       this.exhibitionInformation = {
-        exhibitionLocation: '국립과천과학관 2층 첨단기술관',
-        operationPeriod: '2025.08.12(화) - 10.12(일)',
-        operationHours: '오전 9:30 - 오후 5:30 (매주 월요일 정기 휴관)',
-        entranceFee: '무료'
+        exhibitionLocation: dto.location ?? '정보 없음',
+        operationPeriod: this.formatPeriod(dto.startDate, dto.endDate),
+        operationHours: dto.openingHours ?? '정보 없음',
+        entranceFee: this.formatFee(dto.admissionFee),
+        lat: dto.latitude,
+        lng: dto.longitude,
       };
-      this.reviews = [
-        { id: 1, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요!', date: '2025.05.15', likes: 12 },
-        { id: 2, avatar: '', name: '학부모', stars: 5, content: '아이가 정말 좋아했어요!', date: '2025.05.15', likes: 12 },
-      ];
-      // '전시' 추천 코스 (ExhibitionCourseCard용)
-      this.courseItems = [
-        {
-          id: 1,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '습지생물코너',
-          type: '상설',
-          place: '국립중앙과학관 자연사관',
-          hashtags: ['항상성과 몸의 조절', '생명과학과 인간의 생활'],
-          lat: 36.3758, // 국립중앙과학관
-          lng: 127.3845
-        },
-        {
-          id: 2,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '4학년',
-          title: '빛의 원리',
-          type: '기획',
-          place: '국립과천과학관',
-          hashtags: ['파동', '빛', '물리1', '체험'],
-          lat: 37.4363, // 국립과천과학관
-          lng: 126.9746
-        },
-        {
-          id: 3,
-          number: 3,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '화학',
-          grade: '5학년',
-          title: '미래 에너지',
-          type: '상설',
-          place: '서울시립과학관',
-          hashtags: ['에너지', '화학 반응', '미래 기술'],
-          lat: 37.6094, // 서울시립과학관
-          lng: 127.0706
-        }
-      ];
+
+      console.log('✅ [PlaceDetailsView] mapExhibitionDTO 결과 (exhibition):', this.exhibition);
+      console.log('✅ [PlaceDetailsView] mapExhibitionDTO 결과 (exhibitionInformation):', this.exhibitionInformation);
+
+      // (리뷰/코스 데이터는 나중에 별도 API로 가져옵니다)
+      this.reviews = [];
+      this.courseItems = [];
     },
 
-    // [id: 4] '장소(답사)' 데이터를 불러오는 함수
-    fetchPlaceData() {
-      // (id 값과 무관하게 하드코딩된 '장소' 데이터 로드)
-      // === 'this.place' 관련 객체에 데이터 삽입 ===
+    /** DFile.save('PlaceDetailsView.vue');TO -> 프론트 상태 매핑 (Place) ★★★ 버그 수정 ★★★ */
+    mapPlaceDTO(dto) {
+      // ★ 수정: dto.PlaceName -> dto.placeName (case-sensitive)
+      const title = dto.placeName ?? '제목 없음';
+      const category = dto.categoryName ?? '';       // 대분류
+      const subCategory = dto.subCategoryName ?? '';   // (중분류)
+      const grade = (dto.grade ?? dto.gradeName ?? '').toString();
+
       this.place = {
-        title: '해운대',
-        rating: 4.8,
-        reviewCount: 1500,
-        subjectTag: ['지구', '5학년'],
-        type: 'place', // 하위 컴포넌트 전달용
-        description: '부산광역시 해운대구에 위치한 대한민국 대표 해수욕장입니다. 다양한 해양 생태와 지질학적 특성을 관찰할 수 있습니다.\n부산광역시 해운대구에 위치한 대한민국 대표 해수욕장입니다. 다양한 해양 생태와 지질학적 특성을 관찰할 수 있습니다.',
+        title,
+        rating: dto.averageRating ?? 0,
+        reviewCount: dto.totalReviews ?? 0,
+        mainCategory: category, // PillTag
+        subCategories: subCategory.split(',')
+          .map(s => s.trim()) // 양쪽 공백 제거
+          .filter(Boolean), // 빈 문자열 제거
+        gradeTag: grade, // PillTag
+        type: 'place',
+        description: dto.description ?? '',
+        mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
       };
 
+      // ★ 수정: LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
       this.placeInformation = {
-        exhibitionLocation: '부산광역시 해운대구',
-        operationPeriod: '연중무휴',
-        operationHours: '24시간 개방',
-        entranceFee: '무료'
+        // ★ 수정: dto.location -> dto.addressDetail
+        placeAddress: dto.addressDetail ?? '정보 없음',
+        // DTO에 기간 정보가 없으므로 '상시 운영' 또는 '정보 없음' 처리
+        operationPeriod: this.formatPeriod(null, null),
+        operationHours: dto.openingHours ?? '정보 없음',
+        // ★ 수정: Place DTO의 admissionFee는 '무료' 같은 문자열(String)이므로 formatFee() 사용 안함
+        entranceFee: dto.admissionFee ?? '정보 없음',
+        lat: dto.latitude,
+        lng: dto.longitude,
       };
-      this.reviews = [
-        { id: 1, avatar: '', name: '방문객', stars: 5, content: '아이와 모래놀이하기 좋았어요.', date: '2025.07.10', likes: 20 },
-      ];
-      // '장소' 추천 코스 (PlaceCourseCard용)
-      this.courseItems = [
-        {
-          id: 1,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '해운대',
-          place: '부산시 해운대구',
-          hashtags: ['항상성과 몸의 조절', '생명과학과 인간의 생활'],
-          lat: 36.3758, // 국립중앙과학관
-          lng: 127.3845
-        },
-        {
-          id: 2,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '4학년',
-          title: '서울숲',
-          place: '서울시 성동구',
-          hashtags: ['파동', '빛', '물리1', '체험'],
-          lat: 37.4363, // 국립과천과학관
-          lng: 126.9746
-        },
-        {
-          id: 3,
-          number: 3,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '화학',
-          grade: '5학년',
-          title: '지질연구원',
-          place: '대전시 유성구',
-          hashtags: ['에너지', '화학 반응', '미래 기술'],
-          lat: 37.6094, // 서울시립과학관
-          lng: 127.0706
+
+      console.log('✅ [PlaceDetailsView] mapPlaceDTO 결과 (place):', this.place);
+      console.log('✅ [PlaceDetailsView] mapPlaceDTO 결과 (placeInformation):', this.placeInformation);
+
+      // (리뷰/코스 데이터는 나중에 별도 API로 가져옵니다)
+      this.reviews = [];
+      this.courseItems = [];
+    },
+
+
+    // ✨ (Helper) 날짜 포맷 함수 추가
+    formatPeriod(start, end) {
+      if (!start && !end) return '상시 운영';
+      if (start && !end) return `${start} ~ 별도 안내시까지`;
+      if (!start && end) return `~ ${end}`;
+      return `${start} ~ ${end}`;
+    },
+
+    // ✨ (Helper) 요금 포맷 함수 추가 (Number -> String)
+    formatFee(fee) {
+      if (fee === null || fee === undefined) return '정보 없음';
+      if (fee === 0) return '무료';
+      return `${fee.toLocaleString('ko-KR')}원`; // 4000 -> "4,000원"
+    },
+
+    /** 전시 상세 - 백엔드 연동 */
+    async fetchExhibitionData(id) {
+      try {
+        // (Exhibition 백엔드는 gradeTags를 받는다고 가정)
+        const { mainCategoryTags, subCategoryTags, gradeTags } = this.$route.query;
+
+        const res = await axios.get(`${API_BASE}/api/exhibitions`, {
+          params: {
+            exhibitionId: id,
+            mainCategoryTags,
+            subCategoryTags,
+            gradeTags,
+          },
+        });
+
+        const dto = res.data;
+        console.log('✅ [PlaceDetailsView] API 원본 응답 (exhibition dto):', dto);
+
+        if (!dto || Object.keys(dto).length === 0) {
+          console.warn('전시 데이터가 비어 있습니다.');
+          return;
         }
-      ];
+        this.mapExhibitionDTO(dto);
+      } catch (error) {
+        console.error('전시 상세 조회 실패:', error);
+        alert('전시 정보를 불러오지 못했습니다.');
+      }
     },
 
-    // --- (기존 모달/리뷰 관련 메서드) ---
-    // '후기작성' 버튼 클릭 시 모달을 표시하는 함수
-    showModal() {
-      this.showReviewModal = true;
+
+    /** 장소 상세 - 백엔드 연동 ★★★ 버그 수정 ★★★ */
+    async fetchPlaceData(id) {
+      try {
+        // ★ 수정: 백엔드 컨트롤러 스펙에 맞게 'gradeTags' -> 'grade'
+        const { mainCategoryTags, subCategoryTags, gradeTags, } = this.$route.query;
+
+        const res = await axios.get(`${API_BASE}/api/place`, {
+          params: {
+            placeId: id,
+            mainCategoryTags,
+            subCategoryTags,
+            gradeTags, // ★ 수정: 파라미터 키 'grade'
+          },
+        });
+
+        const dto = res.data;
+        console.log('✅ [PlaceDetailsView] API 원본 응답 (place dto):', dto);
+
+        if (!dto || Object.keys(dto).length === 0) {
+          console.warn('장소 데이터가 비어 있습니다.');
+          return;
+        }
+
+        
+        // ★ 수정: mapExhibitionDTO -> mapPlaceDTO
+        this.mapPlaceDTO(dto);
+
+      } catch (error) {
+        console.error('장소 상세 조회 실패:', error);
+        alert('장소 정보를 불러오지 못했습니다.');
+      }
+
+      // ★ 수정: API 호출 후 Mock 데이터를 덮어쓰면 안되므로 삭제
+      // this.reviews = [ ... ];
+      // this.courseItems = [ ... ];
     },
 
-    // 'X' 버튼 또는 후기 제출 후 모달을 닫는 함수
-    closeModal() {
-      this.showReviewModal = false;
-      // 모달 닫을 때 폼 데이터 초기화 (선택 사항)
-      this.reviewText = '';
-      this.selectedRating = 4.0;
-      this.uploadedImageCount = 0;
-    },
-
-    // 모달 내 후기 제출 함수
-    submitReview() {
-      // 1. 제출할 데이터 객체를 만듭니다.
-      const reviewData = {
-        text: this.reviewText,
-        rating: this.selectedRating,
-        images: this.uploadedImageCount,
-      };
-
-      // 2. 새로운 후기 객체를 생성합니다. (임시)
-      const newReview = {
-        id: this.reviews.length + 1,
-        avatar: '', // 임시 프로필 이미지
-        name: '새 작성자', // 임시 이름
-        stars: this.selectedRating,
-        content: this.reviewText,
-        date: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace(/\.$/, ''),
-        likes: 0,
-        dislikes: 0
-      };
-
-      // 3. reviews 배열의 맨 앞에 새 후기를 추가합니다.
+    // ✨ [추가] 자식(ContentDetailView)이 보낸 이벤트를 처리할 함수
+    handleReviewSubmit(newReview) {
+      // (나중에는 여기서 API로 POST 요청을 보냅니다)
+      // 지금은 PlaceDetailsView의 data()에 있는 reviews 배열을 수정합니다.
       this.reviews.unshift(newReview);
 
-      console.log('후기 제출 완료:', reviewData); // 제출 데이터 확인
-
-      // 4. 제출 후 모달을 닫고 사용자에게 알림을 줍니다.
-      this.closeModal();
-      alert('후기가 성공적으로 등록되었습니다.'); // 사용자에게 알림
-    }
-  }
+      console.log('✅ [PlaceDetailsView] 새 리뷰 받음:', newReview);
+      alert('후기가 성공적으로 등록되었습니다.');
+    },
+  },
 };
 </script>
 
