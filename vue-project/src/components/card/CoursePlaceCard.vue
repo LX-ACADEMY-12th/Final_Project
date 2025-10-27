@@ -68,17 +68,6 @@ export default {
     item: {
       type: Object,
       required: true,
-      /*
-        [필요한 item 속성 예시]
-        item: {
-          number: 1,
-          color: '#4A7CEC',
-          imageSrc: 'https://...',
-          zoneName: '습지생물코너',
-          subject: '생명',
-          grade: '초등 3학년',
-          hashtags: ['항상성', '몸의 조절', '생명과학'], // [중요] 이 배열을 기반으로 computed가 작동
-          placeName: '국립중앙과학관' */
     },
   },
   emits: ['edit', 'delete'],
@@ -102,7 +91,7 @@ export default {
       `;
       return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     },
-    // [추가] 코스 순서에 따른 색상 결정 함수 (CourseMap.vue와 동일하게)
+    // 코스 순서에 따른 색상 결정 함수 (CourseMap.vue와 동일하게)
     getCourseItemColor(itemNumber) {
       // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용
       // 여기서는 item.number를 직접 사용해야 합니다. (index 아님)

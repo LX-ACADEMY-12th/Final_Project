@@ -69,7 +69,7 @@ import TabSection from '@/components/section/TabSection.vue';
 import ContentDetailView from './ContentDetailView.vue';
 import CourseRecommend from './CourseRecommend.vue';
 
-// API 베이스 (Vite 환경변수 우선)
+// API 베이스
 const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
 
 export default {
@@ -176,17 +176,33 @@ export default {
     mapExhibitionDTO(dto) {
       const title = dto.exhibitionName ?? '제목 없음';
       const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
-      const subCategory = this.$route.query.subCategoryTags ?? '';   // (중분류)
+      // URL 쿼리에서 원본 데이터 가져오기
+      const subCategoryData = this.$route.query.subCategoryTags;
       const grade = this.$route.query.gradeTags;
+      // subCategoriesArray를 빈 배열로 초기화
+      let subCategoriesArray = [];
+      // subCategoryData가 문자열일 때만 split 실행
+      if (typeof subCategoryData === 'string') {
+        subCategoriesArray = subCategoryData
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(Boolean);
+      } // 만약 subCategoryData가 이미 배열일 경우 처리
+      else if (Array.isArray(subCategoryData)) {
+        // 각 요소를 문자열로 변환하고 공백 제거 (안전 장치)
+        subCategoriesArray = subCategoryData
+          .map(tag => String(tag).trim())
+          .filter(Boolean);
+      }
 
       this.exhibition = {
         title,
         rating: dto.averageRating ?? 0,
         reviewCount: dto.totalReviews ?? 0,
         mainCategory: category, // PillTag
-        subCategories: subCategory, // HashTag
+        subCategories: subCategoriesArray,
         gradeTag: grade, // PillTag
-        type: 'exhibition',
+        type: dto.type ?? 'exhibition',
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
       };
@@ -214,17 +230,32 @@ export default {
 
       const title = dto.placeName ?? '제목 없음';
       const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
-      const subCategory = this.$route.query.subCategoryTags ?? '';   // (중분류)
+      // URL 쿼리에서 원본 데이터 가져오기
+      const subCategoryData = this.$route.query.subCategoryTags;
       const grade = this.$route.query.gradeTags;
+      // subCategoriesArray를 빈 배열로 초기화
+      let subCategoriesArray = [];
+      // subCategoryData가 문자열일 때만 split 실행
+      if (typeof subCategoryData === 'string') {
+        subCategoriesArray = subCategoryData
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(Boolean);
+      } // 만약 subCategoryData가 이미 배열일 경우 처리
+      else if (Array.isArray(subCategoryData)) {
+        // 각 요소를 문자열로 변환하고 공백 제거 (안전 장치)
+        subCategoriesArray = subCategoryData
+          .map(tag => String(tag).trim())
+          .filter(Boolean);
+      }
 
       this.place = {
         title,
         rating: dto.averageRating ?? 0,
         reviewCount: dto.totalReviews ?? 0,
         mainCategory: category, // PillTag
-        subCategories: subCategory, // HashTag
+        subCategories: subCategoriesArray, // HashTag
         gradeTag: grade, // PillTag
-        type: 'place',
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
       };
@@ -288,7 +319,6 @@ export default {
         alert('전시 정보를 불러오지 못했습니다.');
       }
     },
-
 
     /** 장소 상세 - 백엔드 연동 ★★★ 버그 수정 ★★★ */
     async fetchPlaceData(id) {
@@ -372,17 +402,17 @@ export default {
         // 3. "1번 항목"을 카드 형식으로 포맷
         const currentItemFormatted = {
           id: this.currentId, // 고유 ID
-          number: 1,               // [!!] 1번으로 고정
-          color: '#FF5A5A',     // 1번 항목 강조색
+          number: 1,            // 1번으로 고정
           imageUrl: currentItemData.mainImage || 'https://via.placeholder.com/60x60',
           title: currentItemData.title,
           subject: currentItemData.mainCategory,
           grade: currentItemData.gradeTag,
           hashtags: Array.isArray(currentItemData.subCategories) ? currentItemData.subCategories : [currentItemData.subCategories].filter(Boolean),
+          type: currentItemData.type,
           place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation,
-          // [!!] 지도(CourseMap)를 위한 1번 항목의 좌표
+          // 지도(CourseMap)를 위한 1번 항목의 좌표
           lat: currentItemInfo.lat,
-          lng: currentItemInfo.lng
+          lng: currentItemInfo.lng,
         };
 
         // 4. "2번, 3번..." (AI 추천 목록)을 카드 형식으로 포맷
@@ -391,16 +421,16 @@ export default {
           return {
             id: item.placeId,
             number: index + 2,     // [!!] 2번부터 시작
-            color: '#4A7CEC',    // 일반 항목 색상
             imageUrl: item.imageUrl || 'https://via.placeholder.com/60x60',
             title: item.placeName,
             subject: item.subjectName,
             grade: item.gradeName,
             hashtags: item.hashtags,
             place: item.address || '주소 정보 없음',
-            // [!!] 지도(CourseMap)를 위한 2,3,4번 항목의 좌표
+            // 지도(CourseMap)를 위한 2,3,4번 항목의 좌표
             lat: item.latitude,
-            lng: item.longitude
+            lng: item.longitude,
+            type: item.type
           };
         });
 
