@@ -49,6 +49,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 
 const router = useRouter();
 const chatBody = ref(null); // 채팅 본문 DOM을 참조할 ref
@@ -59,7 +60,7 @@ const messages = ref([
     id: 1,
     sender: 'ai',
     text: '김아무개님, 안녕하세요. 무엇을 도와드릴까요?',
-    time: '02:10 PM'
+    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
   },
 ]);
 
@@ -87,7 +88,7 @@ onMounted(() => {
 });
 
 // 메시지 전송 함수
-const sendMessage = () => {
+const sendMessage = async () => {
   // 입력된 내용이 없으면 전송하지 않음
   if (newMessage.value.trim() === '') {
     return;
@@ -101,31 +102,57 @@ const sendMessage = () => {
     hour12: true
   });
 
-  // 새 메시지 객체 생성
+  // 사용자 메시지 추가
   const userMessage = {
     id: messages.value.length + 1,
     sender: 'user',
     text: newMessage.value,
     time: time
   };
-
   // messages 배열에 새 메시지 추가
   messages.value.push(userMessage);
 
-  // (선택) AI 응답 시뮬레이션
-  setTimeout(() => {
-    const aiResponse = {
-      id: messages.value.length + 1,
-      sender: 'ai',
-      text: `'${userMessage.text}'에 대해 답변을 준비 중입니다.`,
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-    };
-    messages.value.push(aiResponse);
-  }, 1000);
+  // '... 생각 중' 메시지 먼저 표시
+  const thinkingMessageId = messages.value.length + 1;
+  const thinkingMessage = {
+    id: thinkingMessageId,
+    sender: 'ai',
+    text: 'AI 튜터가 답변을 생각 중입니다.',
+    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  };
+  messages.value.push(thinkingMessage);
 
-
-  // 입력창 비우기
+  // 스크롤 및 입력창 비우기
+  const userMessageText = newMessage.value // API 호출 전에 값 저장
   newMessage.value = '';
+  await scrollToBottom(); // 생각 중 이 보이도록 스크롤
+
+  try {
+    // 백엔드로 API 요청
+    const response = await axios.post('http://localhost:8080/api/chat', {
+      prompt: userMessageText
+    });
+    // 실제 ai 응답으로 생각 중 메시지 업데이트
+    const aiAnswer = response.data.response;
+
+    // 생각 중 메시지를 찾아서 내용 업데이트
+    const thinkingMsgIndex = messages.value.findIndex(m => m.id === thinkingMessageId);
+    if (thinkingMsgIndex !== -1) {
+      messages.value[thinkingMsgIndex].text = aiAnswer;
+      // 시간도 현재 시간으로 업데이트
+      messages.value[thinkingMsgIndex].time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+  } catch (error) {
+    console.error("AI 응답 오류:", error);
+    // 오류 발생 시 '생각 중' 메시지를 오류 메시지로 변경
+    const thinkingMsgIndex = messages.value.findIndex(m => m.id === thinkingMessageId);
+    if (thinkingMsgIndex !== -1) {
+      messages.value[thinkingMsgIndex].text = "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+    }
+  } finally {
+    // 최종 응답 후 다시 스크롤
+    await scrollToBottom();
+  }
 };
 </script>
 
