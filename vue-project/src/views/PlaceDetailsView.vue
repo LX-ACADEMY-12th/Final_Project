@@ -396,7 +396,7 @@ export default {
             title: item.placeName,
             subject: item.subjectName,
             grade: item.gradeName,
-            hashtags: [item.placeType].filter(Boolean), // 이거 해시태그로 수정이 필요함.
+            hashtags: item.hashtags,
             place: item.address || '주소 정보 없음',
             // [!!] 지도(CourseMap)를 위한 2,3,4번 항목의 좌표
             lat: item.latitude,

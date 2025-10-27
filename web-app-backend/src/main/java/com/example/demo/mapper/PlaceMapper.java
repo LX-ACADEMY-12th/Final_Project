@@ -4,7 +4,6 @@ import com.example.demo.dto.CourseItemDTO;
 import com.example.demo.dto.PlaceResultDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 import java.util.List;
 
 @Mapper

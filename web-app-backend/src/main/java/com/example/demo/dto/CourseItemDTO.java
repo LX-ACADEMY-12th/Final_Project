@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,5 +26,6 @@ public class CourseItemDTO {
     private String address;
     private Double latitude;
     private Double longitude;
+    private List<String> hashtags;
 
 }

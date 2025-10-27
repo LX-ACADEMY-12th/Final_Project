@@ -78,11 +78,14 @@ const drawCourseOnMap = (items) => {
     // 2-1. 마커 위치
     const position = new window.kakao.maps.LatLng(item.lat, item.lng);
 
+    // [수정] item.color 대신 getCourseItemColor 함수 사용
+    const markerColor = getCourseItemColor(item.number); // [!] 수정됨
+
     // 2-2. 마커 이미지 생성
     // `getMarkerColor` 함수를 사용하여 색상을 가져옵니다.
     const markerImageSrc = createMarkerImage(
       item.number || (index + 1), // item.number가 없으면 순서(index+1) 사용
-      getMarkerColor(index)
+      markerColor
     );
 
     const markerImage = new window.kakao.maps.MarkerImage(
@@ -129,11 +132,18 @@ const drawCourseOnMap = (items) => {
 };
 
 // --- 마커 색상 결정 함수 (UserLikeCourseCard와 통일) ---
-const getMarkerColor = (index) => {
-  // 코스 순서에 따른 색상 배열
-  const colors = ['#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
-  return colors[index % colors.length];
-};
+const getCourseItemColor = (itemNumber) => {
+  // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용
+  // 여기서는 item.number를 직접 사용해야 합니다. (index 아님)
+  // item.number는 1번부터 시작하므로, index로 변환하려면 -1을 해야 합니다.
+  const colors = ['#FF5A5A', '#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
+  // 첫 번째 항목 (number: 1)은 특별한 빨간색, 나머지는 blue
+  if (itemNumber === 1) {
+    return '#FF5A5A';
+  }
+  // item.number는 1부터 시작하므로 배열 인덱스에 맞추기 위해 -1
+  return colors[(itemNumber - 1) % colors.length];
+}
 
 // --- 마커 SVG 이미지 생성 함수 (UserLikeCourseCard와 통일) ---
 const createMarkerImage = (number, color) => {

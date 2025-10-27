@@ -12,7 +12,8 @@
         <result property="hashtags" column="hashtags"
                 jdbcType="ARRAY"
                 javaType="java.util.List"
-                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/> <result property="lat" column="lat"/>
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+        <result property="lat" column="lat"/>
         <result property="lng" column="lng"/>
         <result property="type" column="type"/>
     </resultMap>
@@ -248,6 +249,10 @@
         <result property="address"     column="address_detail"/>
         <result property="latitude"    column="latitude"/>
         <result property="longitude"   column="longitude"/>
+        <result property="hashtags" column="hashtags"
+                jdbcType="ARRAY"
+                javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
     </resultMap>
 
     <select id="findSimilarSciencePlace" resultMap="courseItemResultMap">
@@ -275,7 +280,15 @@
             P.main_image_url,
             P.address_detail,
             P.latitude,
-            P.longitude
+            P.longitude,
+            -- 해시태그(sub_category_name) 배열을 생성하는 서브쿼리 추가
+            (SELECT ARRAY_AGG(DISTINCT csc.sub_category_name)
+            FROM place_curriculum_mapping pcm
+            JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+            JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+            WHERE pcm.place_id = P.place_id
+            AND cmc.category_name = #{mainCategory}
+            ) AS hashtags
         FROM science_place P
         WHERE EXISTS (
             SELECT 1

@@ -2,9 +2,7 @@
   <div class="timeline-item-container" style="font-family: 'SUIT', sans-serif">
     <!-- 타임라인 섹션 -->
     <div class="timeline-marker-wrapper">
-      <!-- 당구공 -->
-      <div class="timeline-marker" :style="{ backgroundColor: item.color }">
-        {{ item.number }}
+      <div class="timeline-marker-svg" :style="{ backgroundImage: `url(${markerSvgImage})` }">
       </div>
       <!-- 일직선 줄 -->
       <div class="timeline-line"></div>
@@ -59,7 +57,7 @@ import HashTag from '@/components/tag/HashTag.vue';
 
 export default {
   // 이 컴포넌트 이름을 설정
-  name: 'CourseExhibitionCard',
+  name: 'CoursePlaceCard',
   // 컴포넌트 등록
   components: {
     PillTag,
@@ -91,6 +89,32 @@ export default {
     onDelete() {
       this.$emit('delete', this.item.id);
     },
+    // [추가] 마커 SVG 이미지 생성 함수
+    createMarkerSvg(number, color) {
+      const svg = `
+        <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 23 12 23s12-14 12-23c0-6.627-5.373-12-12-12z"
+              fill="${color}" stroke="#fff" stroke-width="2"/>
+          <circle cx="12" cy="12" r="8" fill="#fff"/>
+          <text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif"
+              font-size="10" font-weight="bold" fill="${color}">${number}</text>
+        </svg>
+      `;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    },
+    // [추가] 코스 순서에 따른 색상 결정 함수 (CourseMap.vue와 동일하게)
+    getCourseItemColor(itemNumber) {
+      // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용
+      // 여기서는 item.number를 직접 사용해야 합니다. (index 아님)
+      // item.number는 1번부터 시작하므로, index로 변환하려면 -1을 해야 합니다.
+      const colors = ['#FF5A5A', '#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
+      // 첫 번째 항목 (number: 1)은 특별한 빨간색, 나머지는 blue
+      if (itemNumber === 1) {
+        return '#FF5A5A';
+      }
+      // item.number는 1부터 시작하므로 배열 인덱스에 맞추기 위해 -1
+      return colors[(itemNumber - 1) % colors.length];
+    }
   },
   computed: {
     // 화면에 표시할 해시태그 목록 (최대 2개)
@@ -115,6 +139,12 @@ export default {
         return 0;
       }
       return this.item.hashtags.length - 2;
+    },
+    // computed 속성: SVG 이미지 URL 생성 (item.color 의존성 제거)
+    markerSvgImage() {
+      // getCourseItemColor 함수 사용
+      const color = this.getCourseItemColor(this.item.number);
+      return this.createMarkerSvg(this.item.number, color);
     }
   },
 };
@@ -131,6 +161,21 @@ export default {
   max-width: 360px;
 }
 
+/* [추가] SVG 이미지를 배경으로 사용하는 새로운 마커 스타일 */
+.timeline-marker-svg {
+  width: 24px;
+  /* SVG 이미지의 width와 동일하게 */
+  height: 35px;
+  /* SVG 이미지의 height와 동일하게 */
+  background-size: contain;
+  /* 이미지가 요소 안에 꽉 차도록 */
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 2;
+  /* SVG 이미지에 따라 마커의 상단 여백을 조절할 수 있습니다. */
+  /* margin-top: -XXpx; */
+}
+
 /* 1. 타임라인 마커 (왼쪽) */
 .timeline-marker-wrapper {
   display: flex;
@@ -142,7 +187,7 @@ export default {
   margin-right: 12px;
 }
 
-.timeline-marker {
+/* .timeline-marker {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -153,7 +198,7 @@ export default {
   font-weight: bold;
   font-size: 14px;
   z-index: 2;
-}
+} */
 
 .timeline-line {
   width: 2px;
