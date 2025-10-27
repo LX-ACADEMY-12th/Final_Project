@@ -91,7 +91,7 @@ export default {
       // 상세 페이지로 전달할 쿼리 파라미터 정의
       const queryParams = {
         mainCategoryTags: this.selectedSubject, // data의 selectedSubject
-        subCategories: item.hashtags,
+        subCategoryTags: item.hashtags,
         gradeTags: this.selectedGrade,          // data의 selectedGrade
       };
 

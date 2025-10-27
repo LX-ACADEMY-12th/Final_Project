@@ -155,9 +155,9 @@ export default {
   methods: {
     /** DTO -> 프론트 상태 매핑 (Exhibition) */
     mapExhibitionDTO(dto) {
-      const title = dto.placeName ?? '제목 없음';
+      const title = dto.exhibitionName ?? '제목 없음';
       const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
-      const subCategory = this.$route.query.subCategories ?? '';   // (중분류)
+      const subCategory = this.$route.query.subCategoryTags ?? '';   // (중분류)
       const grade = this.$route.query.gradeTags;
 
       this.exhibition = {
@@ -195,7 +195,7 @@ export default {
 
       const title = dto.placeName ?? '제목 없음';
       const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
-      const subCategory = this.$route.query.subCategories ?? '';   // (중분류)
+      const subCategory = this.$route.query.subCategoryTags ?? '';   // (중분류)
       const grade = this.$route.query.gradeTags;
 
       this.place = {
