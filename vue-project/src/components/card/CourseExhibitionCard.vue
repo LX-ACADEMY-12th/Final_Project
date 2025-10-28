@@ -9,13 +9,6 @@
     </div>
     <!-- 컨텐츠 카드 -->
     <div class="content-card">
-      <div class="icon-buttons">
-        <!-- 편집 버튼 -->
-        <i class="bi bi-pencil" @click="onEdit"></i>
-        <!-- 삭제 버튼 -->
-        <i class="bi bi-trash" @click="onDelete"></i>
-      </div>
-
       <!-- 카드 몸체 -->
       <div class="card-body">
         <!-- 장소 이미지 -->
@@ -25,6 +18,8 @@
         <!-- 카드 텍스트 -->
         <div class="card-text">
           <div class="d-flex align-items-center justify-content-left gap-1">
+            <!-- 상설 및 기획 태그 -->
+            <TypeTag :text="item.type" class="flex-shrink-0" />
             <!-- 전시명 -->
             <h5 class="place-name">{{ item.title }}</h5>
           </div>
@@ -48,9 +43,9 @@
       <!-- 밑줄 -->
       <hr class="hr" />
       <span class="location-label">
-        상세주소
+        전시관
         <!-- 상세주소 -->
-        <span class="address">{{ item.place }}</span>
+        <span class="address">{{ item.scienceCenter + ' ' + item.hallName }}</span>
       </span>
 
 
@@ -60,6 +55,7 @@
 
 <script>
 import PillTag from '@/components/tag/PillTag.vue';
+import TypeTag from '@/components/tag/TypeTag.vue';
 import HashTag from '@/components/tag/HashTag.vue';
 
 export default {
@@ -69,78 +65,27 @@ export default {
   components: {
     PillTag,
     HashTag,
+    TypeTag
   },
   props: {
     // 부모로부터 'item' 객체를 받음
     item: {
       type: Object,
       required: true,
-      /*
-        [필요한 item 속성 예시]
-        item: {
-          number: 1,
-          color: '#4A7CEC',
-          imageSrc: 'https://...',
-          zoneName: '습지생물코너',
-          subject: '생명',
-          grade: '초등 3학년',
-          hashtags: ['항상성', '몸의 조절', '생명과학'], // [중요] 이 배열을 기반으로 computed가 작동
-          placeName: '국립중앙과학관' */
     },
-  },
-  emits: ['edit', 'delete'],
-  methods: {
-    onEdit() {
-      this.$emit('edit', this.item.id);
-    },
-    onDelete() {
-      this.$emit('delete', this.item.id);
-    },
-
-    // 마커 SVG 이미지 생성 함수
-    createMarkerSvg(number, color) {
-      const svg = `
-        <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 23 12 23s12-14 12-23c0-6.627-5.373-12-12-12z"
-              fill="${color}" stroke="#fff" stroke-width="2"/>
-          <circle cx="12" cy="12" r="8" fill="#fff"/>
-          <text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif"
-              font-size="10" font-weight="bold" fill="${color}">${number}</text>
-        </svg>
-      `;
-      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    },
-
-    // 코스 순서에 따른 색상 결정 함수 (CourseMap.vue와 동일하게)
-    getCourseItemColor(itemNumber) {
-      // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용
-      // 여기서는 item.number를 직접 사용해야 합니다. (index 아님)
-      // item.number는 1번부터 시작하므로, index로 변환하려면 -1을 해야 합니다.
-      const colors = ['#FF5A5A', '#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
-      // 첫 번째 항목 (number: 1)은 특별한 빨간색, 나머지는 blue
-      if (itemNumber === 1) {
-        return '#FF5A5A';
-      }
-      // item.number는 1부터 시작하므로 배열 인덱스에 맞추기 위해 -1
-      return colors[(itemNumber - 1) % colors.length];
-    }
   },
   computed: {
-    // ⚠️ **추가:** 코스 순서에 따른 마커 색상 계산
+    // ⚠️ **새로 추가된 computed 속성:** 지도와 동일한 색상 결정
     itemColor() {
-      // item.number는 보통 1부터 시작합니다. 배열 인덱스를 위해 1을 뺍니다.
+      // item.number는 보통 1부터 시작합니다. 배열 인덱스를 위해 1을 뺌.
       const index = (this.item.number || 1) - 1;
       return this.getMarkerColor(index);
     },
-    // computed 속성: SVG 이미지 URL 생성 (item.color 의존성 제거)
-    markerSvgImage() {
-      // getCourseItemColor 함수 사용
-      const color = this.getCourseItemColor(this.item.number);
-      return this.createMarkerSvg(this.item.number, color);
-    },
-    // ⚠️ **추가:** 계산된 색상과 번호로 SVG Data URL 생성
+
+    // ⚠️ **수정된 computed 속성:** SVG 이미지 Data URL을 생성
     markerSvgUrl() {
       const number = this.item.number || 1;
+      // ⚠️ 결정된 색상을 사용
       const color = this.itemColor;
       return this.createMarkerImage(number, color);
     },
@@ -168,6 +113,12 @@ export default {
       }
       return this.item.hashtags.length - 2;
     },
+    // computed 속성: SVG 이미지 URL 생성 (item.color 의존성 제거)
+    markerSvgImage() {
+      // getCourseItemColor 함수 사용
+      const color = this.getCourseItemColor(this.item.number);
+      return this.createMarkerSvg(this.item.number, color);
+    },
     // subject 표시용 computed 속성
     displaySubject() {
       // 1. item.subject가 배열이고 요소가 있는지 확인
@@ -178,6 +129,7 @@ export default {
       // 3. 유효하지 않으면 null 반환 (태그 숨김)
       return null;
     },
+
     //  grade 표시용 computed 속성
     displayGrade() {
       // 1. item.grade가 배열이고 요소가 있는지 확인
@@ -191,6 +143,36 @@ export default {
       return null;
     },
   },
+
+  // ⚠️ **새로 추가된 methods:** 마커 이미지 생성 함수
+  methods: {
+    // 코스 순서에 따른 색상 결정 함수 (CourseMap.vue와 동일하게)
+    getCourseItemColor(itemNumber) {
+      // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용
+      // 여기서는 item.number를 직접 사용해야 합니다. (index 아님)
+      // item.number는 1번부터 시작하므로, index로 변환하려면 -1을 해야 합니다.
+      const colors = ['#FF5A5A', '#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
+      // 첫 번째 항목 (number: 1)은 특별한 빨간색, 나머지는 blue
+      if (itemNumber === 1) {
+        return '#FF5A5A';
+      }
+      // item.number는 1부터 시작하므로 배열 인덱스에 맞추기 위해 -1
+      return colors[(itemNumber - 1) % colors.length];
+    },
+    // 마커 SVG 이미지 생성 함수
+    createMarkerSvg(number, color) {
+      const svg = `
+        <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 23 12 23s12-14 12-23c0-6.627-5.373-12-12-12z"
+              fill="${color}" stroke="#fff" stroke-width="2"/>
+          <circle cx="12" cy="12" r="8" fill="#fff"/>
+          <text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif"
+              font-size="10" font-weight="bold" fill="${color}">${number}</text>
+        </svg>
+      `;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    },
+  }
 };
 </script>
 
@@ -205,7 +187,7 @@ export default {
   max-width: 360px;
 }
 
-/* 타임라인 마커 */
+/* 1. 타임라인 마커 (왼쪽) */
 .timeline-marker-wrapper {
   display: flex;
   flex-direction: column;
@@ -216,7 +198,7 @@ export default {
   margin-right: 12px;
 }
 
-/* SVG 이미지를 배경으로 사용하는 새로운 마커 스타일 */
+/* [추가] SVG 이미지를 배경으로 사용하는 새로운 마커 스타일 */
 .timeline-marker-svg {
   width: 24px;
   /* SVG 이미지의 width와 동일하게 */
@@ -229,33 +211,6 @@ export default {
   z-index: 2;
   /* SVG 이미지에 따라 마커의 상단 여백을 조절할 수 있습니다. */
   /* margin-top: -XXpx; */
-}
-
-
-/* ⚠️ **수정:** SVG 배경 이미지로 설정하여 지도 마커와 완벽 통일 */
-.timeline-marker {
-  /* SVG 크기(24x35)에 맞추어 마커 영역 조정 */
-  width: 24px;
-  height: 35px;
-
-  /* Computed 속성에서 받아온 SVG Data URL을 배경 이미지로 사용 */
-  background-image: var(--marker-url);
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center bottom;
-
-  /* 내부 텍스트(숫자)는 SVG에 포함되므로 숨김 */
-  display: block;
-  text-indent: -9999px;
-
-  z-index: 2;
-  position: relative;
-
-  /* 기존 원형 마커 관련 스타일 제거 */
-  border-radius: 0;
-  color: transparent;
-  font-weight: normal;
-  font-size: 0;
 }
 
 .timeline-line {

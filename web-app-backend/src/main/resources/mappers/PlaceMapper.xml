@@ -385,40 +385,4 @@
 
     </select>
 
-    <!-- 과학 추천 장소 찜 목록   -->
-    <resultMap id="likedCourseResultMap" type="com.yourproject.dto.LikedCourseListDTO">
-        <result property="id"           column="place_id"/>
-        <result property="imageUrl"     column="main_image_url"/>
-        <result property="subject"      column="subject_name"/>
-        <result property="grade"        column="grade_name"/>
-        <result property="courseName"   column="place_name"/>
-        <result property="address"      column="address_detail"/> <result property="type"         column="item_type"/>      </resultMap>
-
-    <select id="findPlacesForLikedList" resultMap="likedCourseResultMap">
-        SELECT
-        p.place_id,
-        p.main_image_url,
-        p.place_name,
-        -- 대표 과목명 (하나만 가져오기)
-        (SELECT cmc.category_name
-        FROM place_curriculum_mapping pcm
-        JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
-        JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
-        WHERE pcm.place_id = p.place_id LIMIT 1) AS subject_name,
-        -- 대표 학년명 (하나만 가져오기)
-        (SELECT gc.grade_name
-        FROM place_grade_mapping pgm
-        JOIN grade_category gc ON pgm.grade_id = gc.grade_id
-        WHERE pgm.place_id = p.place_id LIMIT 1) AS grade_name,
-        p.address_detail,
-        '답사' AS item_type -- 타입 고정
-        FROM
-        science_place p
-        WHERE
-        p.place_id IN
-        <foreach item="id" collection="ids" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-    </select>
-
 </mapper>

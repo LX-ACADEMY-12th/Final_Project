@@ -3,44 +3,5 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.demo.mapper.ExhibitionMapper">
-    <resultMap id="likedCourseResultMap" type="com.yourproject.dto.LikedCourseListDTO">
-        <result property="id"           column="exhibition_id"/>
-        <result property="imageUrl"     column="main_image_url"/>
-        <result property="subject"      column="subject_name"/>
-        <result property="grade"        column="grade_name"/>
-        <result property="courseName"   column="exhibition_name"/>
-        <result property="address"      column="hall_location"/>
-        <result property="type"         column="item_type"/>
-    </resultMap>
 
-    <select id="findExhibitionsForLikedList" resultMap="likedCourseResultMap">
-        SELECT
-        e.exhibition_id,
-        e.main_image_url,
-        e.exhibition_name,
-        -- 대표 과목명 (하나만 가져오기)
-        (SELECT cmc.category_name
-        FROM exhibition_curriculum_mapping ecm
-        JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
-        JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
-        WHERE ecm.exhibition_id = e.exhibition_id
-        FETCH FIRST 1 ROW ONLY) AS subject_name,
-        -- 대표 학년명 (하나만 가져오기)
-        (SELECT gc.grade_name
-        FROM exhibition_grade_mapping egm
-        JOIN grade_category gc ON egm.grade_id = gc.grade_id
-        WHERE egm.exhibition_id = e.exhibition_id
-        FETCH FIRST 1 ROW ONLY) AS grade_name,
-        -- 전시관 위치 (홀 이름 + 과학관 이름) - NULL 안전하게 처리
-        CONCAT_WS(' ', eh.hall_name, eh.science_center_name) AS hall_location,
-        '전시' AS item_type -- 타입 고정
-        FROM
-        exhibition e
-        LEFT JOIN exhibition_hall eh ON e.hall_id = eh.hall_id
-        WHERE
-        e.exhibition_id IN
-        <foreach item="id" collection="ids" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-    </select>
 </mapper>

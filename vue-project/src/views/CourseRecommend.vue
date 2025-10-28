@@ -5,7 +5,7 @@
 
     <div class="timeline-list">
       <div v-if="type === 'exhibition'">
-        <ExhibitionCourseCard v-for="item in courseItems" :key="item.id" :item="item" courseType="전시" />
+        <RecommendCourseExhibitionCard v-for="item in courseItems" :key="item.id" :item="item" courseType="전시" />
       </div>
 
       <div v-else>
@@ -23,7 +23,7 @@
 //import { ref } from 'vue';
 import CourseMap from '@/components/map/CourseMap.vue';
 //import RecommendationCTA from '@/components/RecommendationCTA.vue';
-import ExhibitionCourseCard from '@/components/card/CourseExhibitionPlaceCard.vue';
+import RecommendCourseExhibitionCard from '@/components/card/RecommendCourseExhibitionCard.vue';
 import CoursePlaceCard from '@/components/card/CoursePlaceCard.vue';
 
 export default {
@@ -31,7 +31,7 @@ export default {
   components: {
     CourseMap,
     // RecommendationCTA,
-    ExhibitionCourseCard,
+    RecommendCourseExhibitionCard,
     CoursePlaceCard,
   },
 

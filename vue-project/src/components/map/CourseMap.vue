@@ -5,27 +5,27 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 
-// --- 1. Props 정의 ---
+// --- Props 정의 ---
 const props = defineProps({
-  // 부모로부터 코스 아이템 배열을 받음
+  // 부모부터 코스 아이템 배열을 받음
   items: {
     type: Array,
     required: true,
   },
-  // 부모로부터 코스 제목을 받음 (필요시 사용)
+  // 부모로부터 코스 제목을 받음 (쓸지 안 쓸지 모르겠음)
   title: {
     type: String,
     default: '코스 지도',
   },
 });
 
-// --- 2. 맵과 요소들을 참조할 ref ---
+// --- 맵과 요소들을 참조할 ref ---
 const mapContainer = ref(null); // 템플릿의 div와 연결
 const map = ref(null); // 카카오맵 인스턴스
 const markers = ref([]); // 10.24 추가 : 마커 목록
 const polyline = ref(null); // 폴리라인(선)
 
-// --- 3. 맵 초기화 (컴포넌트 마운트 시) ---
+// --- 맵 초기화 (컴포넌트 마운트 시) ---
 onMounted(() => {
   if (window.kakao && window.kakao.maps) {
     const options = {
@@ -42,13 +42,13 @@ onMounted(() => {
   }
 });
 
-// --- 4. props.items가 변경될 때마다 맵 다시 그리기 ---
+// --- props.items가 변경될 때마다 맵 다시 그리기 ---
 watch(() => props.items, (newItems) => {
   if (!map.value) return; // 맵이 아직 준비되지 않았다면 중단
   drawCourseOnMap(newItems);
 });
 
-// --- 5. 기존 맵 요소들(핀, 선) 제거 함수 ---
+// --- 기존 맵 요소들(핀, 선) 제거 함수 ---
 const clearMapElements = () => {
   // 마커 제거
   if (markers.value.length > 0) {
@@ -62,90 +62,139 @@ const clearMapElements = () => {
   }
 };
 
-// --- 6. 맵에 핀과 선을 그리는 핵심 함수 ---
+// --- 맵에 핀과 선을 그리는 핵심 함수 ---
 const drawCourseOnMap = (items) => {
-  if (!map.value || !items || items.length === 0) return;
+  // --- 함수 시작 ---
+  console.log('[CourseMap] drawCourseOnMap 호출됨 / items:', JSON.stringify(items || [], null, 2));
 
-  // 1. 그리기 전에 기존 요소들 모두 삭제
+  // --- 맵 준비 상태 확인 ---
+  if (!map.value) {
+    console.warn('[CourseMap] 지도 인스턴스(map.value)가 아직 준비되지 않았습니다.');
+    return;
+  }
+  if (!mapContainer.value) {
+    console.warn('[CourseMap] 지도 컨테이너(mapContainer.value)가 아직 준비되지 않았습니다.');
+    return;
+  }
+  if (!items || items.length === 0) {
+    console.warn('[CourseMap] 지도에 표시할 아이템이 없습니다.');
+    clearMapElements(); // 아이템이 없다면 기존 요소 지우기
+    return;
+  }
+
+  console.log('[CourseMap] 기존 지도 요소 지우는 중...');
   clearMapElements();
 
   const newMarkers = [];
-  const path = []; // 폴리라인 경로 배열
-  const bounds = new window.kakao.maps.LatLngBounds(); // 맵 범위 재설정용
+  const path = [];
+  const bounds = new window.kakao.maps.LatLngBounds();
 
-  // 2. [핀/마커] 아이템 목록을 순회하며 핀과 경로 생성
   items.forEach((item, index) => {
-    // 2-1. 마커 위치
-    const position = new window.kakao.maps.LatLng(item.lat, item.lng);
+    console.log(`[CourseMap] 아이템 ${index} 처리 중:`, item);
 
-    // [수정] item.color 대신 getCourseItemColor 함수 사용
-    const markerColor = getCourseItemColor(item.number); // [!] 수정됨
+    // --- 좌표 유효성 검사 ---
+    if (item.lat == null || item.lng == null || isNaN(Number(item.lat)) || isNaN(Number(item.lng))) {
+      console.error(`[CourseMap] ❗️❗️❗️ 아이템 ${index}의 좌표가 유효하지 않거나 없습니다. 마커 생성을 건너<0xEB><0x9A><0x8E>니다.`, item);
+      return; // 이 아이템 건너뛰기
+    }
+    const position = new window.kakao.maps.LatLng(Number(item.lat), Number(item.lng));
+    console.log(`[CourseMap] 아이템 ${index} 위치(Position) 생성됨:`, position);
 
-    // 2-2. 마커 이미지 생성
-    // `getMarkerColor` 함수를 사용하여 색상을 가져옵니다.
-    const markerImageSrc = createMarkerImage(
-      item.number || (index + 1), // item.number가 없으면 순서(index+1) 사용
-      markerColor
-    );
+    // --- 마커 이미지 소스 생성 및 유효성 검사 ---
+    const itemNumber = item.number || (index + 1); // number 없으면 index+1 사용
+    const markerColor = getCourseItemColor(itemNumber);
+    const markerImageSrc = createMarkerImage(itemNumber, markerColor);
 
-    const markerImage = new window.kakao.maps.MarkerImage(
-      markerImageSrc,
-      new window.kakao.maps.Size(24, 35),
-      { offset: new window.kakao.maps.Point(12, 35) } // 핀 모양에 맞게 이미지 중심 설정
-    );
+    console.log(`[CourseMap] 아이템 ${index} - 번호: ${itemNumber}, 색상: ${markerColor}, 이미지 소스(앞부분): ${markerImageSrc?.substring(0, 50)}...`);
 
-    // 2-3. 커스텀 오버레이 생성
-    const marker = new window.kakao.maps.Marker({
-      position: position,
-      image: markerImage,
-      map: map.value,
-    });
+    if (!markerImageSrc || typeof markerImageSrc !== 'string' || !markerImageSrc.startsWith('data:image/svg+xml')) {
+      console.error(`[CourseMap] ❗️❗️❗️ 아이템 ${index}에 대한 마커 이미지 소스가 유효하지 않습니다. 마커 생성을 건너<0xEB><0x9A><0x8E>니다.`, markerImageSrc);
+      return; // 이 아이템 건너뛰기
+    }
 
-    newMarkers.push(marker); // 나중에 지우기 위해 목록에 추가
+    let markerImage;
+    try {
+      markerImage = new window.kakao.maps.MarkerImage(
+        markerImageSrc,
+        new window.kakao.maps.Size(24, 35),
+        { offset: new window.kakao.maps.Point(12, 35) }
+      );
+      console.log(`[CourseMap] 아이템 ${index} MarkerImage 생성됨.`);
+    } catch (imgError) {
+      console.error(`[CourseMap] ❗️❗️❗️ 아이템 ${index} MarkerImage 생성 중 오류 발생:`, imgError, markerImageSrc);
+      return; // MarkerImage 생성 실패 시 건너뛰기
+    }
 
-    // 2-4. [요청사항 4] 폴리라인 경로 배열에 좌표 추가
-    path.push(position);
+    // --- 마커 생성 ---
+    try {
+      const marker = new window.kakao.maps.Marker({
+        position: position,
+        image: markerImage, // 생성된 markerImage 객체 사용
+        map: map.value,
+      });
+      console.log(`[CourseMap] 아이템 ${index} 마커 생성 및 지도에 추가 완료.`);
+      newMarkers.push(marker);
+      path.push(position);
+      bounds.extend(position);
+    } catch (markerError) {
+      // insertBefore 에러는 주로 여기서 발생 (image 값이 잘못되었을 때)
+      console.error(`[CourseMap] ❗️❗️❗️ 아이템 ${index} 마커 생성 중 오류 발생:`, markerError, { position, markerImage });
+      // 필요시 에러를 다시 던지거나 다르게 처리
+    }
+  }); // --- forEach 끝 ---
 
-    // 2-5. 맵 범위 계산을 위해 bounds에 좌표 추가
-    bounds.extend(position);
-  });
+  // --- 끝 ---
+  console.log('[CourseMap] 아이템 처리 완료. 경로 개수:', path.length);
 
-  // 3. [선 연결] 폴리라인 생성 및 표시
+  // --- 폴리라인(선) 생성 ---
   if (path.length > 1) {
-    const newPolyline = new window.kakao.maps.Polyline({
-      path: path,
-      strokeWeight: 4,
-      strokeColor: '#4A7CEC', // 선 색상 (원하는 대로)
-      strokeOpacity: 0.8,
-      strokeStyle: 'solid',
-    });
-
-    newPolyline.setMap(map.value);
-    polyline.value = newPolyline; // 나중에 지우기 위해 ref에 저장
+    try {
+      const newPolyline = new window.kakao.maps.Polyline({
+        path: path,
+        strokeWeight: 4,
+        strokeColor: '#4A7CEC',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid',
+      });
+      newPolyline.setMap(map.value);
+      polyline.value = newPolyline;
+      console.log('[CourseMap] 폴리라인 생성 및 추가 완료.');
+    } catch (polyError) {
+      console.error('[CourseMap] ❗️❗️❗️ 폴리라인 생성 중 오류 발생:', polyError, path);
+    }
+  } else {
+    console.log('[CourseMap] 폴리라인을 그리기에 점이 부족합니다.');
   }
 
-  // 4. (저장) 생성된 오버레이 목록을 ref에 저장
+  // --- 마커 저장 및 지도 범위 설정 ---
   markers.value = newMarkers;
+  if (!bounds.isEmpty()) {
+    try {
+      map.value.setBounds(bounds);
+      console.log('[CourseMap] 지도 범위 설정 완료.');
+    } catch (boundsError) {
+      console.error('[CourseMap] ❗️❗️❗️ 지도 범위 설정 중 오류 발생:', boundsError, bounds);
+    }
+  } else {
+    console.warn('[CourseMap] 유효한 범위가 없어 지도 범위를 설정할 수 없습니다.');
+  }
+}; // --- drawCourseOnMap 함수 끝 ---
 
-  // 5. [맵 범위] 모든 핀이 보이도록 맵 범위 조절
-  map.value.setBounds(bounds);
-};
-
-// --- 마커 색상 결정 함수 (UserLikeCourseCard와 통일) ---
+// --- 마커 색상 결정 함수
 const getCourseItemColor = (itemNumber) => {
   // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용
-  // 여기서는 item.number를 직접 사용해야 합니다. (index 아님)
   // item.number는 1번부터 시작하므로, index로 변환하려면 -1을 해야 합니다.
   const colors = ['#FF5A5A', '#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
-  // 첫 번째 항목 (number: 1)은 특별한 빨간색, 나머지는 blue
-  if (itemNumber === 1) {
-    return '#FF5A5A';
+  // itemNumber가 유효한 숫자인지 확인, 아니면 기본 색상 반환
+  if (typeof itemNumber !== 'number' || isNaN(itemNumber) || itemNumber < 1) {
+    console.warn(`[getCourseItemColor] Invalid itemNumber: ${itemNumber}. Using default color.`);
+    return colors[1]; // 기본 파란색 반환
   }
   // item.number는 1부터 시작하므로 배열 인덱스에 맞추기 위해 -1
   return colors[(itemNumber - 1) % colors.length];
 }
 
-// --- 마커 SVG 이미지 생성 함수 (UserLikeCourseCard와 통일) ---
+// --- 마커 SVG 이미지 생성 함수
 const createMarkerImage = (number, color) => {
   // SVG로 코스 순서 마커 이미지 생성 (물방울 모양 + 숫자)
   const svg = `

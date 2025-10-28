@@ -54,7 +54,7 @@ const router = createRouter({
       component: IndoorMapView,
     },
     {
-      path: '/coursedetail/:ExhibitionName',
+      path: '/coursedetail/:courseId',
       name: 'UserLikeCourseDetail',
       component: UserLikeCourseDetailView,
     },
