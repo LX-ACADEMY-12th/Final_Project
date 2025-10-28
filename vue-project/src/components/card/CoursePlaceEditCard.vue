@@ -11,7 +11,7 @@
     <div class="content-card">
       <div class="icon-buttons">
         <!-- 편집 버튼 -->
-        <i class="bi bi-pencil" @click="onEdit"></i>
+        <!-- <i class="bi bi-pencil" @click="onEdit"></i>  -->
         <!-- 삭제 버튼 -->
         <i class="bi bi-trash" @click="onDelete"></i>
       </div>
@@ -20,7 +20,7 @@
       <div class="card-body">
         <!-- 장소 이미지 -->
         <div class="card-image">
-          <img :src="item.imageUrl" alt="장소 이미지" />
+          <img :src="item.imageUrl || 'https://placehold.co/800x600/AACCFF/000000'" alt="장소 이미지" />
         </div>
         <!-- 카드 텍스트 -->
         <div class="card-text">

@@ -5,11 +5,11 @@
 
     <div class="timeline-list">
       <div v-if="type === 'exhibition'">
-        <RecommendCourseExhibitionCard v-for="item in courseItems" :key="item.id" :item="item" courseType="전시" />
+        <AiRecommendCourseExhibitionCard v-for="item in courseItems" :key="item.id" :item="item" courseType="전시" />
       </div>
 
       <div v-else>
-        <CoursePlaceCard v-for="item in courseItems" :key="item.id" :item="item" />
+        <AiRecommendCoursePlaceCard v-for="item in courseItems" :key="item.id" :item="item" />
       </div>
 
     </div>
@@ -23,16 +23,16 @@
 //import { ref } from 'vue';
 import CourseMap from '@/components/map/CourseMap.vue';
 //import RecommendationCTA from '@/components/RecommendationCTA.vue';
-import RecommendCourseExhibitionCard from '@/components/card/RecommendCourseExhibitionCard.vue';
-import CoursePlaceCard from '@/components/card/CoursePlaceCard.vue';
+import AiRecommendCourseExhibitionCard from '@/components/card/AiRecommendCourseExhibitionCard.vue';
+import AiRecommendCoursePlaceCard from '@/components/card/AiRecommendCoursePlaceCard.vue';
 
 export default {
   name: 'CourseRecommended',
   components: {
     CourseMap,
     // RecommendationCTA,
-    RecommendCourseExhibitionCard,
-    CoursePlaceCard,
+    AiRecommendCourseExhibitionCard,
+    AiRecommendCoursePlaceCard,
   },
 
   props: {

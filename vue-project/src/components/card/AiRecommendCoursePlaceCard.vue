@@ -26,7 +26,7 @@
             <!-- 과학영역 태그 -->
             <PillTag :text="item.subject" type="subject" />
             <!-- 학년 태그 -->
-            <PillTag :text="item.grade" type="grade" />
+            <PillTag :text="item.grade.replace('초등 ', '')" type="grade" />
           </div>
           <!-- 중분류 태그 영역-->
           <div class="d-flex gap-1">

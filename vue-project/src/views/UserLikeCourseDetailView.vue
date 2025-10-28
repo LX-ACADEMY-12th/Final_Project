@@ -40,21 +40,39 @@
 
       <div class="scrollable-content">
         <div class="course-list-container">
+          <!-- 전시 타입: 드래그 없음 -->
           <div v-if="pageType === 'exhibition'">
             <CourseExhibitionCard v-for="course in courseItems" :key="course.id" :item="course" :showControls="true"
               couseType="전시" @edit="handleEdit" @delete="handleDelete" />
           </div>
 
+          <!-- 답사 타입: 드래그 가능 -->
           <div v-else-if="pageType === 'place'">
-            <CoursePlaceEditCard v-for="course in courseItems" :key="course.id" :item="course" :showControls="true"
-              couseType="답사" @edit="handleEdit" @delete="handleDelete" />
+            <draggable v-model="courseItems" :animation="200" ghost-class="ghost-item" chosen-class="chosen-item"
+              drag-class="drag-item" @start="onDragStart" @end="onDragEnd" item-key="id">
+              <template #item="{ element }">
+                <CoursePlaceEditCard :item="element" :showControls="true" couseType="답사" @edit="handleEdit"
+                  @delete="handleDelete" class="draggable-item" />
+              </template>
+            </draggable>
           </div>
 
           <div v-else>
             <p class="text-muted">잘못된 코스 타입입니다.</p>
           </div>
-
         </div>
+      </div>
+
+      <!-- 저장 섹션 -->
+      <div class="save-section" v-if="hasChanges">
+        <div v-if="saveMessage" class="save-status-message"
+          :class="`alert-${saveStatus === 'success' ? 'success' : 'danger'}`">
+          {{ saveMessage }}
+        </div>
+        <button class="btn btn-primary save-btn-bottom" @click="saveChanges" :disabled="!hasChanges || isSaving">
+          <span v-if="isSaving" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          {{ isSaving ? '저장 중...' : '변경사항 저장' }}
+        </button>
       </div>
     </template>
 
@@ -65,17 +83,19 @@
 </template>
 
 <script>
-import axios from 'axios'; // [신규] axios 임포트
+import axios from 'axios';
+import draggable from 'vuedraggable';
+
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import AddPlaceModal from '@/components/modal/AddPlaceModal.vue';
 import CourseMap from '@/components/map/CourseMap.vue';
 import CourseExhibitionCard from '@/components/card/CourseExhibitionCard.vue';
 import CoursePlaceEditCard from '@/components/card/CoursePlaceEditCard.vue';
 
-// 데이터 (getUserLikeCourseData) 함수 전체 삭제
 export default {
   name: 'UserLikeCourseDetail',
   components: {
+    draggable,
     CourseMap,
     ConfirmDeleteModal,
     AddPlaceModal,
@@ -84,27 +104,46 @@ export default {
   },
   data() {
     return {
-      course: null, // API 또는 history.state에서 받은 원본 데이터
+      course: null,
       error: null,
-      loading: true, // [신규] 로딩 상태 추가
+      loading: true,
 
-      // 템플릿에서 직접 사용하는 데이터
-      exhibitionName: '', // 코스 이름 (e.g., '전시명1')
-      pageType: '',       // 'exhibition' or 'place'
-      courseItems: [],    // 지도와 목록에 표시될 실제 장소 배열
+      exhibitionName: '',
+      pageType: '',
+      courseItems: [],
+      originalCourseItems: [], // 원본 데이터 보관
 
       // 모달 상태
       showDeleteModal: false,
       showAddModal: false,
       itemToDeleteId: null,
 
-      // API 호출을 위한 userId (목록 페이지와 동일하게 설정)
-      userId: 1, // ❗️ 실제로는 로그인/세션/Vuex 등에서 가져와야 함
+      // 저장 관련 상태
+      hasChanges: false,
+      isSaving: false,
+      saveMessage: '',
+      saveStatus: '', // 'success' or 'error'
+
+      // 드래그 상태
+      isDragging: false,
+
+      userId: 1, // 백엔드 호출로 유저 id
     };
   },
 
+  watch: {
+    courseItems: {
+      handler(newItems, oldItems) {
+        // 드래그 중이 아닐 때만 변경 감지
+        if (!this.isDragging && oldItems && oldItems.length > 0) {
+          this.checkForChanges();
+        }
+      },
+      deep: true
+    }
+  },
+
   created() {
-    // [수정] created 훅에서는 loadCourse 함수만 호출
     this.loadCourse();
   },
 
@@ -117,39 +156,41 @@ export default {
       try {
         const courseId = this.$route.params.courseId;
 
-        // 1단계: history.state 확인 (목록에서 정상 진입)
+        // 1단계: history.state 확인
         const courseDataFromState = history.state?.courseData;
         if (courseDataFromState && courseDataFromState.id == courseId) {
           console.log('history.state에서 코스 데이터 로드:', courseDataFromState);
           targetCourse = courseDataFromState;
         }
 
-        // 2단계: sessionStorage 확인 (새로고침 등)
+        // 2단계: sessionStorage 확인
         if (!targetCourse) {
           const storedData = sessionStorage.getItem(`courseData_${courseId}`);
           if (storedData) {
             console.log('sessionStorage에서 코스 데이터 로드');
             targetCourse = JSON.parse(storedData);
-            // 사용 후 정리하지 않음 (새로고침 대비)
           }
         }
 
-        // 3단계: API fallback (정말 필요한 경우만)
+        // 3단계: API fallback
         if (!targetCourse) {
           console.log('저장된 데이터 없음. API로 fallback 시도');
           const response = await axios.get(`http://localhost:8080/api/schedules/user/${this.userId}`);
 
           const allMappedCourses = response.data.map(schedule => {
-            const mappedCourseItems = schedule.items.map(item => ({
-              id: item.sourceItemId,
-              number: item.sequence,
-              title: item.itemName,
-              place: item.addressDetail,
-              imageUrl: item.mainImageUrl,
-              lat: item.latitude,
-              lng: item.longitude,
-              type: null, subject: null, grade: null, hashtags: [],
-            }));
+            const mappedCourseItems = schedule.items
+              .map(item => ({
+                id: item.sourceItemId,
+                number: item.sequence,
+                title: item.itemName,
+                place: item.addressDetail,
+                imageUrl: item.mainImageUrl,
+                lat: item.latitude,
+                lng: item.longitude,
+                type: null, subject: null, grade: null, hashtags: [],
+              }))
+              .sort((a, b) => a.number - b.number); // sequence 순서로 정렬
+
             return {
               id: schedule.scheduleId,
               ExhibitionName: schedule.scheduleName,
@@ -168,14 +209,14 @@ export default {
             throw new Error(`ID [${courseId}]에 해당하는 코스를 찾을 수 없습니다.`);
           }
 
-          // API로 가져온 데이터도 sessionStorage에 저장
           sessionStorage.setItem(`courseData_${courseId}`, JSON.stringify(targetCourse));
         }
 
         // 데이터 설정
         this.course = targetCourse;
         this.exhibitionName = targetCourse.ExhibitionName;
-        this.courseItems = targetCourse.courseItems || [];
+        this.courseItems = [...(targetCourse.courseItems || [])];
+        this.originalCourseItems = JSON.parse(JSON.stringify(this.courseItems)); // 깊은 복사
 
         if (targetCourse.type === 'inner_course') {
           this.pageType = 'exhibition';
@@ -193,16 +234,115 @@ export default {
       }
     },
 
-    // [삭제] fetchCourseData (목 데이터용 함수) 삭제
+    // 변경사항 확인
+    checkForChanges() {
+      const currentOrder = this.courseItems.map(item => item.id);
+      const originalOrder = this.originalCourseItems.map(item => item.id);
 
-    goBack() {
-      this.$router.back();
+      // 순서 변경 확인
+      const orderChanged = JSON.stringify(currentOrder) !== JSON.stringify(originalOrder);
+
+      // 아이템 개수 변경 확인
+      const countChanged = this.courseItems.length !== this.originalCourseItems.length;
+
+      this.hasChanges = orderChanged || countChanged;
+
+      if (this.hasChanges) {
+        this.reorderCourseItems(); // number 재정렬
+      }
     },
 
-    // --- 수정/삭제 이벤트 핸들러 ---
+    // 드래그 시작
+    onDragStart() {
+      this.isDragging = true;
+      console.log('드래그 시작');
+    },
+
+    // 드래그 종료
+    onDragEnd() {
+      this.isDragging = false;
+      console.log('드래그 종료');
+      this.checkForChanges();
+    },
+
+    // 변경사항 저장
+    async saveChanges() {
+      if (!this.hasChanges || this.isSaving) return;
+
+      this.isSaving = true;
+      this.saveMessage = '';
+
+      try {
+        const scheduleId = this.course.id;
+
+        // 백엔드로 전송할 데이터 구성
+        const updateData = {
+          scheduleId: scheduleId,
+          items: this.courseItems.map((item, index) => ({
+            itemId: item.itemId || null, // 기존 아이템의 경우 itemId 포함
+            sourceItemId: item.id,
+            sequence: index + 1,
+            itemType: item.itemType,
+            customName: item.customName || null,
+            customAddress: item.customAddress || null,
+            customLatitude: item.customLatitude || null,
+            customLongitude: item.customLongitude || null,
+          }))
+        };
+
+        console.log('저장할 데이터:', JSON.stringify(updateData, null, 2));
+
+        // API 호출
+        const response = await axios.put(
+          `http://localhost:8080/api/schedules/${scheduleId}/items`,
+          updateData
+        );
+
+        if (response.status === 200) {
+          this.saveStatus = 'success';
+          this.saveMessage = '변경사항이 성공적으로 저장되었습니다.';
+
+          // 원본 데이터 업데이트
+          this.originalCourseItems = JSON.parse(JSON.stringify(this.courseItems));
+          this.hasChanges = false;
+
+          // sessionStorage 업데이트
+          const updatedCourse = { ...this.course, courseItems: this.courseItems };
+          sessionStorage.setItem(`courseData_${this.course.id}`, JSON.stringify(updatedCourse));
+
+          // 3초 후 메시지 숨기기
+          setTimeout(() => {
+            this.saveMessage = '';
+          }, 3000);
+        }
+
+      } catch (error) {
+        console.error('저장 실패:', error);
+        this.saveStatus = 'error';
+        this.saveMessage = error.response?.data?.message || '저장 중 오류가 발생했습니다.';
+
+        // 5초 후 메시지 숨기기
+        setTimeout(() => {
+          this.saveMessage = '';
+        }, 5000);
+      } finally {
+        this.isSaving = false;
+      }
+    },
+
+    goBack() {
+      if (this.hasChanges) {
+        if (confirm('저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?')) {
+          this.$router.back();
+        }
+      } else {
+        this.$router.back();
+      }
+    },
+
     handleEdit(id) {
       console.log('수정할 ID:', id);
-      // (TODO: 수정 로직 구현)
+      // TODO: 수정 로직 구현
     },
 
     handleDelete(id) {
@@ -211,12 +351,10 @@ export default {
       this.showDeleteModal = true;
     },
 
-    // --- 삭제 모달용 함수 ---
     confirmDeleteItem() {
       console.log('삭제 확정, ID:', this.itemToDeleteId);
       this.courseItems = this.courseItems.filter(item => item.id !== this.itemToDeleteId);
-      // 삭제 후 순서(number) 재정렬
-      this.reorderCourseItems();
+      this.checkForChanges();
       this.closeDeleteModal();
     },
 
@@ -225,7 +363,6 @@ export default {
       this.showDeleteModal = false;
     },
 
-    // --- 장소 추가 모달용 함수 ---
     openAddModal() {
       this.showAddModal = true;
     },
@@ -235,30 +372,35 @@ export default {
     },
 
     addNewItem(place) {
-      console.log('추가할 장소:', place); // AddPlaceModal에서 전달된 place 객체
+      console.log('추가할 장소:', JSON.stringify(place, null, 2));
 
-      // '답사' (place) 형식에 맞게 새 아이템 생성
-      // (place 객체에 name, address, lat, lng가 있다고 가정)
       const newItem = {
-        id: new Date().getTime(), // 임시 고유 ID
+        // id: new Date().getTime(), // 임시 고유 ID
         number: this.courseItems.length + 1,
-        color: '#3B82F6', // 답사 기본 색상
+        color: '#3B82F6',
         imageUrl: place.imageUrl || 'https://placehold.co/600x400/AACCFF/000000',
-        subject: place.subject || '미지정', // (모달에서 받거나 임시값)
-        grade: place.grade || '공통',   // (모달에서 받거나 임시값)
-        title: place.name,    // 모달에서 받은 장소 이름
-        type: '답사',
-        place: place.address, // 모달에서 받은 주소
+        subject: place.subject || '미지정',
+        grade: place.grade || '공통',
+        title: place.name,
+        type: '사용자 추가 장소',
+        place: place.address,
         hashtags: ['새로 추가됨'],
-        lat: place.lat, // 모달에서 받은 위도
-        lng: place.lng  // 모달에서 받은 경도
+        lat: place.lat,
+        lng: place.lng,
+        itemType: 'custom',
+        // 새 아이템임을 표시
+        isNew: true,
+        customName: place.name,
+        customAddress: place.address,
+        customLatitude: place.lat,
+        customLongitude: place.lng,
       };
-
-      this.courseItems.push(newItem); // 데이터 배열에 추가
-      this.closeAddModal(); // 모달 닫기
+      console.log('추가할 장소 + 정보추가:', JSON.stringify(newItem, null, 2));
+      this.courseItems.push(newItem);
+      this.checkForChanges();
+      this.closeAddModal();
     },
 
-    // 아이템 삭제/순서 변경 시 number를 다시 정렬하는 함수
     reorderCourseItems() {
       this.courseItems.forEach((item, index) => {
         item.number = index + 1;
@@ -272,12 +414,88 @@ export default {
 .course-recommend-container {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   overflow: hidden;
-  height: calc(100vh - 60px);
-  /* ❗️(참고) vh 100%가 아님. 상위 레이아웃에 따라 조절 필요 */
 }
 
-/* [신규] 로딩/에러 상태 중앙 정렬 */
+.save-section {
+  padding: 1rem;
+  background-color: white;
+  border-top: 1px solid #eee;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.save-status-message {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.alert-success {
+  background-color: #d1edff;
+  color: #0c5460;
+  border: 1px solid #b8daff;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.save-btn-bottom {
+  width: 327px;
+  height: 48px;
+  border-radius: 30px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.save-btn-bottom:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* 드래그 관련 스타일 */
+.draggable-item {
+  transition: transform 0.2s ease;
+  cursor: grab;
+}
+
+.draggable-item:active {
+  cursor: grabbing;
+}
+
+.ghost-item {
+  opacity: 0.5;
+  background-color: #f8f9fa;
+}
+
+.chosen-item {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.drag-item {
+  transform: rotate(5deg);
+  opacity: 0.8;
+}
+
+/* 기존 스타일들... */
 .status-container {
   flex: 1;
   display: flex;
@@ -307,16 +525,11 @@ export default {
   align-items: center;
   flex-shrink: 0;
   margin-bottom: 1rem;
-  /* [수정] 스크롤 영역과 간격 추가 */
 }
 
-/* [헤더]
-    채팅방 헤더와 동일한 구조
-*/
 .chat-header {
   position: relative;
   flex-shrink: 0;
-  /* [수정] 헤더 수축 방지 */
 }
 
 .chat-header .header-left,
