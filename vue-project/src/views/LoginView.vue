@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-form">
       <header class="header">
-        <BigLogo/>
+        <!-- <BigLogo/> -->
         <h2>로그인</h2>
       </header>
 
@@ -18,8 +18,8 @@
             <input :type="isPasswordVisible ? 'text' : 'password'" id="password" v-model="password"
               placeholder="비밀번호 입력" required class="text-input" />
             <span @click="togglePasswordVisibility" class="password-toggle-icon">
-              <i v-if="isPasswordVisible" class="bi bi-eye-fill"></i>
-              <i v-else class="bi bi-eye-slash-fill"></i>
+              <i v-if="isPasswordVisible" class="bi bi-eye"></i>
+              <i v-else class="bi bi-eye-slash"></i>
             </span>
           </div>
         </div>
@@ -43,43 +43,104 @@
   </div>
 </template>
 
-<script setup>
-import BigLogo from '@/components/BigLogo.vue';
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+<script>
+// ⭐⭐⭐ 1. axios 라이브러리 import (설치 필요: npm install axios) ⭐⭐⭐
+import axios from 'axios'; 
 
-const id = ref('');
-const password = ref('');
-const keepLoggedIn = ref(false); 
-const isPasswordVisible = ref(false);
-const errorMessage = ref('');
-const router = useRouter();
+// 백엔드 API의 기본 URL을 상수로 정의합니다. (실제 환경에 맞게 변경 필요)
+const API_URL = 'http://localhost:8080/api/user';
 
-const togglePasswordVisibility = () => {
-  isPasswordVisible.value = !isPasswordVisible.value;
-};
+// export default를 사용하여 컴포넌트의 로직(데이터, 계산된 속성, 메서드 등)을 정의합니다.
+export default {
+  // 컴포넌트의 이름 설정
+  name: 'LoginForm',
 
-const handleLogin = async () => {
-  if (!id.value || !password.value) {
-    errorMessage.value = '아이디와 비밀번호를 모두 입력해주세요.';
-    return;
-  }
+  // 1. 상태(Data) 정의
+  data() {
+    return {
+      id: '',
+      password: '',
+      keepLoggedIn: false, 
+      isPasswordVisible: false,
+      errorMessage: '',
+    };
+  },
 
-  try {
-    // 실제 서버로 보낼 데이터를 콘솔에 출력 (디버깅 용)
-    console.log('로그인 요청 데이터:', { id: id.value, password: password.value });
-    
-    // 이곳에 실제 서버로 로그인 요청을 보내는 API 호출 코드를 작성해야함
+  // 2. 계산된 속성(Computed) - 변동 없음
+  computed: {
+    isFormValid() {
+      // 아이디와 비밀번호가 모두 채워져야 로그인 버튼 활성화
+      return this.id.length > 0 && this.password.length > 0;
+    }
+  },
 
-    // 아래는 서버 연동 전 임시 성공 처리
-    console.log('서버에 로그인 요청을 보냈다고 가정, 성공적으로 응답 받음.');
-    errorMessage.value = ''; // 성공 시 에러 메시지 초기화
+  // 3. 메서드(Methods)
+  methods: {
+    // 비밀번호 표시/숨김 토글 (변동 없음)
+    togglePasswordVisibility() {
+      this.isPasswordVisible = !this.isPasswordVisible;
+    },
 
-    router.replace('/'); // 실제 메인 페이지의 경로로 변경해야함
+    // ⭐ 로그인 폼 제출 핸들러 (백엔드 통신으로 수정) ⭐
+    async handleLogin() {
+      // 1. 클라이언트 측 유효성 검사
+      if (!this.id || !this.password) {
+        this.errorMessage = '아이디와 비밀번호를 모두 입력해주세요.';
+        return;
+      }
 
-  } catch (error) {
-    console.error("로그인 요청 실패:", error);
-    errorMessage.value = '아이디 또는 비밀번호를 확인해주세요.';
+      this.errorMessage = ''; // 에러 메시지 초기화
+
+      // 2. 서버로 전송할 데이터 객체 생성 (LoginRequestDTO의 필드명과 일치)
+      const loginData = { 
+        loginId: this.id, // 프론트의 'id'를 백엔드의 'loginId'로 매핑
+        password: this.password, 
+      };
+
+      console.log('로그인 요청 데이터:', loginData);
+
+      try {
+        // 3. 백엔드 API 호출: POST /api/user/login
+        const response = await axios.post(`${API_URL}/login`, loginData);
+        
+        // 4. 응답 처리 (성공: HTTP 200 OK)
+        if (response.status === 200) { 
+          const userData = response.data; // LoginResponseDTO 데이터
+
+          console.log('로그인 성공. 사용자 데이터:', userData);
+
+          // 로그인 세션 저장 (토큰 저장)
+          this.saveLoginSession(userData.token); 
+          
+          // 메인 페이지('/home')로 이동 (Vue Router의 replace 사용)
+          this.$router.replace('/home'); 
+        }
+      } catch (error) {
+        // 5. 에러 처리 (실패: HTTP 401 Unauthorized 등)
+        console.error('로그인 요청 실패:', error);
+        
+        // 백엔드에서 보낸 에러 메시지(401)를 출력합니다.
+        if (error.response && error.response.status === 401) {
+          this.errorMessage = error.response.data || '아이디 또는 비밀번호를 확인해주세요.';
+        } else {
+          this.errorMessage = '로그인 처리 중 오류가 발생했습니다.';
+        }
+      }
+    },
+
+    // [코드 설명 4] 로그인 세션을 저장하는 새로운 메서드 (변동 없음)
+    saveLoginSession(token) {
+      // '로그인 유지' 체크 여부에 따라 저장 방식을 결정합니다.
+      if (this.keepLoggedIn) {
+          // 체크 O: 로컬 스토리지에 저장 -> 브라우저 종료 후에도 유지
+          localStorage.setItem('user-auth-token', token);
+          console.log('로그인 유지 설정됨: LocalStorage에 토큰 저장');
+      } else {
+          // 체크 X: 세션 스토리지에 저장 -> 브라우저 탭/창 종료 시 사라짐
+          sessionStorage.setItem('user-auth-token', token);
+          console.log('로그인 유지 설정 안 됨: SessionStorage에 토큰 저장');
+      }
+    },
   }
 };
 </script>
@@ -97,6 +158,7 @@ const handleLogin = async () => {
 }
 
 .login-container {
+  position: relative;
   font-family: 'SUIT Variable', sans-serif;
   display: flex;
   justify-content: center;
