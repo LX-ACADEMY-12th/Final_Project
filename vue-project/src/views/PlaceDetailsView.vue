@@ -26,7 +26,8 @@
             <p>🤖 AI가 코스를 생성 중입니다.</p>
             <p>잠시만 기다려 주세요...</p>
           </div>
-          <CourseRecommend :course-items="courseItems" type="exhibition" />
+          <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
+            @request-new-course="fetchRecommendedCourse" />
         </div>
       </div>
 
@@ -47,7 +48,8 @@
             <p>🤖 AI가 코스를 생성 중입니다.</p>
             <p>잠시만 기다려 주세요...</p>
           </div>
-          <CourseRecommend :course-items="courseItems" type="place" />
+          <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
+            @request-new-course="fetchRecommendedCourse" />
         </div>
       </div>
 
@@ -366,20 +368,19 @@ export default {
     handleTabChange(tabName) {
       this.currentTab = tabName;
 
-      // 추천 탭을 클릭했고,
-      // 아직 추천 데이터를 로드한 적이 없으면 API 호출
+      // 탭을 '처음' 클릭했고, 아직 추천 데이터를 로드한 적이 없으면 API 호출
       if (tabName === 'recommend' && !this.hasLoadedRecommendations) {
         this.fetchRecommendedCourse();
       }
     },
-
+    // '새로운 추천 받기 버튼'이 이 함수를 직접 호출
     async fetchRecommendedCourse() {
-      // 이미 로드했다면 중복 실행 방지
-      if (this.hasLoadedRecommendations) return;
       console.log('🤖 AI 추천 코스를 검색합니다...');
 
       // 로딩 상태를 true로 변경
       this.isRecommending = true;
+
+      await this.$nextTick();
 
       try {
         // 1. AI 추천 API 호출 (2번, 3번... 항목들)
@@ -441,6 +442,7 @@ export default {
 
       } catch (error) {
         console.error("AI 추천 코스 로딩 실패:", error);
+        // 에러가 나도 로드는 되었다고 처리해야, 탭 이동 후 다시 눌렀을 때 재시도 가능
         this.hasLoadedRecommendations = true;
       } finally {
         this.isRecommending = false;

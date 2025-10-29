@@ -1,22 +1,18 @@
 <template>
   <div class="course-container">
 
-    <CourseMap :items="courseItems" :title="title" />
+    <CourseMap :items="courseItems" />
 
     <div class="timeline-list">
       <div v-if="type === 'exhibition'">
         <AiRecommendCourseExhibitionCard v-for="item in courseItems" :key="item.id" :item="item" courseType="전시" />
       </div>
-
       <div v-else>
         <AiRecommendCoursePlaceCard v-for="item in courseItems" :key="item.id" :item="item" />
       </div>
-
     </div>
-
   </div>
-  <!--
-  <RecommendationCTA @request-new="fetchNewCourse" />-->
+  <RecommendationCTA @request-new="fetchNewCourse" :secondary-loading="isLoading" :secondary-disabled="isLoading" />
 </template>
 
 <script>
@@ -25,16 +21,17 @@ import CourseMap from '@/components/map/CourseMap.vue';
 //import RecommendationCTA from '@/components/RecommendationCTA.vue';
 import AiRecommendCourseExhibitionCard from '@/components/card/AiRecommendCourseExhibitionCard.vue';
 import AiRecommendCoursePlaceCard from '@/components/card/AiRecommendCoursePlaceCard.vue';
+import RecommendationCTA from '@/components/RecommendationCTA.vue';
 
 export default {
   name: 'CourseRecommended',
   components: {
     CourseMap,
-    // RecommendationCTA,
     AiRecommendCourseExhibitionCard,
     AiRecommendCoursePlaceCard,
+    RecommendationCTA,
   },
-
+  emits: ['request-new-course'], // 부모로 전달할 이벤트 정의
   props: {
     courseItems: {
       type: Array,
@@ -44,8 +41,21 @@ export default {
     type: {
       type: String,
       default: 'AI 추천 코스'
+    },
+    // 부모의 로딩 상태를 받습니다.
+    isLoading: {
+      type: Boolean,
+      default: false
     }
   },
+  methods: {
+    fetchNewCourse() {
+      console.log('새로운 코스 요청');
+
+      // 부모 컴포넌트로 이벤트 전달
+      this.$emit('request-new-course');
+    }
+  }
 }
 </script>
 
