@@ -24,7 +24,7 @@
     </div>
 
     <template v-else>
-      <CourseMap :items="courseItems" class="map-area" />
+      <CourseMap :items="courseItems" :key="mapKey" class="map-area" />
 
       <div class="course-root-name">
         <span>
@@ -128,6 +128,8 @@ export default {
       isDragging: false,
 
       userId: 1, // 백엔드 호출로 유저 id
+
+      mapKey: 0, // 지도 강제 리렌더링용
     };
   },
 
@@ -215,7 +217,16 @@ export default {
         // 데이터 설정
         this.course = targetCourse;
         this.exhibitionName = targetCourse.ExhibitionName;
-        this.courseItems = [...(targetCourse.courseItems || [])];
+        // 커스텀 아이템에 임시 ID 할당
+        this.courseItems = (targetCourse.courseItems || []).map(item => {
+          if (item.itemType === 'custom' && !item.id) {
+            return {
+              ...item,
+              id: `custom_${item.title}_${item.place}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
+            };
+          }
+          return item;
+        });
         this.originalCourseItems = JSON.parse(JSON.stringify(this.courseItems)); // 깊은 복사
 
         if (targetCourse.type === 'inner_course') {
@@ -234,10 +245,25 @@ export default {
       }
     },
 
-    // 변경사항 확인
+    // 변경사항 확인 메서드
     checkForChanges() {
-      const currentOrder = this.courseItems.map(item => item.id);
-      const originalOrder = this.originalCourseItems.map(item => item.id);
+      // 각 아이템의 고유 식별자 생성 (id 또는 커스텀 아이템의 경우 대체 식별자)
+      const createItemIdentifier = (item) => {
+        if (item.id) return item.id;
+        // 커스텀 아이템의 경우 여러 속성을 조합한 고유 식별자 생성
+        return `custom_${item.title}_${item.place}_${item.lat}_${item.lng}`;
+      };
+
+      // 현재 순서와 원본 순서 비교
+      const currentOrder = this.courseItems.map((item, index) => ({
+        identifier: createItemIdentifier(item),
+        position: index
+      }));
+
+      const originalOrder = this.originalCourseItems.map((item, index) => ({
+        identifier: createItemIdentifier(item),
+        position: index
+      }));
 
       // 순서 변경 확인
       const orderChanged = JSON.stringify(currentOrder) !== JSON.stringify(originalOrder);
@@ -245,10 +271,16 @@ export default {
       // 아이템 개수 변경 확인
       const countChanged = this.courseItems.length !== this.originalCourseItems.length;
 
-      this.hasChanges = orderChanged || countChanged;
+      // 새로운 아이템 추가 확인
+      const currentIdentifiers = new Set(currentOrder.map(item => item.identifier));
+      const originalIdentifiers = new Set(originalOrder.map(item => item.identifier));
+      const hasNewItems = currentIdentifiers.size !== originalIdentifiers.size ||
+        ![...currentIdentifiers].every(id => originalIdentifiers.has(id));
+
+      this.hasChanges = orderChanged || countChanged || hasNewItems;
 
       if (this.hasChanges) {
-        this.reorderCourseItems(); // number 재정렬
+        this.reorderCourseItems();
       }
     },
 
@@ -256,13 +288,6 @@ export default {
     onDragStart() {
       this.isDragging = true;
       console.log('드래그 시작');
-    },
-
-    // 드래그 종료
-    onDragEnd() {
-      this.isDragging = false;
-      console.log('드래그 종료');
-      this.checkForChanges();
     },
 
     // 변경사항 저장
@@ -278,23 +303,28 @@ export default {
         // 백엔드로 전송할 데이터 구성
         const updateData = {
           scheduleId: scheduleId,
-          items: this.courseItems.map((item, index) => ({
-            itemId: item.itemId || null, // 기존 아이템의 경우 itemId 포함
-            sourceItemId: item.id,
-            sequence: index + 1,
-            itemType: item.itemType,
-            customName: item.customName || null,
-            customAddress: item.customAddress || null,
-            customLatitude: item.customLatitude || null,
-            customLongitude: item.customLongitude || null,
-          }))
+          items: this.courseItems.map((item, index) => {
+
+            const isCustom = item.itemType === 'custom';
+
+            return {
+              itemId: item.itemId || null, // 기존 아이템의 경우 itemId 포함
+              sourceItemId: isCustom ? null : item.id,
+              sequence: index + 1,
+              itemType: item.itemType,
+              customName: isCustom ? (item.title || null) : null,
+              customAddress: isCustom ? (item.place || null) : null,
+              customLatitude: isCustom ? (item.lat || null) : null,
+              customLongitude: isCustom ? (item.lng || null) : null,
+            };
+          })
         };
 
         console.log('저장할 데이터:', JSON.stringify(updateData, null, 2));
 
-        // API 호출
-        const response = await axios.put(
-          `http://localhost:8080/api/schedules/${scheduleId}/items`,
+        // API 호출 - Post 요청
+        const response = await axios.post(
+          `http://localhost:8080/api/schedules/items`,
           updateData
         );
 
@@ -345,19 +375,6 @@ export default {
       // TODO: 수정 로직 구현
     },
 
-    handleDelete(id) {
-      console.log('삭제 모달 열기, ID:', id);
-      this.itemToDeleteId = id;
-      this.showDeleteModal = true;
-    },
-
-    confirmDeleteItem() {
-      console.log('삭제 확정, ID:', this.itemToDeleteId);
-      this.courseItems = this.courseItems.filter(item => item.id !== this.itemToDeleteId);
-      this.checkForChanges();
-      this.closeDeleteModal();
-    },
-
     closeDeleteModal() {
       this.itemToDeleteId = null;
       this.showDeleteModal = false;
@@ -371,11 +388,41 @@ export default {
       this.showAddModal = false;
     },
 
+    reorderCourseItems() {
+      this.courseItems.forEach((item, index) => {
+        item.number = index + 1;
+      });
+    },
+
+    // 지도 강제 업데이트 메서드 추가
+    updateMapKey() {
+      this.mapKey += 1;
+      console.log('지도 키 업데이트:', this.mapKey);
+    },
+
+    // 드래그 종료시 지도 업데이트
+    onDragEnd() {
+      this.isDragging = false;
+      console.log('드래그 종료');
+      this.checkForChanges();
+      this.updateMapKey(); // 추가
+    },
+
+    // 아이템 삭제시 지도 업데이트
+    confirmDeleteItem() {
+      console.log('삭제 확정, ID:', this.itemToDeleteId);
+      this.courseItems = this.courseItems.filter(item => item.id !== this.itemToDeleteId);
+      this.checkForChanges();
+      this.updateMapKey(); // 추가
+      this.closeDeleteModal();
+    },
+
+    // 아이템 추가시 고유 ID 생성 + 지도 업데이트
     addNewItem(place) {
       console.log('추가할 장소:', JSON.stringify(place, null, 2));
 
       const newItem = {
-        // id: new Date().getTime(), // 임시 고유 ID
+        id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 고유 ID 생성
         number: this.courseItems.length + 1,
         color: '#3B82F6',
         imageUrl: place.imageUrl || 'https://placehold.co/600x400/AACCFF/000000',
@@ -388,23 +435,17 @@ export default {
         lat: place.lat,
         lng: place.lng,
         itemType: 'custom',
-        // 새 아이템임을 표시
         isNew: true,
         customName: place.name,
         customAddress: place.address,
         customLatitude: place.lat,
         customLongitude: place.lng,
       };
-      console.log('추가할 장소 + 정보추가:', JSON.stringify(newItem, null, 2));
+
       this.courseItems.push(newItem);
       this.checkForChanges();
+      this.updateMapKey(); // 추가
       this.closeAddModal();
-    },
-
-    reorderCourseItems() {
-      this.courseItems.forEach((item, index) => {
-        item.number = index + 1;
-      });
     }
   }
 }
