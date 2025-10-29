@@ -9,6 +9,8 @@ import UserLikeCourseListView from '@/views/UserLikeCourseListView.vue'
 import UserLikeCourseDetailView from '@/views/UserLikeCourseDetailView.vue'
 import PlaceDetailsView from '@/views/PlaceDetailsView.vue'
 import PlaceListView from '@/views/PlaceListView.vue'
+import LoginView from '@/views/LoginView.vue'
+import SignupView from '@/views/SignupView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -17,6 +19,16 @@ const router = createRouter({
       path: '/home',
       name: 'Home',
       component: HomeView,
+    },
+    {
+      path: '/signup',
+      name: 'signup',
+      component: SignupView,
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
     },
     {
       path: '/map',
