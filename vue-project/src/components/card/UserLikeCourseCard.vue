@@ -13,7 +13,7 @@
         <!-- 알약 태그 프레임 -->
         <div class="d-flex flex-row gap-2 flex-shrink-1 min-w-0">
           <PillTag :text="item.subject" type="subject" />
-          <PillTag :text="item.grade.replace('초등 ', '')" type="grade" />
+          <PillTag :text="item.grade?.replace('초등 ', '') ?? ''" type="grade" />
         </div>
         <!-- 찜 아이콘 -->
         <div class="action-icons" @click.stop="handleHeartClick">

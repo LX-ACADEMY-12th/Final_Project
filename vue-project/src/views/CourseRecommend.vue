@@ -12,7 +12,8 @@
       </div>
     </div>
   </div>
-  <RecommendationCTA @request-new="fetchNewCourse" :secondary-loading="isLoading" :secondary-disabled="isLoading" />
+  <RecommendationCTA @request-new="fetchNewCourse" :secondary-loading="isLoading" :secondary-disabled="isLoading"
+    @save-route="saveCurrentRoute" />
 </template>
 
 <script>
@@ -31,7 +32,7 @@ export default {
     AiRecommendCoursePlaceCard,
     RecommendationCTA,
   },
-  emits: ['request-new-course'], // 부모로 전달할 이벤트 정의
+  emits: ['save-recommended-course', 'request-new-course'], // 부모로 전달할 이벤트 정의
   props: {
     courseItems: {
       type: Array,
@@ -54,6 +55,11 @@ export default {
 
       // 부모 컴포넌트로 이벤트 전달
       this.$emit('request-new-course');
+    },
+    saveCurrentRoute() {
+      console.log('경로 저장 요청 (CourseRecommend)');
+      // 아이템 목록을 부모로 전달
+      this.$emit('save-recommended-course', this.courseItems);
     }
   }
 }

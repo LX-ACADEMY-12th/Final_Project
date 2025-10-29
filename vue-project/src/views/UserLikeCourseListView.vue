@@ -43,7 +43,7 @@
       </div>
 
       <div v-else class="card-list-wrapper">
-        <UserLikeCourseCard v-for="item in filteredItems" :key="item.id" :item="item" @click="goToCourseDetail" />
+        <UserLikeCourseCard v-for="item in filteredItems" :key="item.id" :item="item" @click="goToCourseDetail(item)" />
       </div>
     </div>
 
@@ -67,7 +67,7 @@ export default {
       userLikeCourseCardItem: [],
       loading: true,
       error: null,
-      userId: 1, // 예시용 사용자 ID (실제로는 로그인 정보에서 가져오기)
+      userId: 2, // 예시용 사용자 ID (실제로는 로그인 정보에서 가져오기)
     };
   },
 
@@ -221,6 +221,18 @@ export default {
   color: white;
   border: none;
   font-weight: 700;
+}
+
+.card-list-wrapper {
+  /* 카드 목록을 세로로 쌓기 위해 flex 설정 (선택 사항이지만 권장) */
+  display: flex;
+  flex-direction: column;
+  /* 카드 사이의 간격을 16px로 설정 */
+  gap: 16px;
+
+  /* 만약 gap 속성이 지원되지 않는 환경이라면 아래 margin 사용 */
+  /* padding-bottom: 16px; */
+  /* 마지막 카드 아래 여백 확보 */
 }
 
 .page-container {

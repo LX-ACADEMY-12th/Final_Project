@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.FinalScheduleMapper">
+
+    <insert id="insertFinalSchedule" parameterType="com.example.demo.dto.FinalScheduleDTO"
+            useGeneratedKeys="true" keyProperty="scheduleId" keyColumn="schedule_id">
+        INSERT INTO final_schedule (
+        user_id,
+        schedule_name,
+        source_course_type
+        <choose>
+            <when test="sourceCourseType == 'ai_course'">
+                , source_ai_course_id </when>
+            <otherwise>
+                , source_inner_course_id </otherwise>
+        </choose>
+        )
+        VALUES (
+        #{userId},
+        #{scheduleName},
+        #{sourceCourseType}
+        <choose>
+            <when test="sourceCourseType == 'ai_course'">
+                , #{sourceAiCourseId} </when>
+            <otherwise>
+                , #{sourceAiCourseId} </otherwise>
+        </choose>
+        )
+    </insert>
+
+    <insert id="insertFinalScheduleItems" parameterType="java.util.List">
+        INSERT INTO final_schedule_item (
+        schedule_id,
+        item_type,
+        item_id1,
+        sequence
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.scheduleId},
+        -- 조건 분기 시작
+        <choose>
+            <when test="item.placeId != null">
+                'science_place', </when>
+            <otherwise>
+                'exhibition', </otherwise>
+        </choose>
+
+        <choose>
+            <when test="item.placeId != null">
+                #{item.placeId}, </when>
+            <otherwise>
+                #{item.exhibitionId}, </otherwise>
+        </choose>
+            #{item.sequence} )
+        </foreach>
+    </insert>
+
+</mapper>

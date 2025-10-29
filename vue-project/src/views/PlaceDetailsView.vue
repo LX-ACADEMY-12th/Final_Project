@@ -27,7 +27,7 @@
             <p>잠시만 기다려 주세요...</p>
           </div>
           <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
-            @request-new-course="fetchRecommendedCourse" />
+            @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
 
@@ -49,7 +49,7 @@
             <p>잠시만 기다려 주세요...</p>
           </div>
           <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
-            @request-new-course="fetchRecommendedCourse" />
+            @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
 
@@ -319,6 +319,73 @@ export default {
       } catch (error) {
         console.error('전시 상세 조회 실패:', error);
         alert('전시 정보를 불러오지 못했습니다.');
+      }
+    },
+    // 추천 코스 저장 요청 처리
+    async handleSaveRecommendedCourse(items) {
+      console.log('💾 [PlaceDetailsView] 추천 코스 저장 시작...', items);
+
+      // RecommendationCTA 컴포넌트의 기본 버튼 로딩 상태 관리를 위해
+      // data()에 primaryLoading 상태 추가 필요
+      // this.primaryLoading = true; // (아래 data() 섹션 참고)
+
+      if (!items || items.length === 0) {
+        console.warn('저장할 추천 코스 아이템이 없습니다.');
+        // this.primaryLoading = false;
+        alert('저장할 코스 정보가 없습니다.'); // 사용자 알림
+        return;
+      }
+
+      try {
+        // 1. 백엔드로 보낼 데이터 준비
+        const currentItemData = (this.pageType === 'place') ? this.place : this.exhibition;
+        const scheduleName = `AI 추천: ${currentItemData.title || '코스'}`; // 스케줄 이름 생성
+        const sourceId = this.currentId; // 현재 보고 있는 상세 페이지의 ID
+        const userId = 2; // ❗️ TODO: 실제 사용자 ID로 교체 필요 (로그인 정보 등에서 가져오기)
+
+        // 프론트엔드 items 배열 -> 백엔드 DTO 형식으로 변환
+        const backendItems = items.map(item => ({
+          exhibitionId: this.pageType !== 'place' ? item.id : null,      // 프론트엔드 id -> exhibitionId
+          placeId: this.pageType === 'place' ? item.id : null,
+          sequence: item.number,  // 프론트엔드 number -> sequence
+          itemType: item.type === 'exhibition' ? 'exhibition' : 'science_place' // 아이템 타입 설정 (백엔드와 일치 필요)
+          // ❗️ 중요: item.type이 백엔드 Enum/String과 일치하는지 확인 필요
+          // 예시: 백엔드가 'science_place'만 받는다면 그에 맞게 조정
+        }));
+
+        // 최종 요청 페이로드
+        const requestDto = {
+          userId: userId,
+          scheduleName: scheduleName,
+          sourceId: sourceId,
+          sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course', // 전시 추천 코스이면 'inner_course', 장소 추천 코스이면 'ai_course'
+          items: backendItems
+        };
+
+        console.log('💾 [PlaceDetailsView] API 요청 데이터:', JSON.stringify(requestDto, null, 2));
+
+        // 2. API 호출 (axios 사용)
+        const response = await axios.post(`${API_BASE}/api/schedules/save-recommended`, requestDto);
+
+        // 3. 성공 처리
+        if (response.status === 200) {
+          console.log('✅ [PlaceDetailsView] 추천 코스 저장 성공!');
+          alert('추천 코스가 "관심 코스"에 성공적으로 저장되었습니다.'); // 성공 메시지
+          // TODO: (선택) 저장 후 사용자를 마이페이지나 다른 곳으로 이동시킬 수 있습니다.
+          // 예: this.$router.push('/mypage/likes');
+        } else {
+          // 200 외의 응답 처리 (필요시)
+          console.error('⚠️ [PlaceDetailsView] 추천 코스 저장 응답 오류:', response);
+          alert(`코스 저장 중 문제가 발생했습니다: ${response.data?.message || response.statusText}`);
+        }
+
+      } catch (error) {
+        // 4. 실패 처리
+        console.error('💥 [PlaceDetailsView] 추천 코스 저장 API 호출 실패:', error);
+        alert(`코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`);
+      } finally {
+        // 5. 로딩 상태 해제 (data()에 primaryLoading 추가 필요)
+        // this.primaryLoading = false;
       }
     },
 
