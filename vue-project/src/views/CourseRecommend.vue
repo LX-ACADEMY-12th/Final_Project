@@ -19,20 +19,15 @@
 <script>
 //import { ref } from 'vue';
 import CourseMap from '@/components/map/CourseMap.vue';
-//import RecommendationCTA from '@/components/RecommendationCTA.vue';
-import ExhibitionCourseCard from '@/components/card/CourseExhibitionPlaceCard.vue';
-import CoursePlaceCard from '@/components/card/CoursePlaceCard.vue';
+import RecommendationCTA from '@/components/RecommendationCTA.vue';
 import AiRecommendCourseExhibitionCard from '@/components/card/AiRecommendCourseExhibitionCard.vue';
 import AiRecommendCoursePlaceCard from '@/components/card/AiRecommendCoursePlaceCard.vue';
-import RecommendationCTA from '@/components/RecommendationCTA.vue';
 
 export default {
   name: 'CourseRecommended',
   components: {
     CourseMap,
     // RecommendationCTA,
-    ExhibitionCourseCard,
-    CoursePlaceCard,
     AiRecommendCourseExhibitionCard,
     AiRecommendCoursePlaceCard,
     RecommendationCTA,
