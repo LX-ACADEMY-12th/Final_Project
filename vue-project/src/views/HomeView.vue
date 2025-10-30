@@ -32,7 +32,7 @@
           </div>
           <div class="flex-grow-1">
             <div class="fw-bold fs-5">안녕하세요</div>
-            <div class="fw-bold fs-5">김민수님!</div>
+            <div class="fw-bold fs-5">{{ user?.name || '방문자' }}님!</div>
           </div>
         </div>
       </div>
@@ -97,7 +97,7 @@
               <div class="mt-3">
                 <h6 class="fw-bold small ps-1 mb-2">방문자 후기</h6>
                 <div class="d-flex gap-3 px-1">
-                  <div class="flex-shrink-0">
+                  <div class="flex-shrink: 0">
                     <img src="https://placehold.co/48x48/e0e0e0/333?text=김" class="rounded-circle"
                       style="width: 48px; height: 48px;">
                   </div>
@@ -178,6 +178,7 @@
       <div style="height: 80px;"></div>
 
     </div>
+    
     <BottomNavbar :selectedNavItem="selectedNavItem" @navigate="handleNavigation" style="flex-shrink: 0;" />
 
     <FilterModal v-if="isModalOpen" :initialSubject="selectedSubject" :initialGrade="selectedGrade"
@@ -186,87 +187,119 @@
   </div>
 </template>
 
-<script setup>
+<script>
+//  1. 모든 import를 script 태그 최상단으로 이동합니다.
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+//  2. Pinia 스토어 관련 import 추가 (UserLikeCourse.vue와 동일)
+import { useAuthStore } from '@/stores/authStore';
+import { storeToRefs } from 'pinia';
+
 // 컴포넌트 임포트
 import FilterModal from '@/components/modal/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import PlaceCard from '@/components/card/PlaceCard.vue';
 
-// --- 스크립트 변수 설정 ---
-const router = useRouter(); // 페이지 이동용
-const selectedTab = ref('전시'); // 전시/탐험 탭 상태
-const isModalOpen = ref(false); // 필터 모달 표시 여부
-const selectedSubject = ref('물리'); // 선택된 과목
-const selectedGrade = ref('초등학생'); // 선택된 학년
-const selectedNavItem = ref('홈'); // 하단 네비게이션 상태
-
-// 추천 장소 가로 스크롤에 표시될 데이터
-const carouselItems = ref([
-  {
-    id: 1,
-    subject: '지구',
-    grade: '초등 3학년',
-    place: '장소명',
-    type: '전시',
-    title: '전시명',
+//  3. export default { ... } 구조를 사용합니다.
+export default {
+  //  4. 사용할 컴포넌트들을 등록합니다.
+  components: {
+    FilterModal,
+    BottomNavbar,
+    PlaceCard
   },
-  {
-    id: 2,
-    subject: '물리',
-    grade: '초등 5학년',
-    place: '서울천문대',
-    type: '탐험',
-    title: '천문대탐험'
-  },
-  {
-    id: 3,
-    subject: '화학',
-    grade: '초등 4학년',
-    place: '한천강지질공원',
-    type: '탐험',
-    title: '지질탐험'
-  }
-]);
 
-// --- 스크립트 함수 설정 ---
+  //  5. setup() 함수를 정의하여 변수/함수를 설정합니다. (UserLikeCourse.vue 방식)
+  setup() {
+    // --- 1. Pinia 스토어 설정 ---
+    const authStore = useAuthStore();
+    // 'user' 객체를 반응형으로 가져옵니다. (이름 표시에 필요)
+    const { user } = storeToRefs(authStore);
 
-// 장소 카드 클릭 시 실행
-const goToDetail = (item) => {
-  console.log(`상세 페이지로 이동:`, item.title);
-  router.push('/placedetail')
-}
+    // --- 2. 기존 <script setup>에 있던 변수/함수들을 모두 setup() 안으로 이동 ---
+    const router = useRouter(); 
+    const selectedTab = ref('전시'); 
+    const isModalOpen = ref(false); 
+    const selectedSubject = ref('물리'); 
+    const selectedGrade = ref('초등학생'); 
+    const selectedNavItem = ref('홈'); 
 
-// 필터 모달에서 '선택 완료' 클릭 시 실행
-const handleFilterComplete = (filterData) => {
-  console.log(`필터 선택 완료:`, filterData);
-  selectedSubject.value = filterData.subject;
-  selectedGrade.value = filterData.grade;
-  isModalOpen.value = false; // 모달 닫기
-}
+    const carouselItems = ref([
+      {
+        id: 1,
+        subject: '지구',
+        grade: '초등 3학년',
+        place: '장소명',
+        type: '전시',
+        title: '전시명',
+      },
+      {
+        id: 2,
+        subject: '물리',
+        grade: '초등 5학년',
+        place: '서울천문대',
+        type: '탐험',
+        title: '천문대탐험'
+      },
+      {
+        id: 3,
+        subject: '화학',
+        grade: '초등 4학년',
+        place: '한천강지질공원',
+        type: '탐험',
+        title: '지질탐험'
+      }
+    ]);
 
-// 하단 네비게이션 클릭 시 실행
-const handleNavigation = (navItemName) => {
-  console.log(navItemName, '클릭됨.');
-  selectedNavItem.value = navItemName; // 아이콘 활성화
+    const goToDetail = (item) => {
+      console.log(`상세 페이지로 이동:`, item.title);
+      router.push('/placedetail')
+    }
 
-  // 클릭된 아이콘에 맞춰 페이지 이동
-  if (navItemName === '홈') {
-    router.push('/home');
-  } else if (navItemName === '목록') {
-    router.push('/list');
-  } else if (navItemName === '지도') {
-    router.push('/map');
-  } else if (navItemName === '코스관리') {
-    router.push('/usercourselist');
-  } else if (navItemName === '마이페이지') {
-    router.push('/mypage');
+    const handleFilterComplete = (filterData) => {
+      console.log(`필터 선택 완료:`, filterData);
+      selectedSubject.value = filterData.subject;
+      selectedGrade.value = filterData.grade;
+      isModalOpen.value = false;
+    }
+
+    const handleNavigation = (navItemName) => {
+      console.log(navItemName, '클릭됨.');
+      selectedNavItem.value = navItemName; 
+
+      if (navItemName === '홈') {
+        router.push('/home');
+      } else if (navItemName === '목록') {
+        router.push('/list');
+      } else if (navItemName === '지도') {
+        router.push('/map');
+      } else if (navItemName === '코스관리') {
+        router.push('/usercourselist');
+      } else if (navItemName === '마이페이지') {
+        router.push('/mypage');
+      }
+    }
+
+    //  6. 템플릿(HTML)에서 사용할 모든 변수와 함수를 return 합니다.
+    return {
+      user, // Pinia 스토어에서 가져온 user 정보
+      selectedTab,
+      isModalOpen,
+      selectedSubject,
+      selectedGrade,
+      selectedNavItem,
+      carouselItems,
+      goToDetail,
+      handleFilterComplete,
+      handleNavigation
+    };
   }
 }
 </script>
 
 <style scoped>
+/* (style 태그 내용은 원본과 동일합니다) */
+
 /* 폰트 스타일 */
 [style*="font-family: 'SUIT'"] {
   font-family: 'SUIT', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
