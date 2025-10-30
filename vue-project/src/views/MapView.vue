@@ -14,7 +14,7 @@
 
       <div class="flex-grow-1" style="font-family: 'SUIT', sans-serif">
         <div class="text-secondary" style="font-size: 0.9rem;">안녕하세요</div>
-        <div class="fw-bold" style="font-size: 1.1rem;">김민수 학부모님</div>
+        <div class="fw-bold" style="font-size: 1.1rem;">{{ userName }}</div>
       </div>
       <button class="btn btn-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
         style="width: 48px; height: 48px; background-color: #4A7CEC; border-color: #4A7CEC; color: white;"
@@ -110,6 +110,12 @@ const map = ref(null);
 const markers = ref([]);
 const currentLocationMarker = ref(null);
 
+// API 기본 경로 설정 (MyPageView에서 사용한 것과 동일)
+const API_BASE_URL = 'http://localhost:8080/api/user';
+
+// ⭐ 사용자 이름 상태를 정의합니다. (초기값: '로그인 필요') ⭐
+const userName = ref(' '); 
+
 // --- 필터 및 검색 상태 ---
 const locationType = ref('all'); // 'all', 'radius', 'region' (이름 및 기본값 변경)
 const searchRadius = ref(5); // km (모달 기본값과 일치)
@@ -137,6 +143,46 @@ const changeTab = (tabName) => {
   selectedTab.value = tabName;
   router.replace({ query: { tab: tabName } });
   performSearch();
+};
+
+// ⭐ 사용자 이름(정보)을 가져오는 비동기 함수를 정의합니다. ⭐
+const fetchUserName = async () => {
+  // 1. 로컬 또는 세션 스토리지에서 인증 토큰을 가져옵니다.
+  const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
+
+  if (!token) {
+    console.log('토큰 없음. 로그인 필요 상태로 표시.');
+    userName.value = ' ';
+    return;
+  }
+
+  try {
+    // 2. 백엔드 API 호출: /api/user/info
+    const response = await axios.get(`${API_BASE_URL}/info`, {
+      headers: {
+        'Authorization': `Bearer ${token}` // JWT 토큰 형식으로 전송
+      }
+    });
+
+    // 3. 성공적으로 사용자 정보를 가져왔다면 이름만 업데이트합니다.
+    const userInfo = response.data;
+
+    // 백엔드 응답 구조에 따라 'name' 필드가 사용자 이름을 담고 있다고 가정
+    if (userInfo && userInfo.name) { 
+      userName.value = `${userInfo.name} 학부모님`;
+    } else {
+      userName.value = '사용자 없음';
+    }
+
+    console.log('지도 컴포넌트: 사용자 이름 로드 성공:', userName.value);
+
+  } catch (error) {
+    console.error('지도 컴포넌트: 사용자 정보 로드 실패:', error);
+    // 인증 실패 시 토큰 제거 및 이름 초기화
+    localStorage.removeItem('user-auth-token');
+    sessionStorage.removeItem('user-auth-token');
+    userName.value = '로그인 필요';
+  }
 };
 
 // 상세 페이지 이동
@@ -341,6 +387,9 @@ const performSearch = async () => {
 
 // --- 맵 초기화 시 첫 검색 실행 ---
 onMounted(async () => {
+   // ⭐ onMounted 시 사용자 이름 로드 함수를 먼저 호출합니다. ⭐
+  await fetchUserName(); 
+
   if (window.kakao && window.kakao.maps) {
     const options = {
       center: new window.kakao.maps.LatLng(37.566826, 126.9786567),

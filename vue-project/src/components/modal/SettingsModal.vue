@@ -4,10 +4,12 @@
       <div class="modal-content border-0">
         <div class="modal-body text-center p-4">
           <h5 class="fw-bold text-dark mb-4" id="settingsModalLabel">설정</h5>
+          
           <button type="button" class="btn btn-primary w-100 p-3 fw-bold mb-3 rounded-pill modal-logout-btn"
-            @click="onLogoutClick">
-            로그아웃
+            @click="onMainButtonClick">
+            {{ isLoggedIn ? '로그아웃' : '로그인' }}
           </button>
+          
           <button type="button" class="btn btn-outline-primary w-100 p-3 fw-bold rounded-pill modal-withdraw-btn"
             @click="onWithdrawClick">
             회원탈퇴
@@ -27,21 +29,35 @@ export default {
     show: {
       type: Boolean,
       default: false
+    },
+    // ⭐ 로그인 상태를 받기 위한 prop ⭐
+    isLoggedIn: {
+      type: Boolean,
+      default: false
     }
   },
 
   // [!!] 2. 부모가 @close 이벤트를 들을 수 있도록 emits에 'close'를 추가합니다.
-  emits: ['logout', 'withdraw', 'close'],
+  emits: ['logout', 'withdraw', 'close', 'login'],
 
   methods: {
-    onLogoutClick() {
-      this.$emit('logout');
-      this.$emit('close'); // [!!] 3. 로그아웃 클릭 시 모달을 닫도록 close 이벤트 발생
+    // ⭐ 메인 버튼 클릭 시 동작 ⭐
+    onMainButtonClick() {
+      if (this.isLoggedIn) {
+        // 로그인 상태: 로그아웃 이벤트 발생
+        this.$emit('logout');
+      } else {
+        // 로그아웃 상태: 로그인 이벤트 발생 (MyPageView에서 로그인 페이지로 이동 처리)
+        this.$emit('login');
+      }
+      this.$emit('close'); // 버튼 클릭 후 모달 닫기
     },
+
     onWithdrawClick() {
       this.$emit('withdraw');
       this.$emit('close'); // [!!] 3. 탈퇴 클릭 시 모달을 닫도록 close 이벤트 발생
     },
+
     close() {
       this.$emit('close');
     },
