@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.UserMapper">
+
+	<!-- 아이디 중복 확인 -->
+    <select id="countByLoginId" resultType="int">
+        SELECT COUNT(*)
+        FROM "user"
+        WHERE "login_id" = #{loginId}
+    </select>
+
+	<!-- 이메일 중복 확인 -->
+    <select id="countByEmail" resultType="int">
+        SELECT COUNT(*)
+        FROM "user"
+        WHERE email = #{email}
+    </select>
+
+	<!-- 회원가입 -->
+   	<insert id="insertUser">
+	    INSERT INTO "user"
+	    ( "login_id", "password", "name", "email", "phone_number", "created_at" )
+	    VALUES
+	    ( #{loginId}, #{password}, #{name}, #{email}, #{phoneNumber}, NOW() )
+	</insert>
+	
+	<!-- 로그인 -->
+	<select id="selectUserByLoginIdAndPassword" resultType="com.example.demo.dto.UserDTO">
+	     SELECT "user_id", "login_id", "name", "email", "phone_number", "created_at", "updated_at"
+	     FROM "user"
+	     WHERE "login_id" = #{loginId} AND "password" = #{password}
+     </select>
+     
+    <!-- 사용자 정보 (마이페이지) -->
+    <select id="selectUserByLoginId" resultType="com.example.demo.dto.UserDTO">
+        SELECT "user_id", "login_id", "name", "email", "phone_number", "gender", "region", "child_grade", "created_at", "updated_at"
+        FROM "user"
+        WHERE "login_id" = #{loginId}
+    </select>
+    
+    <!-- 회원 탈퇴 -->
+    <delete id="deleteUserByLoginId">
+        DELETE FROM "user"
+        WHERE "login_id" = #{loginId}
+    </delete>
+    
+    <!-- 사용자 정보 수정 -->
+    <update id="updateUser">
+        UPDATE "user"
+        SET 
+            "name" = #{name}, 
+            "email" = #{email}, 
+            "phone_number" = #{phoneNumber}, 
+            "gender" = #{gender},
+            "region" = #{region},
+            "child_grade" = #{childGrade},
+            "updated_at" = NOW()
+        WHERE "login_id" = #{loginId}
+    </update>
+
+</mapper>

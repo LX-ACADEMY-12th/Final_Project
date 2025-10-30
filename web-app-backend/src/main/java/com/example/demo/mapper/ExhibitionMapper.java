@@ -1,6 +1,7 @@
 package com.example.demo.mapper;
 
 import com.example.demo.dto.CourseItemDTO; // [!!] DTO를 import
+import com.example.demo.dto.LikedCourseListDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -9,12 +10,7 @@ import java.util.List;
 @Mapper
 public interface ExhibitionMapper {
 
-    /**
-     * [!!] Service가 DTO를 원하므로 반환 타입을 List<CourseItemDTO>로 변경
-     */
-    List<CourseItemDTO> findSimilarExhibitions(
-            @Param("currentId") Long currentId,
-            @Param("mainCategory") String mainCategory,
-            @Param("grade") String grade
-    );
+    // ID 목록으로 전시 정보 리스트 조회 (목록 카드용)
+    List<LikedCourseListDTO> findExhibitionsForLikedList(@Param("ids") List<Long> ids);
+
 }

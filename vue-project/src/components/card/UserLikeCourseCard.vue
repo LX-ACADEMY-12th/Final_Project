@@ -1,28 +1,29 @@
 <template>
-  <div class="course-card" style="font-family: 'SUIT', sans-serif">
+  <div class="course-card" style="font-family: 'SUIT', sans-serif" @click="handleCardClick">
+    <!-- 지도 컨테이너에 pointer-events 제어 추가 -->
     <!-- 코스 경로가 표시된 지도 -->
-    <div class="map-container" ref="mapContainer">
+    <div class="map-container" ref="mapContainer" @click.stop="handleMapClick">
       <div v-if="!mapGenerated" class="map-placeholder">
         지도 생성 중...
       </div>
     </div>
 
-    <div class="content-area">
+    <div class="content-area" @click="handleContentClick">
       <div class="content-header">
         <!-- 알약 태그 프레임 -->
         <div class="d-flex flex-row gap-2 flex-shrink-1 min-w-0">
           <PillTag :text="item.subject" type="subject" />
-          <PillTag :text="item.grade" type="grade" />
+          <PillTag :text="item.grade?.replace('초등 ', '') ?? ''" type="grade" />
         </div>
         <!-- 찜 아이콘 -->
-        <div class="action-icons">
+        <div class="action-icons" @click.stop="handleHeartClick">
           <i class="bi bi-heart-fill"></i>
         </div>
       </div>
       <!-- 타이틀 -->
       <div class="title">{{ item.ExhibitionName }}</div>
       <!-- 위치 -->
-      <div class="address">{{ item.address }}</div>
+      <div class="address">{{ item.scienceCenter }}</div>
       <!-- 코스 순서 -->
       <div class="course-list">{{ courseSequenceText }}</div>
     </div>
@@ -105,6 +106,34 @@ export default {
     this.clearMap();
   },
   methods: {
+    // 카드 클릭 핸들러, 부모에게 'click' 이벤트를 전달
+    handleCardClick(event) {
+      console.log('🔵 UserLikeCourseCard clicked!', event.target);
+      console.log('🔵 Item data:', this.item);
+      this.$emit('click', this.item); // 아이템 데이터도 함께 전달
+    },
+
+    // 지도 클릭 시에도 카드 클릭으로 처리
+    handleMapClick(event) {
+      console.log('🗺️ Map area clicked, triggering card click');
+      event.stopPropagation();
+      this.handleCardClick(event);
+    },
+
+    // 콘텐츠 영역 클릭
+    handleContentClick(event) {
+      console.log('📝 Content area clicked');
+      // 이벤트 버블링으로 자동으로 handleCardClick 실행됨
+    },
+
+    // 하트 아이콘 클릭 (카드 클릭과 분리)
+    handleHeartClick(event) {
+      console.log('❤️ Heart icon clicked');
+      event.stopPropagation(); // 카드 클릭 이벤트 차단
+      // 찜하기 로직 추가
+    },
+
+    // 지도 초기화
     async initializeMap() {
       if (!window.kakao || !window.kakao.maps) {
         console.error('카카오맵 API가 로드되지 않았습니다.');
@@ -120,6 +149,7 @@ export default {
       }
     },
 
+    // 지도에 코스 정보 띄우기
     async createCourseMap() {
       const container = this.$refs.mapContainer;
       if (!container) return;
@@ -133,7 +163,7 @@ export default {
       const options = {
         // 초기에 중심점과 레벨을 임의로 설정 (bounds를 사용하여 실제 조정 예정)
         center: new window.kakao.maps.LatLng(37.566826, 126.9786567),
-        level: 5, 
+        level: 5,
         draggable: false,
         scrollwheel: false,
         disableDoubleClick: true,
@@ -144,7 +174,7 @@ export default {
       // 지도 생성
       this.map = new window.kakao.maps.Map(container, options);
 
-      // ⚠️ **추가/수정된 부분:** 지도 경계 설정 및 마커 추가 로직 호출
+      // 지도 경계 설정 및 마커 추가 로직 호출
       this.updateMapBounds(); // 새로 추가된 지도 경계 설정 함수 호출
       this.addCourseMarkersAndRoute();
 
@@ -154,6 +184,7 @@ export default {
       this.mapGenerated = true;
     },
 
+    // 지도 경계 계산
     calculateMapBounds() {
       const coordinates = this.courseCoordinates;
 
@@ -173,29 +204,30 @@ export default {
 
       // 3. **결과 반환:** 지도 설정을 위해 bounds 객체를 반환합니다.
       return {
-          bounds: bounds
+        bounds: bounds
       };
     },
 
-    // ⚠️ **새로 추가된 메서드:** 계산된 경계를 지도에 적용합니다.
+    // 계산된 경계를 지도에 적용합니다.
     updateMapBounds() {
-        if (!this.map || this.courseCoordinates.length === 0) return;
+      if (!this.map || this.courseCoordinates.length === 0) return;
 
-        // calculateMapBounds()에서 계산된 bounds 객체를 가져옵니다.
-        const { bounds } = this.calculateMapBounds();
+      // calculateMapBounds()에서 계산된 bounds 객체를 가져옵니다.
+      const { bounds } = this.calculateMapBounds();
 
-        if (bounds) {
-            // 1. **경계 적용:** `setBounds()` 메서드를 사용하여 지도의 중심과 줌 레벨을
-            //    계산된 bounds 영역에 딱 맞게 자동으로 조정합니다.
-            this.map.setBounds(bounds);
+      if (bounds) {
+        // 1. **경계 적용:** `setBounds()` 메서드를 사용하여 지도의 중심과 줌 레벨을
+        //    계산된 bounds 영역에 딱 맞게 자동으로 조정합니다.
+        this.map.setBounds(bounds);
 
-            // 2. **레벨 조정:** 카드 크기가 작아 너무 타이트하게 보일 수 있으므로,
-            //    지도 레벨(줌)을 약간만 조정하여 여백을 줍니다. (선택적)
-            //    현재 레벨에서 1을 더하면(숫자가 클수록 줌 아웃) 더 넓은 영역이 보입니다.
-            //    this.map.setLevel(this.map.getLevel() + 1);
-        }
+        // 2. **레벨 조정:** 카드 크기가 작아 너무 타이트하게 보일 수 있으므로,
+        //    지도 레벨(줌)을 약간만 조정하여 여백을 줍니다. (선택적)
+        //    현재 레벨에서 1을 더하면(숫자가 클수록 줌 아웃) 더 넓은 영역이 보입니다.
+        //    this.map.setLevel(this.map.getLevel() + 1);
+      }
     },
 
+    // 마커랑 경로 띄우기
     addCourseMarkersAndRoute() {
       if (this.courseCoordinates.length === 0) return;
 
@@ -244,7 +276,7 @@ export default {
       }
     },
 
-    // ⚠️ **수정된 메서드:** 코스 아이템 변경 시 지도 업데이트
+    // 코스 아이템 변경 시 지도 업데이트
     updateMapWithCourse() {
       if (!this.map) return;
 
@@ -340,6 +372,8 @@ export default {
   cursor: pointer;
   transition: box-shadow 0.2s ease;
   height: 168px;
+  /* 클릭 이벤트 보장 */
+  position: relative;
 }
 
 .course-card:hover {
@@ -352,7 +386,7 @@ export default {
   line-height: 1.4;
 }
 
-/* 지도 컨테이너 */
+/* 지도 컨테이너 클릭 가능하게 */
 .map-container {
   width: 149px;
   height: 126px;
@@ -362,6 +396,22 @@ export default {
   flex-shrink: 0;
   position: relative;
   background-color: #f8f9fa;
+  cursor: pointer;
+  /* 지도 상호작용 비활성화하고 클릭만 허용 */
+  pointer-events: auto;
+}
+
+/* 하트 아이콘 클릭 가능 */
+.action-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  color: #dc3545;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 4px;
+  /* 클릭 영역 확대 */
 }
 
 /* 지도 플레이스홀더 */
@@ -395,15 +445,6 @@ export default {
   align-items: center;
   margin-bottom: 4px;
   width: 100%;
-}
-
-.action-icons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 18px;
-  color: #dc3545;
-  flex-shrink: 0;
 }
 
 .title {

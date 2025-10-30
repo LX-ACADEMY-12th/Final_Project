@@ -2,8 +2,8 @@
   <div class="timeline-item-container" style="font-family: 'SUIT', sans-serif">
     <!-- 타임라인 섹션 -->
     <div class="timeline-marker-wrapper">
-      <!-- 당구공 -->
-      <div class="timeline-marker" :style="{ '--marker-url': `url('${markerSvgUrl}')` }"></div>
+      <div class="timeline-marker-svg" :style="{ backgroundImage: `url(${markerSvgImage})` }">
+      </div>
       <!-- 일직선 줄 -->
       <div class="timeline-line"></div>
     </div>
@@ -26,9 +26,9 @@
           <!-- 알약 태그 영역 -->
           <div class="d-flex gap-1">
             <!-- 과학영역 태그 -->
-            <PillTag :text="item.subject" type="subject" />
+            <PillTag :text="item.subject" />
             <!-- 학년 태그 -->
-            <PillTag :text="item.grade" type="grade" />
+            <PillTag :text="item.grade.replace('초등 ', '')" />
           </div>
           <!-- 중분류 태그 영역-->
           <div class="d-flex gap-1">
@@ -72,17 +72,6 @@ export default {
     item: {
       type: Object,
       required: true,
-      /*
-        [필요한 item 속성 예시]
-        item: {
-          number: 1,
-          color: '#4A7CEC',
-          imageSrc: 'https://...',
-          zoneName: '습지생물코너',
-          subject: '생명',
-          grade: '초등 3학년',
-          hashtags: ['항상성', '몸의 조절', '생명과학'], // [중요] 이 배열을 기반으로 computed가 작동
-          placeName: '국립중앙과학관' */
     },
   },
   computed: {
@@ -97,7 +86,7 @@ export default {
     markerSvgUrl() {
       const number = this.item.number || 1;
       // ⚠️ 결정된 색상을 사용
-      const color = this.itemColor; 
+      const color = this.itemColor;
       return this.createMarkerImage(number, color);
     },
 
@@ -124,19 +113,31 @@ export default {
       }
       return this.item.hashtags.length - 2;
     },
+    // computed 속성: SVG 이미지 URL 생성 (item.color 의존성 제거)
+    markerSvgImage() {
+      // getCourseItemColor 함수 사용
+      const color = this.getCourseItemColor(this.item.number);
+      return this.createMarkerSvg(this.item.number, color);
+    }
   },
 
   // ⚠️ **새로 추가된 methods:** 마커 이미지 생성 함수
   methods: {
-    // ⚠️ **추가된 methods:** 지도 컴포넌트의 색상 규칙과 동일
-    getMarkerColor(index) {
-      // 지도 컴포넌트와 동일한 색상 배열
-      const colors = ['#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
-      return colors[index % colors.length];
+    // 코스 순서에 따른 색상 결정 함수 (CourseMap.vue와 동일하게)
+    getCourseItemColor(itemNumber) {
+      // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용
+      // 여기서는 item.number를 직접 사용해야 합니다. (index 아님)
+      // item.number는 1번부터 시작하므로, index로 변환하려면 -1을 해야 합니다.
+      const colors = ['#FF5A5A', '#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
+      // 첫 번째 항목 (number: 1)은 특별한 빨간색, 나머지는 blue
+      if (itemNumber === 1) {
+        return '#FF5A5A';
+      }
+      // item.number는 1부터 시작하므로 배열 인덱스에 맞추기 위해 -1
+      return colors[(itemNumber - 1) % colors.length];
     },
-
-    createMarkerImage(number, color) {
-      // 지도 컴포넌트에서 가져온 SVG 코드
+    // 마커 SVG 이미지 생성 함수
+    createMarkerSvg(number, color) {
       const svg = `
         <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 23 12 23s12-14 12-23c0-6.627-5.373-12-12-12z"
@@ -146,8 +147,6 @@ export default {
               font-size="10" font-weight="bold" fill="${color}">${number}</text>
         </svg>
       `;
-
-      // Data URL로 인코딩하여 반환합니다.
       return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     },
   }
@@ -176,24 +175,19 @@ export default {
   margin-right: 12px;
 }
 
-.timeline-marker {
-  /* ⚠️ **수정:** SVG 배경 이미지로 설정 *
-  /* SVG 크기(24x35)에 맞추어 마커 영역 조정 */
+/* [추가] SVG 이미지를 배경으로 사용하는 새로운 마커 스타일 */
+.timeline-marker-svg {
   width: 24px;
+  /* SVG 이미지의 width와 동일하게 */
   height: 35px;
-
-  /* Computed 속성에서 받아온 SVG Data URL을 배경 이미지로 사용 */
-  background-image: var(--marker-url);
-  background-size: contain; /* 영역에 맞게 SVG를 표시 */
+  /* SVG 이미지의 height와 동일하게 */
+  background-size: contain;
+  /* 이미지가 요소 안에 꽉 차도록 */
   background-repeat: no-repeat;
-  background-position: center bottom; /* 물방울 꼬리가 아래쪽으로 오도록 */
-
-  /* 기존의 숫자 표시를 제거하고, 배경 이미지만 사용 */
-  display: block; 
-  text-indent: -9999px; /* 내부 텍스트(숫자) 숨김 */
-
+  background-position: center;
   z-index: 2;
-  position: relative;
+  /* SVG 이미지에 따라 마커의 상단 여백을 조절할 수 있습니다. */
+  /* margin-top: -XXpx; */
 }
 
 .timeline-line {

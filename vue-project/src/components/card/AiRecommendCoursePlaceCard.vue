@@ -9,18 +9,11 @@
     </div>
     <!-- 컨텐츠 카드 -->
     <div class="content-card">
-      <div class="icon-buttons">
-        <!-- 편집 버튼 -->
-        <!-- <i class="bi bi-pencil" @click="onEdit"></i>  -->
-        <!-- 삭제 버튼 -->
-        <i class="bi bi-trash" @click="onDelete"></i>
-      </div>
-
       <!-- 카드 몸체 -->
       <div class="card-body">
         <!-- 장소 이미지 -->
         <div class="card-image">
-          <img :src="item.imageUrl || 'https://placehold.co/800x600/AACCFF/000000'" alt="장소 이미지" />
+          <img :src="item.imageUrl" alt="장소 이미지" />
         </div>
         <!-- 카드 텍스트 -->
         <div class="card-text">
@@ -31,9 +24,9 @@
           <!-- 알약 태그 영역 -->
           <div class="d-flex gap-1">
             <!-- 과학영역 태그 -->
-            <PillTag v-if="displaySubject" :text="displaySubject" type="subject" />
+            <PillTag :text="item.subject" type="subject" />
             <!-- 학년 태그 -->
-            <PillTag v-if="displayGrade" :text="displayGrade" type="grade" />
+            <PillTag :text="item.grade.replace('초등 ', '')" type="grade" />
           </div>
           <!-- 중분류 태그 영역-->
           <div class="d-flex gap-1">
@@ -64,7 +57,7 @@ import HashTag from '@/components/tag/HashTag.vue';
 
 export default {
   // 이 컴포넌트 이름을 설정
-  name: 'CourseExhibitionCard',
+  name: 'CoursePlaceCard',
   // 컴포넌트 등록
   components: {
     PillTag,
@@ -75,17 +68,6 @@ export default {
     item: {
       type: Object,
       required: true,
-      /*
-        [필요한 item 속성 예시]
-        item: {
-          number: 1,
-          color: '#4A7CEC',
-          imageSrc: 'https://...',
-          zoneName: '습지생물코너',
-          subject: '생명',
-          grade: '초등 3학년',
-          hashtags: ['항상성', '몸의 조절', '생명과학'], // [중요] 이 배열을 기반으로 computed가 작동
-          placeName: '국립중앙과학관' */
     },
   },
   emits: ['edit', 'delete'],
@@ -96,8 +78,7 @@ export default {
     onDelete() {
       this.$emit('delete', this.item.id);
     },
-
-    // 마커 SVG 이미지 생성 함수
+    // [추가] 마커 SVG 이미지 생성 함수
     createMarkerSvg(number, color) {
       const svg = `
         <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
@@ -110,7 +91,6 @@ export default {
       `;
       return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     },
-
     // 코스 순서에 따른 색상 결정 함수 (CourseMap.vue와 동일하게)
     getCourseItemColor(itemNumber) {
       // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용
@@ -126,25 +106,6 @@ export default {
     }
   },
   computed: {
-    // ⚠️ **추가:** 코스 순서에 따른 마커 색상 계산
-    itemColor() {
-      // item.number는 보통 1부터 시작합니다. 배열 인덱스를 위해 1을 뺍니다.
-      const index = (this.item.number || 1) - 1;
-      return this.getMarkerColor(index);
-    },
-    // computed 속성: SVG 이미지 URL 생성 (item.color 의존성 제거)
-    markerSvgImage() {
-      // getCourseItemColor 함수 사용
-      const color = this.getCourseItemColor(this.item.number);
-      return this.createMarkerSvg(this.item.number, color);
-    },
-    // ⚠️ **추가:** 계산된 색상과 번호로 SVG Data URL 생성
-    markerSvgUrl() {
-      const number = this.item.number || 1;
-      const color = this.itemColor;
-      return this.createMarkerImage(number, color);
-    },
-
     // 화면에 표시할 해시태그 목록 (최대 2개)
     visibleHashtags() {
       // item.hashtags가 배열이 아니거나 비어있으면 빈 배열 반환
@@ -168,28 +129,12 @@ export default {
       }
       return this.item.hashtags.length - 2;
     },
-    // subject 표시용 computed 속성
-    displaySubject() {
-      // 1. item.subject가 배열이고 요소가 있는지 확인
-      if (Array.isArray(this.item.subject) && this.item.subject.length > 0) {
-        // 2. 첫 번째 요소만 반환 (예: "물리")
-        return this.item.subject[0];
-      }
-      // 3. 유효하지 않으면 null 반환 (태그 숨김)
-      return null;
-    },
-    //  grade 표시용 computed 속성
-    displayGrade() {
-      // 1. item.grade가 배열이고 요소가 있는지 확인
-      if (Array.isArray(this.item.grade) && this.item.grade.length > 0) {
-        // 2. 첫 번째 요소 가져오기 (예: "초등 4학년")
-        const firstGrade = this.item.grade[0];
-        // 3. "초등 " 문자열 제거 (예: "4학년")
-        return firstGrade.replace('초등 ', '');
-      }
-      // 4. 유효하지 않으면 null 반환 (태그 숨김)
-      return null;
-    },
+    // computed 속성: SVG 이미지 URL 생성 (item.color 의존성 제거)
+    markerSvgImage() {
+      // getCourseItemColor 함수 사용
+      const color = this.getCourseItemColor(this.item.number);
+      return this.createMarkerSvg(this.item.number, color);
+    }
   },
 };
 </script>
@@ -205,18 +150,7 @@ export default {
   max-width: 360px;
 }
 
-/* 타임라인 마커 */
-.timeline-marker-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 40px;
-  /* 고정 너비 */
-  flex-shrink: 0;
-  margin-right: 12px;
-}
-
-/* SVG 이미지를 배경으로 사용하는 새로운 마커 스타일 */
+/* [추가] SVG 이미지를 배경으로 사용하는 새로운 마커 스타일 */
 .timeline-marker-svg {
   width: 24px;
   /* SVG 이미지의 width와 동일하게 */
@@ -231,32 +165,29 @@ export default {
   /* margin-top: -XXpx; */
 }
 
-
-/* ⚠️ **수정:** SVG 배경 이미지로 설정하여 지도 마커와 완벽 통일 */
-.timeline-marker {
-  /* SVG 크기(24x35)에 맞추어 마커 영역 조정 */
-  width: 24px;
-  height: 35px;
-
-  /* Computed 속성에서 받아온 SVG Data URL을 배경 이미지로 사용 */
-  background-image: var(--marker-url);
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center bottom;
-
-  /* 내부 텍스트(숫자)는 SVG에 포함되므로 숨김 */
-  display: block;
-  text-indent: -9999px;
-
-  z-index: 2;
-  position: relative;
-
-  /* 기존 원형 마커 관련 스타일 제거 */
-  border-radius: 0;
-  color: transparent;
-  font-weight: normal;
-  font-size: 0;
+/* 1. 타임라인 마커 (왼쪽) */
+.timeline-marker-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  /* 고정 너비 */
+  flex-shrink: 0;
+  margin-right: 12px;
 }
+
+/* .timeline-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 2;
+} */
 
 .timeline-line {
   width: 2px;
@@ -282,31 +213,6 @@ export default {
   /* 아이템 간 간격 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   min-width: 0;
-}
-
-/* 2-1. 아이콘 버튼 */
-.icon-buttons {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  gap: 12px;
-  z-index: 3;
-}
-
-.icon-buttons i {
-  font-size: 18px;
-  color: #888;
-  cursor: pointer;
-}
-
-.icon-buttons i:hover {
-  color: #333;
-}
-
-.icon-buttons .bi-trash:hover {
-  color: #e53e3e;
-  /* 삭제 아이콘은 빨간색 */
 }
 
 /* 2-2. 컨텐츠 정보 */
@@ -375,6 +281,8 @@ export default {
   /* 라벨과 주소 사이 간격 */
   font-size: 14px;
   font-weight: 500;
+  color: #4A7CEC;
+  /* 파란색 계열 */
   flex-shrink: 0;
   /* 글자가 길어져도 줄어들지 않게 */
 }

@@ -7,7 +7,9 @@
     </div>
 
     <div class="content-body">
-      <h2 class="title">{{ item.title }}</h2>
+      <h2 class="title">
+        <TypeTag :text="item.type" class="flex-shrink-0" />{{ item.title }}
+      </h2>
       <div class="rating">
         <span class="stars">
           <i v-for="i in Math.floor(item.rating)" :key="'full-' + i" class="bi bi-star-fill"></i>
@@ -49,6 +51,7 @@
 // ✨ 1. SubjectTag 컴포넌트를 가져옵니다.
 import PillTag from '@/components/tag/PillTag.vue';
 import Hashtag from '@/components/tag/HashTag.vue';
+import TypeTag from '@/components/tag/TypeTag.vue';
 
 export default {
   name: 'InfoSection',
@@ -57,9 +60,10 @@ export default {
   components: {
     PillTag,
     Hashtag,
+    TypeTag,
   },
 
-  // ✨ [로그 3] 컴포넌트 생성 시 props 확인
+  // 컴포넌트 생성 시 props 확인
   created() {
     console.log('✅ [InfoSection] created - 전달받은 Props:', {
       mainCategory: this.mainCategory,
@@ -192,6 +196,11 @@ export default {
 }
 
 .title {
+  /* 태그와 텍스트를 가로로 배치 */
+  display: flex;
+  /* 가로 중앙 정렬 */
+  align-items: center;
+  gap: 8px;
   font-size: 20px;
   font-weight: 900;
   line-height: 1.2;
@@ -202,7 +211,6 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 16px;
-
   /* ✨ 태그와 별점/점수 영역 사이에 공간이 필요하다면 gap을 활용합니다. */
   gap: 8px;
   /* flex-wrap: wrap; 을 추가하면 화면이 좁아질 때 태그들이 자동으로 다음 줄로 넘어갑니다. */

@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,7 +24,9 @@ public class CourseItemDTO {
     // UI가 주로 사용
     private String imageUrl;
     private String address;
+    private String type;          // 전시 타입 (상설 or 기획)
     private Double latitude;
     private Double longitude;
+    private List<String> hashtags;
 
 }

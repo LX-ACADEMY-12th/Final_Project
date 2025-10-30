@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.ScheduleMapper">
+
+    <resultMap id="ScheduleItemDetailDTOMap" type="com.example.demo.dto.ScheduleItemDetailDTO">
+        <result property="sequence" column="sequence"/>
+        <result property="itemType" column="item_type"/>
+        <result property="sourceItemId" column="source_item_id"/>
+        <result property="itemName" column="item_name"/>
+        <result property="addressDetail" column="address_detail"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+        <result property="description" column="description"/>
+        <result property="mainImageUrl" column="main_image_url"/>
+        <result property="exhibitionOpeningHours" column="exhibition_opening_hours"/>
+        <result property="placeOpeningHours" column="place_opening_hours"/>
+        <result property="exhibitionAdmissionFee" column="exhibition_admission_fee"/>
+        <result property="placeAdmissionFee" column="place_admission_fee"/>
+        <result property="hallName" column="hall_name"/>
+        <result property="scienceCenterName" column="science_center_name"/>
+
+        <result property="mainCategoryNames" column="main_category_names"
+                jdbcType="ARRAY" javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+        <result property="gradeNames" column="grade_names"
+                jdbcType="ARRAY" javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+        <result property="subCategoryNames" column="sub_category_names"
+                jdbcType="ARRAY" javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+    </resultMap>
+
+    <resultMap id="UserScheduleDTOMap" type="com.example.demo.dto.UserScheduleDTO">
+        <id property="scheduleId" column="schedule_id"/>
+        <result property="scheduleName" column="schedule_name"/>
+        <result property="sourceCourseType" column="source_course_type"/>
+        <result property="sourceAiCourseId" column="source_ai_course_id"/>
+        <result property="sourceInnerCourseId" column="source_inner_course_id"/>
+        <collection property="items"
+                    column="schedule_id"
+                    ofType="com.example.demo.dto.ScheduleItemDetailDTO"
+                    select="findScheduleItemsByScheduleId" />
+    </resultMap>
+
+    <select id="findSchedulesByUserId" resultMap="UserScheduleDTOMap">
+        SELECT
+            schedule_id,
+            schedule_name,
+            source_course_type,
+            source_ai_course_id,
+            source_inner_course_id
+        FROM
+            final_schedule
+        WHERE
+            user_id = #{userId}
+        ORDER BY
+            created_at DESC;
+    </select>
+
+    <select id="findScheduleItemsByScheduleId" resultMap="ScheduleItemDetailDTOMap">
+        SELECT
+            fsi.sequence,
+            fsi.item_type,
+            fsi.item_id1 AS source_item_id,
+            COALESCE(e.exhibition_name, sp.place_name, fsi.custom_name) AS item_name,
+            COALESCE(sp.address_detail, eh.address_detail, fsi.custom_address) AS address_detail,
+            COALESCE(e.latitude, sp.latitude, fsi.custom_latitude) AS latitude,
+            COALESCE(e.longitude, sp.longitude, fsi.custom_longitude) AS longitude,
+            COALESCE(e.description, sp.description) AS description,
+            COALESCE(e.main_image_url, sp.main_image_url) AS main_image_url,
+            eh.hall_name,
+            eh.science_center_name,
+            e.opening_hours AS exhibition_opening_hours,
+            sp.opening_hours AS place_opening_hours,
+            e.admission_fee AS exhibition_admission_fee,
+            sp.admission_fee AS place_admission_fee,
+            -- Array aggregations (PostgreSQL handles the aggregation)
+            array_agg(DISTINCT cmc.category_name) FILTER (WHERE cmc.category_name IS NOT NULL) AS main_category_names,
+            array_agg(DISTINCT gc.grade_name) FILTER (WHERE gc.grade_name IS NOT NULL) AS grade_names,
+            array_agg(DISTINCT csc.sub_category_name) FILTER (WHERE csc.sub_category_name IS NOT NULL) AS sub_category_names
+        FROM
+            final_schedule_item fsi
+            LEFT JOIN exhibition e ON fsi.item_type = 'exhibition' AND fsi.item_id1 = e.exhibition_id
+            LEFT JOIN exhibition_hall eh ON e.hall_id = eh.hall_id
+            LEFT JOIN science_place sp ON fsi.item_type = 'science_place' AND fsi.item_id1 = sp.place_id
+            LEFT JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
+            LEFT JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
+            LEFT JOIN exhibition_grade_mapping egm ON e.exhibition_id = egm.exhibition_id
+            LEFT JOIN place_grade_mapping pgm ON sp.place_id = pgm.place_id
+            LEFT JOIN curriculum_sub_category csc ON csc.sub_category_id = COALESCE(ecm.sub_category_id, pcm.sub_category_id)
+            LEFT JOIN curriculum_main_category cmc ON cmc.main_category_id = csc.main_category_id
+            LEFT JOIN grade_category gc ON gc.grade_id = COALESCE(egm.grade_id, pgm.grade_id)
+        WHERE
+            fsi.schedule_id = #{scheduleId}
+        GROUP BY
+            fsi.sequence,
+            fsi.item_type,
+            fsi.item_id1,
+            -- COALESCE 함수 전체 사용
+            COALESCE(e.exhibition_name, sp.place_name, fsi.custom_name),
+            COALESCE(sp.address_detail, eh.address_detail, fsi.custom_address),
+            COALESCE(e.latitude, sp.latitude, fsi.custom_latitude),
+            COALESCE(e.longitude, sp.longitude, fsi.custom_longitude),
+            COALESCE(e.description, sp.description),
+            COALESCE(e.main_image_url, sp.main_image_url),
+            -- 테이블.컬럼명 직접 사용
+            eh.hall_name,
+            eh.science_center_name,
+            e.opening_hours,
+            sp.opening_hours,
+            e.admission_fee,
+            sp.admission_fee
+        ORDER BY
+            fsi.sequence ASC;
+    </select>
+</mapper>
