@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.dto.PageResponseDTO;
+import com.example.demo.dto.PhotoThumbDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
 import com.example.demo.dto.ReviewResponseDTO;
 import com.example.demo.service.ReviewService;
@@ -151,5 +152,17 @@ public class ReviewController {
 	        
 	        List<String> photoUrls = reviewService.findAllPhotosByTarget(targetType, targetId);
 	        return ResponseEntity.ok(photoUrls);
-	    }
+	 }
+	 
+	// ⭐️ [추가] ReviewSection.vue 상단 썸네일 3개를 위한 API
+	 @GetMapping("/photos-summary")
+	 public ResponseEntity<List<PhotoThumbDTO>> getPhotoSummaries(
+			 @RequestParam String targetType,
+			 @RequestParam Long targetId,
+			 @RequestParam(defaultValue = "3") int limit) {
+		 
+		 // ⭐️ 이 서비스 메서드는 Service/Mapper에서 구현해야 합니다.
+		 List<PhotoThumbDTO> thumbnails = reviewService.findPhotoThumbnailsByTarget(targetType, targetId, limit);
+		 return ResponseEntity.ok(thumbnails);
+	 }
 }
