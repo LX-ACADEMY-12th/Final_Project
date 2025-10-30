@@ -44,9 +44,8 @@
 </template>
 
 <script>
-// ⭐⭐⭐ 1. axios 라이브러리 import (설치 필요: npm install axios) ⭐⭐⭐
 import axios from 'axios';
-// 🟢 [추가] Pinia 스토어 import
+// 🟢 Pinia 스토어 import
 import { useAuthStore } from '@/stores/authStore';
 
 // API URL (Login API는 토큰이 필요 없으므로 Base URL만 사용)
@@ -84,9 +83,9 @@ export default {
       this.isPasswordVisible = !this.isPasswordVisible;
     },
 
-    // ⭐ 로그인 폼 제출 핸들러 (백엔드 통신으로 수정) ⭐
+    // ⭐ 로그인 폼 제출 핸들러 ⭐
     async handleLogin() {
-      // 1. 클라이언트 측 유효성 검사
+      // 🟢 클라이언트 측 유효성 검사
       if (!this.id || !this.password) {
         this.errorMessage = '아이디와 비밀번호를 모두 입력해주세요.';
         return;
@@ -94,28 +93,28 @@ export default {
 
       this.errorMessage = ''; // 에러 메시지 초기화
 
-      // 🟢 [추가] Pinia 스토어 인스턴스 가져오기
+      // 🟢 Pinia 스토어 인스턴스 가져오기
       const authStore = useAuthStore();
 
-      // 2. 서버로 전송할 데이터 객체 생성 (LoginRequestDTO의 필드명과 일치)
+      // 🟢 서버로 전송할 데이터 객체 생성 (LoginRequestDTO의 필드명과 일치)
       const loginData = {
-        loginId: this.id, // 프론트의 'id'를 백엔드의 'loginId'로 매핑
+        loginId: this.id, // 프론트 'id'를 백엔드 'loginId'로 매핑
         password: this.password,
       };
 
       console.log('로그인 요청 데이터:', loginData);
 
       try {
-        // 3. 백엔드 API 호출: POST /api/user/login
+        // 🟢 백엔드 API 호출: POST /api/user/login
         const response = await axios.post(`${API_URL}/login`, loginData);
 
-        // 4. 응답 처리 (성공: HTTP 200 OK)
+        // 🟢 응답 처리 (성공: HTTP 200 OK)
         if (response.status === 200) {
-          // 🟢 [수정] Pinia 스토어의 login 액션 호출
+          // 🟢 Pinia 스토어의 login 액션 호출
           // (response.data = LoginResponseDTO { userId, ..., accessToken, refreshToken })
           authStore.login(response.data);
 
-          console.log('로그인 성공. authStore 상태:', response.data);
+          console.log('로그인 성공. Pinia authStore 상태:', authStore.$state);
 
           // 메인 페이지('/home' 또는 '/')로 이동
           this.$router.replace('/');

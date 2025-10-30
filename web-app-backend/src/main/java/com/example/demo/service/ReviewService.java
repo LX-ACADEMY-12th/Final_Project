@@ -22,7 +22,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.example.demo.dto.PageResponseDTO;
 import com.example.demo.dto.PhotoThumbDTO;
-import com.example.demo.dto.PlaceDetailDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
 import com.example.demo.dto.ReviewResponseDTO;
 import com.example.demo.mapper.ReviewMapper;

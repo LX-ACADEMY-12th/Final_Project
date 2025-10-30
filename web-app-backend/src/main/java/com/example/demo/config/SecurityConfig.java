@@ -60,7 +60,8 @@ public class SecurityConfig {
                                 "/api/user/login",
                                 "/api/user/signup",
                                 "/api/user/check-id/**",
-                                "/api/user/check-email/**"
+                                "/api/user/check-email/**",
+                                "/api/token/refresh"
                         ).permitAll()
 
                         // Review 컨트롤러의 '조회(GET)' API는 공개

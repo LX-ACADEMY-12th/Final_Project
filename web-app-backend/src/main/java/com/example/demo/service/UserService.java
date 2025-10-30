@@ -65,7 +65,7 @@ public class UserService {
 
         // 3. 실제 JWT 토큰 생성 (userId 사용)
         String accessToken = jwtTokenProvider.createAccessToken(user.getUserId());
-        String refreshToken = jwtTokenProvider.createRefreshToken();
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
 
         // (참고: Refresh Token은 DB에 저장(업데이트)하는 로직이 권장됩니다.)
         // userMapper.updateRefreshToken(user.getUserId(), refreshToken);

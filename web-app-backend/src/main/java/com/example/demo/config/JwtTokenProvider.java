@@ -48,11 +48,12 @@ public class JwtTokenProvider {
     }
 
     // 3. 리프레시 토큰 생성
-    public String createRefreshToken() {
+    public String createRefreshToken(int userId) { // <--- 1. int userId 매개변수 추가
         Date now = new Date();
         Date validity = new Date(now.getTime() + refreshTokenValidityInMilliseconds);
 
         return Jwts.builder()
+                .subject(String.valueOf(userId)) // <--- 2. userId를 'subject'에 저장
                 .issuedAt(now)
                 .expiration(validity)
                 .signWith(key)

@@ -13,11 +13,10 @@ export const useAuthStore = defineStore(
 
     // 2. 게터 (Getters)
 
-    // 🔴 [기존] const isLoggedIn = computed(() => !!accessToken.value);
-    // 🟢 [수정] 로그인 여부는 'localStorage'에 저장된 'user' 정보가 있는지로 판단합니다.
+    // 🟢 로그인 여부는 'localStorage'에 저장된 'user' 정보가 있는지로 판단합니다.
     const isLoggedIn = computed(() => !!user.value)
 
-    // 🟢 [수정] 'user' 객체가 있을 때만 userId를 반환합니다.
+    // 🟢 'user' 객체가 있을 때만 userId를 반환합니다.
     const currentUserId = computed(() => user.value?.userId || null)
 
     // 3. 액션 (Actions)
@@ -62,7 +61,7 @@ export const useAuthStore = defineStore(
     }
   },
   {
-    // 🟢 'user'와 'refreshToken'은 localStorage에 저장
+    // 🟢 'user'와 'refreshToken'은 localStorage - 하드, 등등에 저장
     persist: {
       paths: ['user', 'refreshToken'],
     },
