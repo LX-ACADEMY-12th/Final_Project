@@ -148,8 +148,8 @@ export default {
 
 .indoor-map-btn {
   background-color: white;
-  color: #007bff;
-  border: 1px solid #007bff;
+  color: #4A7CEC;
+  border: 1px solid #4A7CEC;
   padding: 5px 10px;
   border-radius: 20px;
   font-size: 13px;

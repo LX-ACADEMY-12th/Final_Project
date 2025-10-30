@@ -71,9 +71,11 @@
       </div>
 
       <div class="modal-footer p-3 border-top flex-shrink-0">
-        <button class="btn btn-primary btn-lg w-100 rounded-3 py-3 fw-bold" @click="completeSelection">
+        <button class="btn btn-lg w-100 rounded-3 py-3 fw-bold" @click="completeSelection"
+          style="background-color: #4A7CEC; border-color: #4A7CEC; color: white;">
           선택완료
         </button>
+
       </div>
     </div>
   </div>
@@ -187,8 +189,8 @@ const completeSelection = () => {
 
 .btn-check:checked+.btn-outline-primary {
   color: #fff;
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
 }
 
 /* Filter Buttons */

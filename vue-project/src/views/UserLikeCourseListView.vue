@@ -52,12 +52,24 @@
 
 <script>
 import UserLikeCourseCard from '@/components/card/UserLikeCourseCard.vue';
-import axios from 'axios';
+import axios from '@/api/axiosSetup';
+import { useAuthStore } from '@/stores/authStore';
+import { storeToRefs } from 'pinia';
 
 export default {
   name: 'UserLikeCourse',
   components: {
     UserLikeCourseCard,
+  },
+
+  setup() {
+    const authStore = useAuthStore();
+    const {isLoggedIn, currentUserId} = storeToRefs(authStore);
+
+    return {
+      isLoggedIn,
+      currentUserId
+    };
   },
 
   data() {
@@ -67,7 +79,6 @@ export default {
       userLikeCourseCardItem: [],
       loading: true,
       error: null,
-      userId: 2, // 예시용 사용자 ID (실제로는 로그인 정보에서 가져오기)
     };
   },
 
@@ -105,9 +116,19 @@ export default {
     async fetchUserLikeCourse() {
       this.loading = true;
       this.error = null;
+
+      // Pinia 스토어를 통해 로그인 상태를 확인
+      if(!this.isLoggedIn) {
+        this.error = "로그인이 필요한 기능입니다. 로그인 후 다시 시도해주세요.";
+        this.loading = false;
+        // 로그인 페이지로 이동
+        this.$router.push('/login');
+        return; 
+      }
+
       try {
         // 백엔드 API 호출
-        const response = await axios.get(`http://localhost:8080/api/schedules/user/${this.userId}`);
+        const response = await axios.get(`api/schedules/user/${this.currentUserId}`);
 
         // response.data가 List<UserScheduleDTO> 형태
         // 프론트에서 (userLikeCourseCardItem) 구조로 변환
@@ -240,6 +261,34 @@ export default {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+}
+
+/* ------------------------------------------------------------- */
+/* [핵심 수정 부분] content-container에 스크롤 속성 적용 */
+/* ------------------------------------------------------------- */
+.content-container {
+  flex: 1; /* 남은 수직 공간을 모두 차지하도록 설정 */
+  overflow-y: auto; /* 내용이 넘칠 때 세로 스크롤 생성 */
+  padding: 16px; /* 상하좌우 여백 */
+  background-color: #f9f9f9; /* 배경색 설정 (옵션) */
+
+  /* 스크롤바 숨기기 (사용자님 요청) */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* 로딩/에러/빈 상태 메시지가 중앙에 오도록 설정 */
+.status-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%; /* content-container의 높이를 상속받아 사용 */
 }
 
 .chat-header {

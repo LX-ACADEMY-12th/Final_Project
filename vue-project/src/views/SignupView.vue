@@ -502,7 +502,7 @@ export default {
   font-size: 16px;
   font-weight: 500; 
   color: #fff;
-  background-color: #3674B5; 
+  background-color: #4A7CEC; 
   border: none;
   border-radius: 15px; 
   cursor: pointer;
@@ -511,7 +511,7 @@ export default {
 }
 
 .check-button:hover {
-  background-color: #3367D6;
+  background-color: #4A7CEC;
 }
 
 .input-with-icon {
@@ -547,7 +547,7 @@ export default {
   font-size: 16px;
   font-weight: 500; 
   color: #fff;
-  background-color: #3674B5; 
+  background-color: #4A7CEC; 
   border: none;
   border-radius: 15px; 
   cursor: pointer;
@@ -555,7 +555,7 @@ export default {
 }
 
 .submit-button:hover {
-  background-color: #3367D6;
+  background-color: #4A7CEC;
 }
 
 .login-link-wrapper {
@@ -567,7 +567,7 @@ export default {
 
 .login-link-wrapper a {
   font-weight: 500;
-  color: #3674B5; 
+  color: #4A7CEC; 
   text-decoration: none; 
 }
 
@@ -597,7 +597,7 @@ export default {
 }
 
 .checking-status {
-    color: #3674B5; /* 버튼 색상과 유사한 파란색 */
+    color: #4A7CEC; /* 버튼 색상과 유사한 파란색 */
 }
 
 /* ⭐⭐⭐ 모달 관련 스타일 수정 (ReviewModal 스타일 통일) ⭐⭐⭐ */
@@ -662,6 +662,6 @@ export default {
 }
 
 .modal-button:hover {
-  background-color: #3367D6; /* 호버 색상 유지 */
+  background-color: #4A7CEC; /* 호버 색상 유지 */
 }
 </style>
