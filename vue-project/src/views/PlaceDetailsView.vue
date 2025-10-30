@@ -3,7 +3,7 @@
 
     <div class="header">
       <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시 상세" />
-      <ExhibitionHeader v-else-if="pageType === 'place'" pageTitle="장소 상세" />
+      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="장소 상세" />
       <ExhibitionHeader v-else pageTitle="로딩 중..." />
     </div>
 
@@ -17,8 +17,17 @@
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :exhibitionInformation="exhibitionInformation" :exhibition="exhibition" :reviews="reviews"
-            :isPlace="false" @submit-review="handleReviewSubmit" />
+          <ContentDetailView 
+          :exhibitionInformation="exhibitionInformation" 
+          :exhibition="exhibition" 
+          :isPlace="false"
+          :target-id="currentId"
+          :target-type="pageType"
+          :current-user-id="tempCurrentUserId" 
+          @review-posted="handleReviewPosted"
+          @review-deleted="handleReviewDeleted"
+          :photo-review-count="exhibition.photoReviewCount"
+          />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -32,15 +41,24 @@
       </div>
 
       <!--장소일때-->
-      <div v-else-if="pageType === 'place'">
+      <div v-else-if="pageType === 'science_place'">
         <InfoSection :exhibition="place" imageTag="장소 태그" :mainCategory="place.mainCategory"
           :subCategories="place.subCategories" :gradeTag="place.gradeTag" />
         <hr class="divider" />
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :exhibitionInformation="placeInformation" :exhibition="place" :reviews="reviews"
-            :isPlace="true" @submit-review="handleReviewSubmit" />
+          <ContentDetailView 
+          :exhibitionInformation="placeInformation" 
+          :exhibition="place" 
+          :target-id="currentId"
+          :target-type="pageType"
+          :current-user-id="tempCurrentUserId"
+          :isPlace="true" 
+          @review-posted="handleReviewPosted"
+          @review-deleted="handleReviewDeleted"
+          :photo-review-count="place.photoReviewCount"
+          />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -87,10 +105,11 @@ export default {
 
   data() {
     return {
+      tempCurrentUserId: 1, // 현재 로그인한 유저 Id를 '1' 로 가정
       // 현재 ID를 저장할 변수
-      currentId: null,
+      currentId: null, // <-- 여기에 targetId를 저장
       // 화면 상태
-      pageType: null,     // 'exhibition' | 'place'
+      pageType: null,     // 'exhibition' | 'place' <-- 여기에 targetType을 저장
       currentTab: 'detail',
 
       // 전시 상세
@@ -104,6 +123,7 @@ export default {
         type: '',
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
+        photoReviewCount: 0,
       },
       // 이게 LocationSection에 들어갈 부분
       exhibitionInformation: {
@@ -126,6 +146,7 @@ export default {
         type: '',
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
+        photoReviewCount: 0,
       },
       // (LocationSection이 'placeAddress'를 사용)
       placeInformation: {
@@ -137,8 +158,9 @@ export default {
         lng: 0,
       },
 
-      // 공통
-      reviews: [],
+      // 공통 <-- 
+      // reviews: [],
+
       // AI 추천 코스 결과를 담을 배열
       courseItems: [],
 
@@ -153,14 +175,14 @@ export default {
   // 컴포넌트 로드 시 훅 설정
   created() {
     // URL에서 ID 가져오기
-    const id = this.$route.params.id;
+    const id = this.$route.params.id; // url에서 id를 가져와서 targetId로 사용!
     // ID를 data()에 저장
     this.currentId = id;
     // URL 경로가 place 시작인지 판별
-    const isPlace = this.$route.path.startsWith('/place/');
+    const isPlace = this.$route.path.startsWith('/place/'); // 1. URL 경로를 분석해서 'targetType'으로 사용
     // 장소인 경우
     if (isPlace) {
-      this.pageType = 'place';
+      this.pageType = 'science_place';
       this.fetchPlaceData(id);
       // 전시인 경우
     } else {
@@ -174,6 +196,7 @@ export default {
   },
 
   methods: {
+
     /** DTO -> 프론트 상태 매핑 (Exhibition) */
     mapExhibitionDTO(dto) {
       const title = dto.exhibitionName ?? '제목 없음';
@@ -207,6 +230,7 @@ export default {
         type: dto.type ?? 'exhibition',
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
+        photoReviewCount: dto.totalPhotoReviews ?? 0,
       };
 
       // LocationSection이 사용할 데이터
@@ -260,6 +284,7 @@ export default {
         gradeTag: grade, // PillTag
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
+        photoReviewCount: dto.totalPhotoReviews ?? 0,
       };
 
       // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
@@ -421,14 +446,22 @@ export default {
       // this.courseItems = [ ... ];
     },
 
-    // ✨ [추가] 자식(ContentDetailView)이 보낸 이벤트를 처리할 함수
-    handleReviewSubmit(newReview) {
-      // (나중에는 여기서 API로 POST 요청을 보냅니다)
-      // 지금은 PlaceDetailsView의 data()에 있는 reviews 배열을 수정합니다.
-      this.reviews.unshift(newReview);
+    refreshData() {
+      console.log(`리뷰 변경 감지 : 부모 데이터 새로고침`);
+      if (this.pageType === 'exhibition') {
+        this.fetchExhibitionData(this.currentId);
+      } else if (this.pageType === 'science_place') { // 'place' 대신 정확한 'science_place' 사용
+        this.fetchPlaceData(this.currentId);
+      }
+    },
 
-      console.log('✅ [PlaceDetailsView] 새 리뷰 받음:', newReview);
-      alert('후기가 성공적으로 등록되었습니다.');
+    handleReviewPosted() {
+      this.refreshData();
+    },
+
+    // 리뷰 삭제 모달 -> 삭제시 카운트 감소
+    handleReviewDeleted() {
+      this.refreshData();
     },
 
     // 탭 변경시 호출될 메서드

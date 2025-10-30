@@ -18,6 +18,14 @@
 	        p.average_rating,
 	        p.total_reviews,
 	        
+            (
+                SELECT COUNT(rp.photo_id)
+                FROM review r
+                JOIN review_photo rp ON r.review_id = rp.review_id
+                WHERE r.target_id = p.place_id
+                  AND r.target_type = 'science_place'
+            ) AS totalPhotoReviews,
+	        
 	        -- 1. 메인 카테고리 태그 (버그 수정됨)
             array_to_string(
                 array_agg(
@@ -80,4 +88,3 @@
 	        p.place_id
 	</select>
 </mapper>
-

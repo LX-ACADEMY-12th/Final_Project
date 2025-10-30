@@ -15,11 +15,34 @@
       <hr class="header-divider" />
 
       <main class="modal-body">
-        <div class="image-upload-area">
-          <span class="gallery-icon"><i class="bi bi-image"></i></span>
-          <span class="upload-count">{{ uploadedImageCount }}/5</span>
+        
+        <div class="image-preview-list">
+          <div 
+            v-for="(preview, index) in filePreviews" 
+            :key="index" 
+            class="preview-item"
+            :style="{ backgroundImage: 'url(' + preview.url + ')' }"
+          >
+            <button class="remove-btn" @click.stop="removeFile(index)">&times;</button>
+            <span class="preview-label">사진{{ index + 1 }}</span>
+          </div>
+
+          <div 
+            class="image-upload-area" 
+            @click="openFilePicker" 
+            v-if="uploadedFiles.length < 5" >
+            <span class="gallery-icon"><i class="bi bi-image"></i></span>
+            <span class="upload-count">{{ uploadedFiles.length }}/5</span>
+          </div>
         </div>
 
+        <input type="file"
+              ref="fileInput"
+              @change="onFileChange"
+              hidden
+              multiple
+              accept="image/*">    
+        
         <textarea 
           :value="reviewText"
           @input="$emit('update:reviewText', $event.target.value)" 
@@ -58,23 +81,63 @@
 <script>
 export default {
   name: 'ReviewModal',
-  // 부모로부터 모달의 상태 및 폼 데이터를 props로 받습니다.
   props: {
     reviewText: String,
     selectedRating: Number,
-    uploadedImageCount: Number,
+    // ⭐️ [수정됨] uploadedImageCount prop 삭제
     isFormValid: Boolean, // 버튼 활성화 여부
+    uploadedFiles: {
+      type: Array,
+      default: () => []
+    }
   },
-  // 부모에게 보낼 이벤트를 명시합니다.
-  emits: ['close', 'submit', 'update:reviewText', 'update:selectedRating'],
+  emits: ['close', 'submit', 'update:reviewText', 'update:selectedRating', 'files-selected', 'remove-file'],
+  
+  computed: {
+    filePreviews() {
+      // ⭐️ [수정됨] 방어 코드: 부모가 undefined를 보내도 오류 안 나게
+      if (!this.uploadedFiles) return []; 
+      
+      return this.uploadedFiles.map(file => {
+        return { 
+          file: file, 
+          url: URL.createObjectURL(file) 
+        };
+      });
+    }
+  },
+
   methods: {
-    // 별점 클릭 시 부모에게 변경된 별점 값을 전달합니다.
     setRating(star) {
       this.$emit('update:selectedRating', star);
     },
+    openFilePicker() {
+      this.$refs.fileInput.click();
+    },
+    onFileChange(event) {
+      const files = event.target.files;
+      if (files.length > 0) {
+        this.$emit('files-selected', files);
+      }
+      event.target.value = null;
+    },
+    removeFile(index) {
+      this.$emit('remove-file', index);
+    }
+  },
+
+  // ⭐️ [수정됨] beforeDestroy -> beforeUnmount (Vue 3 호환)
+  beforeUnmount() {
+    // 생성했던 Object URL들을 메모리에서 해제
+    if (this.filePreviews) {
+      this.filePreviews.forEach(preview => {
+        URL.revokeObjectURL(preview.url);
+      });
+    }
   }
 };
 </script>
+
 
 <style scoped>
 /* === 모달 스타일 (후기 작성) === */
@@ -150,21 +213,76 @@ export default {
   margin: 0;
 }
 
+/* === [수정] modal-body 스타일 === */
 .modal-body {
   padding: 20px;
 }
 
+/* [추가] 이미지 그리드 컨테이너 */
+.image-preview-list {
+  display: grid;
+  /* 3열 그리드, 1:1 비율 */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px; /* 아이템 간 간격 */
+  margin-bottom: 20px;
+}
+
+/* [수정] 기존 업로드 버튼 스타일 (그리드 아이템 공통) */
 .image-upload-area {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
+  width: 100%; /* 그리드에 맞게 100% */
+  aspect-ratio: 1 / 1; /* 정사각형 */
   background-color: #f0f0f0;
   border-radius: 8px;
-  margin: 0 auto 20px auto;
   cursor: pointer;
+  /* [제거] margin: 0 auto 20px auto; */
+}
+
+/* [추가] 미리보기 아이템 스타일 */
+.preview-item {
+  position: relative; /* 삭제 버튼 위치 기준 */
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background-color: #eee; /* 이미지 로딩 전 배경 */
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* 라벨 등이 삐져나가지 않게 */
+}
+
+/* [추가] 미리보기 아이템 위 '사진1' 라벨 (선택) */
+.preview-label {
+    background-color: rgba(0,0,0,0.3);
+    color: white;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* [추가] 삭제 버튼 'X' */
+.remove-btn {
+  position: absolute;
+  top: -5px;      /* 모서리 바깥으로 살짝 */
+  right: -5px;
+  width: 24px;
+  height: 24px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 24px; /* 텍스트 중앙 정렬 */
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2; /* 미리보기 이미지 위로 */
 }
 
 .gallery-icon {

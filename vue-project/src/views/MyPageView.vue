@@ -295,8 +295,8 @@ export default {
   bottom: -5px;
   right: -5px;
   font-size: 14px;
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
 }
 
 .profile-badge:active {
@@ -314,8 +314,8 @@ export default {
 }
 
 .saved-route-btn {
-  background-color: #3674B5;
-  border-color: #3674B5;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
   transition: filter 0.2s ease-in-out;
   margin-bottom: 32px;
   /* 추가된 간격 */
