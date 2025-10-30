@@ -1,6 +1,5 @@
 <template>
   <div class="page-container" style="font-family: 'SUIT', sans-serif">
-    <!-- 헤더 -->
     <div class="chat-header d-flex justify-content-between align-items-center p-3 bg-white border-bottom flex-shrink-0">
       <div class="header-left" style="flex: 1;">
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
@@ -21,8 +20,31 @@
       </div>
     </div>
 
-    <div class="user-like-course">
-      <UserLikeCourseCard v-for="idx in filteredItems" :key="idx.id" :item="idx" @click="goToCourseDetail(idx)" />
+    <div v-if="loading" class="content-container status-container">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2 text-muted">관심 코스를 불러오고 있습니다...</p>
+    </div>
+
+    <div v-else-if="error" class="content-container status-container">
+      <p class="text-danger">{{ error }}</p>
+      <button @click="fetchUserLikeCourse" class="btn btn-sm btn-outline-primary">
+        다시 시도
+      </button>
+    </div>
+
+    <div v-else class="content-container">
+
+      <div v-if="filteredItems.length === 0" class="status-container empty-state">
+        <p class="text-muted">
+          '{{ selectedTab }}' 탭에 해당하는 관심 코스가 없습니다.
+        </p>
+      </div>
+
+      <div v-else class="card-list-wrapper">
+        <UserLikeCourseCard v-for="item in filteredItems" :key="item.id" :item="item" @click="goToCourseDetail(item)" />
+      </div>
     </div>
 
   </div>
@@ -30,431 +52,7 @@
 
 <script>
 import UserLikeCourseCard from '@/components/card/UserLikeCourseCard.vue';
-
-// 통합된 목 데이터 (실제로는 API에서 가져올 데이터)
-const getUserLikeCourseData = () => {
-  return [
-    {
-      id: 1,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '전시명1',
-      address: '국립과천과학관',
-      coursePlaces: ['전시명1', '전시명2', '전시명3'],
-      type: '전시',
-      courseItems: [
-        {
-          id: 1,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '습지생물코너',
-          type: '상설',
-          place: '국립중앙과학관 자연사관',
-          hashtags: ['항상성과 몸의 조절', '생명과학과 인간의 생활'],
-          lat: 36.3758,
-          lng: 127.3845
-        },
-        {
-          id: 2,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '4학년',
-          title: '빛의 원리',
-          type: '기획',
-          place: '국립과천과학관',
-          hashtags: ['파동', '빛', '물리1', '체험'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 3,
-          number: 3,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '화학',
-          grade: '5학년',
-          title: '미래 에너지',
-          type: '상설',
-          place: '서울시립과학관',
-          hashtags: ['에너지', '화학 반응', '미래 기술'],
-          lat: 37.6094,
-          lng: 127.0706
-        }
-      ]
-    },
-    {
-      id: 2,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '화학',
-      grade: '3학년',
-      ExhibitionName: '전시명2',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 4,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '화학',
-          grade: '3학년',
-          title: '화학 실험실',
-          type: '상설',
-          place: '국립과천과학관 화학관',
-          hashtags: ['화학 반응', '실험'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 5,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '화학',
-          grade: '3학년',
-          title: '분자 모형 전시',
-          type: '상설',
-          place: '국립과천과학관 분자관',
-          hashtags: ['분자', '화학 구조'],
-          lat: 37.4360,
-          lng: 126.9750
-        }
-      ]
-    },
-    {
-      id: 3,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '물리',
-      grade: '3학년',
-      ExhibitionName: '전시명3',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 6,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '3학년',
-          title: '물리 체험관',
-          type: '상설',
-          place: '국립과천과학관 물리관',
-          hashtags: ['역학', '물리 체험'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 7,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '3학년',
-          title: '전기 실험실',
-          type: '상설',
-          place: '국립과천과학관 전기관',
-          hashtags: ['전기', '전자기학'],
-          lat: 37.4365,
-          lng: 126.9748
-        },
-        {
-          id: 8,
-          number: 3,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '3학년',
-          title: '자기장 체험',
-          type: '상설',
-          place: '국립과천과학관 자기관',
-          hashtags: ['자기장', '전자기학'],
-          lat: 37.4368,
-          lng: 126.9752
-        }
-      ]
-    },
-    {
-      id: 4,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '생명',
-      grade: '3학년',
-      ExhibitionName: '생명과학 탐험',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 9,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '생명',
-          grade: '3학년',
-          title: '생명의 기원',
-          type: '상설',
-          place: '국립과천과학관 생명관',
-          hashtags: ['생명의 기원', '진화'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 10,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '생명',
-          grade: '3학년',
-          title: 'DNA 모형',
-          type: '상설',
-          place: '국립과천과학관 유전자관',
-          hashtags: ['DNA', '유전자'],
-          lat: 37.4366,
-          lng: 126.9749
-        }
-      ]
-    },
-    {
-      id: 5,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '지구과학 여행',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 11,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '지구의 구조',
-          type: '상설',
-          place: '국립과천과학관 지구관',
-          hashtags: ['지구 구조', '지질학'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 12,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '화석 전시관',
-          type: '상설',
-          place: '국립과천과학관 화석관',
-          hashtags: ['화석', '고생물학'],
-          lat: 37.4370,
-          lng: 126.9755
-        }
-      ]
-    },
-    {
-      id: 6,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '천체 관측',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 13,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '천체 투영관',
-          type: '상설',
-          place: '국립과천과학관 천체관',
-          hashtags: ['천체', '천문학'],
-          lat: 37.4363,
-          lng: 126.9746
-        }
-      ]
-    },
-    {
-      id: 7,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '우주 탐험',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 14,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '우주선 모형',
-          type: '상설',
-          place: '국립과천과학관 우주관',
-          hashtags: ['우주', '우주선'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 15,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '달 탐사',
-          type: '상설',
-          place: '국립과천과학관 달관',
-          hashtags: ['달', '우주 탐사'],
-          lat: 37.4372,
-          lng: 126.9758
-        }
-      ]
-    },
-    {
-      id: 8,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '환경 보호',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 16,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '환경 오염',
-          type: '상설',
-          place: '국립과천과학관 환경관',
-          hashtags: ['환경', '오염'],
-          lat: 37.4363,
-          lng: 126.9746
-        }
-      ]
-    },
-    {
-      id: 9,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '장소명1',
-      address: '장소명1 주소',
-      type: '답사',
-      courseItems: [
-        {
-          id: 17,
-          number: 1,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '해운대 해변',
-          type: '답사',
-          place: '부산시 해운대구 해운대해변로',
-          hashtags: ['고체지구', '유체지구', '천체'],
-          lat: 35.1587,
-          lng: 129.1604
-        },
-        {
-          id: 18,
-          number: 2,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '동백섬',
-          type: '답사',
-          place: '부산시 해운대구 동백로',
-          hashtags: ['지질학', '해안 지형'],
-          lat: 35.1532,
-          lng: 129.1635
-        },
-        {
-          id: 19,
-          number: 3,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '해운대 온천',
-          type: '답사',
-          place: '부산시 해운대구 중동',
-          hashtags: ['지하수', '온천'],
-          lat: 35.1598,
-          lng: 129.1588
-        }
-      ]
-    },
-    {
-      id: 10,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '장소명2',
-      address: '장소명2 주소',
-      type: '답사',
-      courseItems: [
-        {
-          id: 20,
-          number: 1,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '경복궁 정문',
-          type: '답사',
-          place: '서울특별시 종로구 사직로 161',
-          hashtags: ['역사', '문화재'],
-          lat: 37.5796,
-          lng: 126.9770
-        },
-        {
-          id: 21,
-          number: 2,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '근정전',
-          type: '답사',
-          place: '경복궁 근정전',
-          hashtags: ['궁궐 건축', '조선 시대'],
-          lat: 37.5794,
-          lng: 126.9769
-        },
-        {
-          id: 22,
-          number: 3,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '경회루',
-          type: '답사',
-          place: '경복궁 경회루',
-          hashtags: ['전통 건축', '연못'],
-          lat: 37.5802,
-          lng: 126.9765
-        }
-      ]
-    }
-  ];
-};
+import axios from 'axios';
 
 export default {
   name: 'UserLikeCourse',
@@ -465,41 +63,124 @@ export default {
   data() {
     return {
       selectedTab: '전시',
-      userLikeCourseCardItem: []
+      // API 응답을 저장할 배열
+      userLikeCourseCardItem: [],
+      loading: true,
+      error: null,
+      userId: 2, // 예시용 사용자 ID (실제로는 로그인 정보에서 가져오기)
     };
   },
 
   computed: {
     filteredItems() {
-      return this.userLikeCourseCardItem.filter(item => {
-        return item.type === this.selectedTab;
-      });
+      if (this.selectedTab === '전시') {
+        // '전시' 탭일 때
+        // item.type이 '전시'이거나 'inner_course' 등 전시 관련 타입들을 모두 포함
+        return this.userLikeCourseCardItem.filter(item =>
+          item.type === '전시' || item.type === 'inner_course'
+        );
+      } else {
+        // '답사' 탭일 때
+        // item.type이 '답사'이거나 'ai_course' 등 답사 관련 타입들을 모두 포함
+        return this.userLikeCourseCardItem.filter(item =>
+          item.type === '답사' || item.type === 'ai_course'
+        );
+      }
     },
   },
 
+  // 라이프사이클 훅
   created() {
+    // 탭 설정 로직
     const tabFromQuery = this.$route.query.tab;
     if (tabFromQuery === '답사') {
       this.selectedTab = '답사';
     }
-
-    // 통합된 데이터 로드
-    this.userLikeCourseCardItem = getUserLikeCourseData();
+    // API 호출 함수 실행 -> 사용자 ID로 저장한 코스 아이템 가져오기
+    this.fetchUserLikeCourse();
   },
 
   methods: {
+    // API 호출하고 데이터 매핑
+    async fetchUserLikeCourse() {
+      this.loading = true;
+      this.error = null;
+      try {
+        // 백엔드 API 호출
+        const response = await axios.get(`http://localhost:8080/api/schedules/user/${this.userId}`);
+
+        // response.data가 List<UserScheduleDTO> 형태
+        // 프론트에서 (userLikeCourseCardItem) 구조로 변환
+        this.userLikeCourseCardItem = response.data.map(schedule => {
+
+          // schedule.items (ScheduleItemDetailDTO 리스트)를
+          // courseItem 구조로 변환
+          const mappedCourseItems = schedule.items.map(item => ({
+            id: item.sourceItemId, // 소스 아이템 id
+            number: item.sequence, // 스케줄 내 순서번호
+            title: item.itemName,
+            place: item.addressDetail,
+            imageUrl: item.mainImageUrl,
+            lat: item.latitude,
+            lng: item.longitude,
+            type: null, // '상설', '기획'
+            scienceCenter: item.scienceCenterName,                 // 과학관 이름
+            hallName: item.hallName,                          // 전시관 이름
+            subject: item.mainCategoryNames || [], // 과학 영역 배열
+            grade: item.gradeNames || [],               // 학년 배열
+            hashtags: item.subCategoryNames || [],   // 세부 카테고리 배열,
+            itemType: item.itemType
+          }));
+
+          // UserScheduleDto를 상위 객체 구조로 변환
+          return {
+            id: schedule.scheduleId,
+            ExhibitionName: schedule.scheduleName,
+            type: schedule.sourceCourseType, // 'inner_course' 또는 'ai_course' (이 값이 탭 필터링에 사용됨)
+
+            // --- 첫 번째 아이템 정보로 대표값 설정 ---
+            address: mappedCourseItems[0] ? mappedCourseItems[0].place : '정보 없음', // 대표 주소
+            scienceCenter: mappedCourseItems[0] ? mappedCourseItems[0].scienceCenter : '정보 없음', // 대표 과학관
+            grade: mappedCourseItems[0] ? mappedCourseItems[0].grade?.[0] : null, // 대표 학년
+            subject: mappedCourseItems[0] ? mappedCourseItems[0].subject?.[0] : null, // 대표 과학 영역
+
+            // --- 아이템 목록에서 가공 ---
+            coursePlaces: mappedCourseItems.map(item => item.title), // 아이템 이름 목록
+            courseItems: mappedCourseItems, // 변환된 아이템 상세 리스트
+
+          };
+        });
+        // --- 👇 [로그 추가] 매핑된 최종 데이터 확인 ---
+        console.log('✅ fetchUserLikeCourse - 최종 매핑된 데이터 (userLikeCourseCardItem):',
+          // JSON.stringify를 사용하면 중첩된 객체도 펼쳐서 보여줍니다 (선택 사항).
+          // JSON.stringify(this.userLikeCourseCardItem, null, 2)
+          JSON.stringify(this.userLikeCourseCardItem, null, 2)// 객체 그대로 로깅하면 콘솔에서 펼쳐볼 수 있습니다.
+        );
+        // --- 👆 [로그 추가] ---
+      } catch (err) {
+        console.error("관심 코스 조회 실패:", err);
+        this.error = "데이터를 불러오는 데 실패했습니다.";
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // 카드 클릭 시 상세 페이지로 이동
     goToCourseDetail(item) {
+      console.log('goToCourseDetail - 클릭된 item:', item);
+
+      // sessionStorage에 데이터 저장
+      sessionStorage.setItem(`courseData_${item.id}`, JSON.stringify(item));
+
       this.$router.push({
         name: 'UserLikeCourseDetail',
         params: {
-          ExhibitionName: item.ExhibitionName,
-          courseId: item.id // ID도 함께 전달
+          courseId: item.id
         },
-        query: { type: item.type },
-        // 'state' 속성을 이용해 'item' 객체 전체를 전달합니다.
-        // 이 데이터는 URL에 노출되지 않으며, 상세 페이지에서
-        // 'history.state.courseData'로 접근할 수 있습니다.
-        state: { courseData: item }
+        state: {
+          courseData: item,
+          fromList: true
+        }
       });
     },
 
@@ -540,6 +221,18 @@ export default {
   color: white;
   border: none;
   font-weight: 700;
+}
+
+.card-list-wrapper {
+  /* 카드 목록을 세로로 쌓기 위해 flex 설정 (선택 사항이지만 권장) */
+  display: flex;
+  flex-direction: column;
+  /* 카드 사이의 간격을 16px로 설정 */
+  gap: 16px;
+
+  /* 만약 gap 속성이 지원되지 않는 환경이라면 아래 margin 사용 */
+  /* padding-bottom: 16px; */
+  /* 마지막 카드 아래 여백 확보 */
 }
 
 .page-container {

@@ -11,13 +11,11 @@ import java.util.List;
 @Service
 public class RecommendService {
 
-    private final ExhibitionMapper exhibitionMapper;
     private final PlaceMapper placeMapper;
 
     private final LlmApiService llmApiService; //
 
     public RecommendService(ExhibitionMapper exhibitionMapper, PlaceMapper placeMapper, LlmApiService llmApiService) {
-        this.exhibitionMapper = exhibitionMapper;
         this.placeMapper = placeMapper;
         this.llmApiService = llmApiService;
     }
@@ -27,10 +25,8 @@ public class RecommendService {
     ) {
 
         if ("exhibition".equals(type)) {
-            // Mapper가 DTO 목록을 바로 반환 (변환 로직 삭제)
-            return exhibitionMapper.findSimilarExhibitions(
-                    currentId, mainCategory, grade
-            );
+            List<CourseItemDTO> candidates = placeMapper.findSimilarExhibition(currentId, mainCategory, grade);
+            return llmApiService.getAiRecommendations(currentId, candidates);
         } else {
             List<CourseItemDTO> candidates = placeMapper.findSimilarSciencePlace(currentId, mainCategory, grade);
             return llmApiService.getAiRecommendations(currentId, candidates); // AI 호출 -> ID 3개 값 배열을 리턴

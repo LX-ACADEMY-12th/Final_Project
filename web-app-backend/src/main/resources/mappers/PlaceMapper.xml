@@ -12,7 +12,8 @@
         <result property="hashtags" column="hashtags"
                 jdbcType="ARRAY"
                 javaType="java.util.List"
-                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/> <result property="lat" column="lat"/>
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+        <result property="lat" column="lat"/>
         <result property="lng" column="lng"/>
         <result property="type" column="type"/>
     </resultMap>
@@ -105,6 +106,7 @@
         ORDER BY
             distance_km; -- 가까운 순서로 정렬
     </select>
+    <!-- 전시 지역 필터  -->
     <select id="findExhibitionsByRegion" resultType="com.example.demo.dto.PlaceResultDTO">
         SELECT
             e.exhibition_id as id,
@@ -124,6 +126,79 @@
         WHERE cmc.category_name = #{subject}
           AND gc.grade_name LIKE '%' || #{grade} || '%'
           AND e.address_detail LIKE #{regionPattern}
+    </select>
+    <!-- 전시 AI 추천 검색   -->
+    <resultMap id="innerCourseItemResultMap" type="com.example.demo.dto.CourseItemDTO">
+        <result property="placeId"     column="exhibition_id"/>
+        <result property="placeName"   column="exhibition_name"/>
+        <result property="description" column="description"/>
+        <result property="type"   column="type"/>
+        <result property="subjectName" column="subject_name"/>
+        <result property="gradeName"   column="grade_name"/>
+        <result property="imageUrl"    column="main_image_url"/>
+        <result property="address"     column="address_detail"/>
+        <result property="latitude"    column="latitude"/>
+        <result property="longitude"   column="longitude"/>
+        <result property="hashtags" column="hashtags"
+                jdbcType="ARRAY"
+                javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+    </resultMap>
+    <select id="findSimilarExhibition" resultMap="innerCourseItemResultMap">
+        WITH TargetGeom AS (
+            SELECT geog FROM exhibition WHERE exhibition_id = #{currentId}
+        )
+        SELECT
+            e.exhibition_id,
+            e.exhibition_name,
+            e.description,
+            e.type,
+            (SELECT cat.category_name
+             FROM curriculum_main_category cat
+                      JOIN curriculum_sub_category sub ON cat.main_category_id = sub.main_category_id
+                      JOIN exhibition_curriculum_mapping ecm_sub ON ecm_sub.sub_category_id = sub.sub_category_id
+             WHERE ecm_sub.exhibition_id = e.exhibition_id
+               AND cat.category_name = #{mainCategory}
+                LIMIT 1) AS subject_name,
+            (SELECT g.grade_name
+             FROM grade_category g
+             JOIN exhibition_grade_mapping pgm_sub ON g.grade_id = pgm_sub.grade_id
+             WHERE pgm_sub.exhibition_id = e.exhibition_id
+               AND g.grade_name = #{grade}
+             LIMIT 1) AS grade_name,
+            e.main_image_url,
+            e.latitude,
+            e.longitude,
+            -- 해시태그(sub_category_name) 배열을 생성하는 서브쿼리 추가
+            (SELECT ARRAY_AGG(DISTINCT csc.sub_category_name)
+              FROM exhibition_curriculum_mapping ecm
+              JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
+              JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+              WHERE ecm.exhibition_id = e.exhibition_id
+                AND cmc.category_name = #{mainCategory}
+            ) AS hashtags,
+            eh.science_center_name || ' ' || eh.haLl_name AS address_detail
+        FROM exhibition AS e
+            JOIN exhibition_hall AS eh ON e.exhibition_id = eh.hall_id
+        WHERE EXISTS (
+            SELECT 1
+            FROM exhibition_curriculum_mapping ecm
+            INNER JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
+            INNER JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+            WHERE ecm.exhibition_id = e.exhibition_id
+          AND cmc.category_name = #{mainCategory}
+            )
+          AND EXISTS (
+            SELECT 1
+            FROM exhibition_grade_mapping pgm
+            INNER JOIN grade_category gc ON pgm.grade_id = gc.grade_id
+            WHERE pgm.exhibition_id = e.exhibition_id
+          AND gc.grade_name = #{grade}
+            )
+          AND e.exhibition_id != #{currentId}
+          AND ST_DWithin(e.geog, (SELECT geog FROM TargetGeom), 1000000)
+        ORDER BY e.average_rating DESC, e.total_reviews DESC
+            LIMIT 10
     </select>
 
     <!-- 과학 장소 일반 필터  -->
@@ -215,6 +290,7 @@
         ORDER BY
             distance_km; -- 가까운 순서로 정렬
     </select>
+    <!-- 과학 장소 지역 필터   -->
     <select id="findPlacesByRegion" resultType="com.example.demo.dto.PlaceResultDTO">
         SELECT
             sp.place_id as id,
@@ -235,7 +311,6 @@
           AND gc.grade_name LIKE '%' || #{grade} || '%'
           AND sp.address_detail LIKE #{regionPattern}
     </select>
-
     <!-- 과학 장소 AI 추천 검색  -->
     <resultMap id="courseItemResultMap" type="com.example.demo.dto.CourseItemDTO">
         <result property="placeId"     column="place_id"/>
@@ -248,8 +323,11 @@
         <result property="address"     column="address_detail"/>
         <result property="latitude"    column="latitude"/>
         <result property="longitude"   column="longitude"/>
+        <result property="hashtags" column="hashtags"
+                jdbcType="ARRAY"
+                javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
     </resultMap>
-
     <select id="findSimilarSciencePlace" resultMap="courseItemResultMap">
         WITH TargetGeom AS (
             SELECT geog FROM science_place WHERE place_id = #{currentId}
@@ -275,7 +353,15 @@
             P.main_image_url,
             P.address_detail,
             P.latitude,
-            P.longitude
+            P.longitude,
+            -- 해시태그(sub_category_name) 배열을 생성하는 서브쿼리 추가
+            (SELECT ARRAY_AGG(DISTINCT csc.sub_category_name)
+            FROM place_curriculum_mapping pcm
+            JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+            JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+            WHERE pcm.place_id = P.place_id
+            AND cmc.category_name = #{mainCategory}
+            ) AS hashtags
         FROM science_place P
         WHERE EXISTS (
             SELECT 1

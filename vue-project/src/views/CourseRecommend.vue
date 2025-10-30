@@ -1,44 +1,38 @@
 <template>
   <div class="course-container">
 
-    <CourseMap :items="courseItems" :title="title" />
+    <CourseMap :items="courseItems" />
 
     <div class="timeline-list">
       <div v-if="type === 'exhibition'">
-        <ExhibitionCourseCard v-for="item in courseItems" :key="item.id" :item="item" courseType="전시" />
+        <AiRecommendCourseExhibitionCard v-for="item in courseItems" :key="item.id" :item="item" courseType="전시" />
       </div>
-
       <div v-else>
-        <CoursePlaceCard v-for="item in courseItems" :key="item.id" :item="item" />
+        <AiRecommendCoursePlaceCard v-for="item in courseItems" :key="item.id" :item="item" />
       </div>
-
     </div>
-
-    <RecommendationCTA />
-
   </div>
-  <!--
-  <RecommendationCTA @request-new="fetchNewCourse" />-->
+  <RecommendationCTA @request-new="fetchNewCourse" :secondary-loading="isLoading" :secondary-disabled="isLoading"
+    @save-route="saveCurrentRoute" />
 </template>
 
 <script>
 //import { ref } from 'vue';
 import CourseMap from '@/components/map/CourseMap.vue';
-//import RecommendationCTA from '@/components/RecommendationCTA.vue';
-import ExhibitionCourseCard from '@/components/card/CourseExhibitionPlaceCard.vue';
-import CoursePlaceCard from '@/components/card/CoursePlaceCard.vue';
 import RecommendationCTA from '@/components/RecommendationCTA.vue';
+import AiRecommendCourseExhibitionCard from '@/components/card/AiRecommendCourseExhibitionCard.vue';
+import AiRecommendCoursePlaceCard from '@/components/card/AiRecommendCoursePlaceCard.vue';
 
 export default {
   name: 'CourseRecommended',
   components: {
     CourseMap,
     // RecommendationCTA,
-    ExhibitionCourseCard,
-    CoursePlaceCard,
+    AiRecommendCourseExhibitionCard,
+    AiRecommendCoursePlaceCard,
     RecommendationCTA,
   },
-
+  emits: ['save-recommended-course', 'request-new-course'], // 부모로 전달할 이벤트 정의
   props: {
     courseItems: {
       type: Array,
@@ -48,8 +42,26 @@ export default {
     type: {
       type: String,
       default: 'AI 추천 코스'
+    },
+    // 부모의 로딩 상태를 받습니다.
+    isLoading: {
+      type: Boolean,
+      default: false
     }
   },
+  methods: {
+    fetchNewCourse() {
+      console.log('새로운 코스 요청');
+
+      // 부모 컴포넌트로 이벤트 전달
+      this.$emit('request-new-course');
+    },
+    saveCurrentRoute() {
+      console.log('경로 저장 요청 (CourseRecommend)');
+      // 아이템 목록을 부모로 전달
+      this.$emit('save-recommended-course', this.courseItems);
+    }
+  }
 }
 </script>
 

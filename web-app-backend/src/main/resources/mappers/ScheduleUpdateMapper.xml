@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.ScheduleUpdateMapper">
+
+    <delete id="deleteItemsByScheduleId" parameterType="long">
+        DELETE FROM final_schedule_item
+        WHERE schedule_id = #{scheduleId}
+    </delete>
+
+    <insert id="insertScheduleItems" parameterType="java.util.List">
+        INSERT INTO final_schedule_item (
+        schedule_id,
+        item_type,
+        item_id1,
+        sequence,
+        custom_name,
+        custom_address,
+        custom_latitude,
+        custom_longitude
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.scheduleId},
+            #{item.itemType},
+            #{item.sourceItemId},
+            #{item.sequence},
+            #{item.customName},
+            #{item.customAddress},
+            #{item.customLatitude},
+            #{item.customLongitude}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

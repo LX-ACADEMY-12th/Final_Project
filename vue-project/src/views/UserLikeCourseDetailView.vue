@@ -1,6 +1,5 @@
 <template>
   <div class="course-recommend-container" style="font-family: 'SUIT', sans-serif">
-    <!-- 헤더 -->
     <div class="chat-header d-flex justify-content-between align-items-center p-3 bg-white border-bottom flex-shrink-0">
       <div class="header-left" style="flex: 1;">
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
@@ -12,481 +11,91 @@
       </div>
     </div>
 
-    <CourseMap :items="courseItems" class="map-area" />
-
-    <div class="course-root-name">
-      <span>
-        {{ exhibitionName || '코스 로딩 중...' }}
-      </span>
-    </div>
-
-    <div class="course-add-btn" v-if="pageType === 'place'">
-      <button class="btn btn-primary" @click="openAddModal">
-        <i class="bi bi-plus"></i> 경로추가
-      </button>
-    </div>
-
-    <div class="scrollable-content">
-      <div class="course-list-container">
-        <div v-if="pageType === 'exhibition'">
-          <CourseExhibitionCard v-for="course in courseItems" :key="course.id" :item="course" :showControls="true"
-            couseType="전시" @edit="handleEdit" @delete="handleDelete" />
-        </div>
-
-        <div v-else-if="pageType === 'place'">
-          <CoursePlaceEditCard v-for="course in courseItems" :key="course.id" :item="course" :showControls="true"
-            couseType="답사" @edit="handleEdit" @delete="handleDelete" />
-        </div>
-
-        <div v-else>
-          <p>코스 상세 정보를 불러오는 중입니다....</p>
-        </div>
-
+    <div v-if="loading" class="status-container">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
       </div>
+      <p class="mt-2 text-muted">코스 정보를 불러오는 중입니다...</p>
     </div>
+
+    <div v-else-if="error" class="status-container">
+      <p class="text-danger">{{ error }}</p>
+      <button @click="goBack" class="btn btn-sm btn-outline-primary">목록으로 돌아가기</button>
+    </div>
+
+    <template v-else>
+      <CourseMap :items="courseItems" :key="mapKey" class="map-area" />
+
+      <div class="course-root-name">
+        <span>
+          {{ exhibitionName || '코스 이름 없음' }}
+        </span>
+      </div>
+
+      <div class="course-add-btn" v-if="pageType === 'place'">
+        <button class="btn btn-primary" @click="openAddModal">
+          <i class="bi bi-plus"></i> 경로추가
+        </button>
+      </div>
+
+      <div class="scrollable-content">
+        <div class="course-list-container">
+          <!-- 전시 타입: 드래그 없음 -->
+          <div v-if="pageType === 'exhibition'">
+            <CourseExhibitionCard v-for="course in courseItems" :key="course.id" :item="course" :showControls="true"
+              couseType="전시" @edit="handleEdit" @delete="handleDelete" />
+          </div>
+
+          <!-- 답사 타입: 드래그 가능 -->
+          <div v-else-if="pageType === 'place'">
+            <draggable v-model="courseItems" :animation="200" ghost-class="ghost-item" chosen-class="chosen-item"
+              drag-class="drag-item" @start="onDragStart" @end="onDragEnd" item-key="id">
+              <template #item="{ element }">
+                <CoursePlaceEditCard :item="element" :showControls="true" couseType="답사" @edit="handleEdit"
+                  @delete="handleDelete" class="draggable-item" />
+              </template>
+            </draggable>
+          </div>
+
+          <div v-else>
+            <p class="text-muted">잘못된 코스 타입입니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 저장 섹션 -->
+      <div class="save-section" v-if="hasChanges">
+        <div v-if="saveMessage" class="save-status-message"
+          :class="`alert-${saveStatus === 'success' ? 'success' : 'danger'}`">
+          {{ saveMessage }}
+        </div>
+        <button class="btn btn-primary save-btn-bottom" @click="saveChanges" :disabled="!hasChanges || isSaving">
+          <span v-if="isSaving" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          {{ isSaving ? '저장 중...' : '변경사항 저장' }}
+        </button>
+      </div>
+    </template>
 
     <ConfirmDeleteModal :show="showDeleteModal" @confirm="confirmDeleteItem" @close="closeDeleteModal" />
-
     <AddPlaceModal :show="showAddModal" @add-item="addNewItem" @close="closeAddModal" />
 
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+import draggable from 'vuedraggable';
+
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import AddPlaceModal from '@/components/modal/AddPlaceModal.vue';
 import CourseMap from '@/components/map/CourseMap.vue';
-import CourseExhibitionCard from '@/components/card/CourseExhibitionPlaceCard.vue';
+import CourseExhibitionCard from '@/components/card/CourseExhibitionCard.vue';
 import CoursePlaceEditCard from '@/components/card/CoursePlaceEditCard.vue';
-
-// 목록 화면과 동일한 데이터 사용 (실제로는 API에서 가져올 데이터)
-const getUserLikeCourseData = () => {
-  return [
-    {
-      id: 1,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '전시명1',
-      address: '국립과천과학관',
-      coursePlaces: ['전시명1', '전시명2', '전시명3'],
-      type: '전시',
-      courseItems: [
-        {
-          id: 1,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '습지생물코너',
-          type: '상설',
-          place: '국립중앙과학관 자연사관',
-          hashtags: ['항상성과 몸의 조절', '생명과학과 인간의 생활'],
-          lat: 36.3758,
-          lng: 127.3845
-        },
-        {
-          id: 2,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '4학년',
-          title: '빛의 원리',
-          type: '기획',
-          place: '국립과천과학관',
-          hashtags: ['파동', '빛', '물리1', '체험'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 3,
-          number: 3,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '화학',
-          grade: '5학년',
-          title: '미래 에너지',
-          type: '상설',
-          place: '서울시립과학관',
-          hashtags: ['에너지', '화학 반응', '미래 기술'],
-          lat: 37.6094,
-          lng: 127.0706
-        }
-      ]
-    },
-    {
-      id: 2,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '화학',
-      grade: '3학년',
-      ExhibitionName: '전시명2',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 4,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '화학',
-          grade: '3학년',
-          title: '화학 실험실',
-          type: '상설',
-          place: '국립과천과학관 화학관',
-          hashtags: ['화학 반응', '실험'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 5,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '화학',
-          grade: '3학년',
-          title: '분자 모형 전시',
-          type: '상설',
-          place: '국립과천과학관 분자관',
-          hashtags: ['분자', '화학 구조'],
-          lat: 37.4360,
-          lng: 126.9750
-        }
-      ]
-    },
-    {
-      id: 3,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '물리',
-      grade: '3학년',
-      ExhibitionName: '전시명3',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 6,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '3학년',
-          title: '물리 체험관',
-          type: '상설',
-          place: '국립과천과학관 물리관',
-          hashtags: ['역학', '물리 체험'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 7,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '3학년',
-          title: '전기 실험실',
-          type: '상설',
-          place: '국립과천과학관 전기관',
-          hashtags: ['전기', '전자기학'],
-          lat: 37.4365,
-          lng: 126.9748
-        },
-        {
-          id: 8,
-          number: 3,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '물리',
-          grade: '3학년',
-          title: '자기장 체험',
-          type: '상설',
-          place: '국립과천과학관 자기관',
-          hashtags: ['자기장', '전자기학'],
-          lat: 37.4368,
-          lng: 126.9752
-        }
-      ]
-    },
-    {
-      id: 4,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '생명',
-      grade: '3학년',
-      ExhibitionName: '생명과학 탐험',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 9,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '생명',
-          grade: '3학년',
-          title: '생명의 기원',
-          type: '상설',
-          place: '국립과천과학관 생명관',
-          hashtags: ['생명의 기원', '진화'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 10,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '생명',
-          grade: '3학년',
-          title: 'DNA 모형',
-          type: '상설',
-          place: '국립과천과학관 유전자관',
-          hashtags: ['DNA', '유전자'],
-          lat: 37.4366,
-          lng: 126.9749
-        }
-      ]
-    },
-    {
-      id: 5,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '지구과학 여행',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 11,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '지구의 구조',
-          type: '상설',
-          place: '국립과천과학관 지구관',
-          hashtags: ['지구 구조', '지질학'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 12,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '화석 전시관',
-          type: '상설',
-          place: '국립과천과학관 화석관',
-          hashtags: ['화석', '고생물학'],
-          lat: 37.4370,
-          lng: 126.9755
-        }
-      ]
-    },
-    {
-      id: 6,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '천체 관측',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 13,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '천체 투영관',
-          type: '상설',
-          place: '국립과천과학관 천체관',
-          hashtags: ['천체', '천문학'],
-          lat: 37.4363,
-          lng: 126.9746
-        }
-      ]
-    },
-    {
-      id: 7,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '우주 탐험',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 14,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '우주선 모형',
-          type: '상설',
-          place: '국립과천과학관 우주관',
-          hashtags: ['우주', '우주선'],
-          lat: 37.4363,
-          lng: 126.9746
-        },
-        {
-          id: 15,
-          number: 2,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '달 탐사',
-          type: '상설',
-          place: '국립과천과학관 달관',
-          hashtags: ['달', '우주 탐사'],
-          lat: 37.4372,
-          lng: 126.9758
-        }
-      ]
-    },
-    {
-      id: 8,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '환경 보호',
-      address: '국립과천과학관',
-      type: '전시',
-      courseItems: [
-        {
-          id: 16,
-          number: 1,
-          color: '#e53e3e',
-          imageUrl: 'https://placehold.co/600x400',
-          subject: '지구',
-          grade: '3학년',
-          title: '환경 오염',
-          type: '상설',
-          place: '국립과천과학관 환경관',
-          hashtags: ['환경', '오염'],
-          lat: 37.4363,
-          lng: 126.9746
-        }
-      ]
-    },
-    {
-      id: 9,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '장소명1',
-      address: '장소명1 주소',
-      type: '답사',
-      courseItems: [
-        {
-          id: 17,
-          number: 1,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '해운대 해변',
-          type: '답사',
-          place: '부산시 해운대구 해운대해변로',
-          hashtags: ['고체지구', '유체지구', '천체'],
-          lat: 35.1587,
-          lng: 129.1604
-        },
-        {
-          id: 18,
-          number: 2,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '동백섬',
-          type: '답사',
-          place: '부산시 해운대구 동백로',
-          hashtags: ['지질학', '해안 지형'],
-          lat: 35.1532,
-          lng: 129.1635
-        },
-        {
-          id: 19,
-          number: 3,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '해운대 온천',
-          type: '답사',
-          place: '부산시 해운대구 중동',
-          hashtags: ['지하수', '온천'],
-          lat: 35.1598,
-          lng: 129.1588
-        }
-      ]
-    },
-    {
-      id: 10,
-      imageUrl: 'https://placehold.co/600x400',
-      subject: '지구',
-      grade: '3학년',
-      ExhibitionName: '장소명2',
-      address: '장소명2 주소',
-      type: '답사',
-      courseItems: [
-        {
-          id: 20,
-          number: 1,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '경복궁 정문',
-          type: '답사',
-          place: '서울특별시 종로구 사직로 161',
-          hashtags: ['역사', '문화재'],
-          lat: 37.5796,
-          lng: 126.9770
-        },
-        {
-          id: 21,
-          number: 2,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '근정전',
-          type: '답사',
-          place: '경복궁 근정전',
-          hashtags: ['궁궐 건축', '조선 시대'],
-          lat: 37.5794,
-          lng: 126.9769
-        },
-        {
-          id: 22,
-          number: 3,
-          color: '#3B82F6',
-          imageUrl: 'https://placehold.co/600x400/AACCFF/000000',
-          subject: '지구',
-          grade: '3학년',
-          title: '경회루',
-          type: '답사',
-          place: '경복궁 경회루',
-          hashtags: ['전통 건축', '연못'],
-          lat: 37.5802,
-          lng: 126.9765
-        }
-      ]
-    }
-  ];
-};
 
 export default {
   name: 'UserLikeCourseDetail',
   components: {
+    draggable,
     CourseMap,
     ConfirmDeleteModal,
     AddPlaceModal,
@@ -495,132 +104,275 @@ export default {
   },
   data() {
     return {
-      course: null, // history.state에서 받은 원본 데이터
+      course: null,
       error: null,
+      loading: true,
 
-      // 템플릿에서 직접 사용하는 데이터
-      exhibitionName: '', // 코스 이름 (e.g., '전시명1')
-      pageType: '',       // 'exhibition' or 'place'
-      courseItems: [],    // 지도와 목록에 표시될 실제 장소 배열
+      exhibitionName: '',
+      pageType: '',
+      courseItems: [],
+      originalCourseItems: [], // 원본 데이터 보관
 
       // 모달 상태
       showDeleteModal: false,
       showAddModal: false,
       itemToDeleteId: null,
+
+      // 저장 관련 상태
+      hasChanges: false,
+      isSaving: false,
+      saveMessage: '',
+      saveStatus: '', // 'success' or 'error'
+
+      // 드래그 상태
+      isDragging: false,
+
+      userId: 1, // 백엔드 호출로 유저 id
+
+      mapKey: 0, // 지도 강제 리렌더링용
     };
   },
 
-  created() {
-    const courseData = history.state?.courseData;
-
-    if (courseData) {
-      // 1. history.state에서 직접 로드 (목록에서 진입 시)
-      console.log('전달받은 코스 데이터 (history.state):', courseData);
-      this.course = courseData; // 원본 저장
-
-      // 템플릿이 사용할 수 있도록 데이터 매핑
-      this.exhibitionName = courseData.ExhibitionName;
-      this.courseItems = courseData.courseItems || []; // 실제 장소 목록
-
-      // '전시'/'답사' 문자열을 'exhibition'/'place'로 변환
-      this.pageType = courseData.type === '전시' ? 'exhibition' : 'place';
-
-    } else {
-      // 2. 새로고침 또는 URL 직접 접근 시 (Fallback)
-      console.log('history.state 없음. URL 파라미터로 데이터 조회 시도.');
-
-      // URL 파라미터에서 정보 가져오기
-      const nameFromParams = this.$route.params.ExhibitionName;
-      const idFromParams = this.$route.params.courseId; // courseId도 확인
-      const typeFromQuery = this.$route.query.type; // '전시' or '답사'
-
-      console.log('URL 파라미터:', { nameFromParams, idFromParams, typeFromQuery });
-
-      if (nameFromParams || idFromParams) {
-        // 이름 또는 ID로 데이터 찾기
-        const searchKey = nameFromParams || idFromParams;
-        this.exhibitionName = searchKey;
-
-        // 쿼리 파라미터 기준으로 pageType 설정
-        this.pageType = typeFromQuery === '전시' ? 'exhibition' : 'place';
-
-        // 목록화면과 동일한 데이터에서 코스 아이템 목록 조회
-        this.fetchCourseData(searchKey);
-      } else {
-        this.error = '코스 정보를 불러올 수 없습니다. 목록으로 돌아가서 다시 시도해주세요.';
-      }
+  watch: {
+    courseItems: {
+      handler(newItems, oldItems) {
+        // 드래그 중이 아닐 때만 변경 감지
+        if (!this.isDragging && oldItems && oldItems.length > 0) {
+          this.checkForChanges();
+        }
+      },
+      deep: true
     }
   },
 
+  created() {
+    this.loadCourse();
+  },
+
   methods: {
-    // 목록화면과 동일한 데이터에서 이름(key) 또는 ID로 찾아오는 로직
-    fetchCourseData(searchKey) {
-      const allCourseData = getUserLikeCourseData();
-      console.log('전체 코스 데이터:', allCourseData);
-      console.log('찾으려는 검색키:', searchKey);
-      console.log('사용 가능한 코스명들:', allCourseData.map(course => course.ExhibitionName));
-      console.log('사용 가능한 코스ID들:', allCourseData.map(course => course.id));
+    async loadCourse() {
+      this.loading = true;
+      this.error = null;
+      let targetCourse = null;
 
-      // ID 또는 ExhibitionName으로 코스 찾기
-      const targetCourse = allCourseData.find(course => {
-        const matchById = course.id == searchKey; // == 사용으로 타입 변환 허용
-        const matchByName = course.ExhibitionName === searchKey;
-        console.log(`비교 ID: ${course.id} == ${searchKey} → ${matchById}`);
-        console.log(`비교 이름: "${course.ExhibitionName}" === "${searchKey}" → ${matchByName}`);
-        return matchById || matchByName;
-      });
+      try {
+        const courseId = this.$route.params.courseId;
 
-      if (targetCourse) {
-        // 원본 수정을 방지하기 위해 깊은 복사
-        this.courseItems = JSON.parse(JSON.stringify(targetCourse.courseItems || []));
-        console.log(`'${searchKey}' 코스 데이터를 찾았습니다:`, this.courseItems);
-        this.exhibitionName = targetCourse.ExhibitionName; // 실제 이름으로 업데이트
-      } else {
-        console.error(`'${searchKey}'에 해당하는 코스 데이터를 찾을 수 없습니다.`);
-        console.error('사용 가능한 코스명:', allCourseData.map(c => c.ExhibitionName));
-        console.error('사용 가능한 코스ID:', allCourseData.map(c => c.id));
-
-        // 유사한 이름 찾기 (대소문자 무시, 공백 제거)
-        const normalizedSearchKey = searchKey.toString().replace(/\s+/g, '').toLowerCase();
-        const similarCourse = allCourseData.find(course => {
-          const normalizedCourseName = course.ExhibitionName.replace(/\s+/g, '').toLowerCase();
-          return normalizedCourseName === normalizedSearchKey;
-        });
-
-        if (similarCourse) {
-          console.log('유사한 코스를 찾았습니다:', similarCourse.ExhibitionName);
-          this.courseItems = JSON.parse(JSON.stringify(similarCourse.courseItems || []));
-          this.exhibitionName = similarCourse.ExhibitionName;
-        } else {
-          this.error = '해당 코스 데이터를 찾을 수 없습니다.';
-          this.courseItems = []; // 데이터를 못찾으면 빈 배열로 설정
+        // 1단계: history.state 확인
+        const courseDataFromState = history.state?.courseData;
+        if (courseDataFromState && courseDataFromState.id == courseId) {
+          console.log('history.state에서 코스 데이터 로드:', courseDataFromState);
+          targetCourse = courseDataFromState;
         }
+
+        // 2단계: sessionStorage 확인
+        if (!targetCourse) {
+          const storedData = sessionStorage.getItem(`courseData_${courseId}`);
+          if (storedData) {
+            console.log('sessionStorage에서 코스 데이터 로드');
+            targetCourse = JSON.parse(storedData);
+          }
+        }
+
+        // 3단계: API fallback
+        if (!targetCourse) {
+          console.log('저장된 데이터 없음. API로 fallback 시도');
+          const response = await axios.get(`http://localhost:8080/api/schedules/user/${this.userId}`);
+
+          const allMappedCourses = response.data.map(schedule => {
+            const mappedCourseItems = schedule.items
+              .map(item => ({
+                id: item.sourceItemId,
+                number: item.sequence,
+                title: item.itemName,
+                place: item.addressDetail,
+                imageUrl: item.mainImageUrl,
+                lat: item.latitude,
+                lng: item.longitude,
+                type: null, subject: null, grade: null, hashtags: [],
+              }))
+              .sort((a, b) => a.number - b.number); // sequence 순서로 정렬
+
+            return {
+              id: schedule.scheduleId,
+              ExhibitionName: schedule.scheduleName,
+              type: schedule.sourceCourseType,
+              imageUrl: mappedCourseItems[0]?.imageUrl || 'https://placehold.co/600x400',
+              address: mappedCourseItems[0]?.place || '정보 없음',
+              coursePlaces: mappedCourseItems.map(item => item.title),
+              courseItems: mappedCourseItems,
+              subject: null, grade: null,
+            };
+          });
+
+          targetCourse = allMappedCourses.find(course => course.id == courseId);
+
+          if (!targetCourse) {
+            throw new Error(`ID [${courseId}]에 해당하는 코스를 찾을 수 없습니다.`);
+          }
+
+          sessionStorage.setItem(`courseData_${courseId}`, JSON.stringify(targetCourse));
+        }
+
+        // 데이터 설정
+        this.course = targetCourse;
+        this.exhibitionName = targetCourse.ExhibitionName;
+        // 커스텀 아이템에 임시 ID 할당
+        this.courseItems = (targetCourse.courseItems || []).map(item => {
+          if (item.itemType === 'custom' && !item.id) {
+            return {
+              ...item,
+              id: `custom_${item.title}_${item.place}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
+            };
+          }
+          return item;
+        });
+        this.originalCourseItems = JSON.parse(JSON.stringify(this.courseItems)); // 깊은 복사
+
+        if (targetCourse.type === 'inner_course') {
+          this.pageType = 'exhibition';
+        } else if (targetCourse.type === 'ai_course') {
+          this.pageType = 'place';
+        } else {
+          this.pageType = 'exhibition';
+        }
+
+      } catch (err) {
+        console.error("코스 상세 정보 로드 실패:", err);
+        this.error = err.message || '코스 정보를 불러오는 데 실패했습니다.';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // 변경사항 확인 메서드
+    checkForChanges() {
+      // 각 아이템의 고유 식별자 생성 (id 또는 커스텀 아이템의 경우 대체 식별자)
+      const createItemIdentifier = (item) => {
+        if (item.id) return item.id;
+        // 커스텀 아이템의 경우 여러 속성을 조합한 고유 식별자 생성
+        return `custom_${item.title}_${item.place}_${item.lat}_${item.lng}`;
+      };
+
+      // 현재 순서와 원본 순서 비교
+      const currentOrder = this.courseItems.map((item, index) => ({
+        identifier: createItemIdentifier(item),
+        position: index
+      }));
+
+      const originalOrder = this.originalCourseItems.map((item, index) => ({
+        identifier: createItemIdentifier(item),
+        position: index
+      }));
+
+      // 순서 변경 확인
+      const orderChanged = JSON.stringify(currentOrder) !== JSON.stringify(originalOrder);
+
+      // 아이템 개수 변경 확인
+      const countChanged = this.courseItems.length !== this.originalCourseItems.length;
+
+      // 새로운 아이템 추가 확인
+      const currentIdentifiers = new Set(currentOrder.map(item => item.identifier));
+      const originalIdentifiers = new Set(originalOrder.map(item => item.identifier));
+      const hasNewItems = currentIdentifiers.size !== originalIdentifiers.size ||
+        ![...currentIdentifiers].every(id => originalIdentifiers.has(id));
+
+      this.hasChanges = orderChanged || countChanged || hasNewItems;
+
+      if (this.hasChanges) {
+        this.reorderCourseItems();
+      }
+    },
+
+    // 드래그 시작
+    onDragStart() {
+      this.isDragging = true;
+      console.log('드래그 시작');
+    },
+
+    // 변경사항 저장
+    async saveChanges() {
+      if (!this.hasChanges || this.isSaving) return;
+
+      this.isSaving = true;
+      this.saveMessage = '';
+
+      try {
+        const scheduleId = this.course.id;
+
+        // 백엔드로 전송할 데이터 구성
+        const updateData = {
+          scheduleId: scheduleId,
+          items: this.courseItems.map((item, index) => {
+
+            const isCustom = item.itemType === 'custom';
+
+            return {
+              itemId: item.itemId || null, // 기존 아이템의 경우 itemId 포함
+              sourceItemId: isCustom ? null : item.id,
+              sequence: index + 1,
+              itemType: item.itemType,
+              customName: isCustom ? (item.title || null) : null,
+              customAddress: isCustom ? (item.place || null) : null,
+              customLatitude: isCustom ? (item.lat || null) : null,
+              customLongitude: isCustom ? (item.lng || null) : null,
+            };
+          })
+        };
+
+        console.log('저장할 데이터:', JSON.stringify(updateData, null, 2));
+
+        // API 호출 - Post 요청
+        const response = await axios.post(
+          `http://localhost:8080/api/schedules/items`,
+          updateData
+        );
+
+        if (response.status === 200) {
+          this.saveStatus = 'success';
+          this.saveMessage = '변경사항이 성공적으로 저장되었습니다.';
+
+          // 원본 데이터 업데이트
+          this.originalCourseItems = JSON.parse(JSON.stringify(this.courseItems));
+          this.hasChanges = false;
+
+          // sessionStorage 업데이트
+          const updatedCourse = { ...this.course, courseItems: this.courseItems };
+          sessionStorage.setItem(`courseData_${this.course.id}`, JSON.stringify(updatedCourse));
+
+          // 3초 후 메시지 숨기기
+          setTimeout(() => {
+            this.saveMessage = '';
+          }, 3000);
+        }
+
+      } catch (error) {
+        console.error('저장 실패:', error);
+        this.saveStatus = 'error';
+        this.saveMessage = error.response?.data?.message || '저장 중 오류가 발생했습니다.';
+
+        // 5초 후 메시지 숨기기
+        setTimeout(() => {
+          this.saveMessage = '';
+        }, 5000);
+      } finally {
+        this.isSaving = false;
       }
     },
 
     goBack() {
-      this.$router.back();
+      if (this.hasChanges) {
+        if (confirm('저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?')) {
+          this.$router.back();
+        }
+      } else {
+        this.$router.back();
+      }
     },
 
-    // --- 수정/삭제 이벤트 핸들러 ---
     handleEdit(id) {
       console.log('수정할 ID:', id);
-      // (TODO: 수정 로직 구현)
-    },
-
-    handleDelete(id) {
-      console.log('삭제 모달 열기, ID:', id);
-      this.itemToDeleteId = id;
-      this.showDeleteModal = true;
-    },
-
-    // --- 삭제 모달용 함수 ---
-    confirmDeleteItem() {
-      console.log('삭제 확정, ID:', this.itemToDeleteId);
-      this.courseItems = this.courseItems.filter(item => item.id !== this.itemToDeleteId);
-      // 삭제 후 순서(number) 재정렬
-      this.reorderCourseItems();
-      this.closeDeleteModal();
+      // TODO: 수정 로직 구현
     },
 
     closeDeleteModal() {
@@ -628,7 +380,6 @@ export default {
       this.showDeleteModal = false;
     },
 
-    // --- 장소 추가 모달용 함수 ---
     openAddModal() {
       this.showAddModal = true;
     },
@@ -637,35 +388,64 @@ export default {
       this.showAddModal = false;
     },
 
-    addNewItem(place) {
-      console.log('추가할 장소:', place); // AddPlaceModal에서 전달된 place 객체
-
-      // '답사' (place) 형식에 맞게 새 아이템 생성
-      // (place 객체에 name, address, lat, lng가 있다고 가정)
-      const newItem = {
-        id: new Date().getTime(), // 임시 고유 ID
-        number: this.courseItems.length + 1,
-        color: '#3B82F6', // 답사 기본 색상
-        imageUrl: place.imageUrl || 'https://placehold.co/600x400/AACCFF/000000',
-        subject: place.subject || '미지정', // (모달에서 받거나 임시값)
-        grade: place.grade || '공통',   // (모달에서 받거나 임시값)
-        title: place.name,  // 모달에서 받은 장소 이름
-        type: '답사',
-        place: place.address, // 모달에서 받은 주소
-        hashtags: ['새로 추가됨'],
-        lat: place.lat, // 모달에서 받은 위도
-        lng: place.lng  // 모달에서 받은 경도
-      };
-
-      this.courseItems.push(newItem); // 데이터 배열에 추가
-      this.closeAddModal(); // 모달 닫기
-    },
-
-    // 아이템 삭제/순서 변경 시 number를 다시 정렬하는 함수
     reorderCourseItems() {
       this.courseItems.forEach((item, index) => {
         item.number = index + 1;
       });
+    },
+
+    // 지도 강제 업데이트 메서드 추가
+    updateMapKey() {
+      this.mapKey += 1;
+      console.log('지도 키 업데이트:', this.mapKey);
+    },
+
+    // 드래그 종료시 지도 업데이트
+    onDragEnd() {
+      this.isDragging = false;
+      console.log('드래그 종료');
+      this.checkForChanges();
+      this.updateMapKey(); // 추가
+    },
+
+    // 아이템 삭제시 지도 업데이트
+    confirmDeleteItem() {
+      console.log('삭제 확정, ID:', this.itemToDeleteId);
+      this.courseItems = this.courseItems.filter(item => item.id !== this.itemToDeleteId);
+      this.checkForChanges();
+      this.updateMapKey(); // 추가
+      this.closeDeleteModal();
+    },
+
+    // 아이템 추가시 고유 ID 생성 + 지도 업데이트
+    addNewItem(place) {
+      console.log('추가할 장소:', JSON.stringify(place, null, 2));
+
+      const newItem = {
+        id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 고유 ID 생성
+        number: this.courseItems.length + 1,
+        color: '#3B82F6',
+        imageUrl: place.imageUrl || 'https://placehold.co/600x400/AACCFF/000000',
+        subject: place.subject || '미지정',
+        grade: place.grade || '공통',
+        title: place.name,
+        type: '사용자 추가 장소',
+        place: place.address,
+        hashtags: ['새로 추가됨'],
+        lat: place.lat,
+        lng: place.lng,
+        itemType: 'custom',
+        isNew: true,
+        customName: place.name,
+        customAddress: place.address,
+        customLatitude: place.lat,
+        customLongitude: place.lng,
+      };
+
+      this.courseItems.push(newItem);
+      this.checkForChanges();
+      this.updateMapKey(); // 추가
+      this.closeAddModal();
     }
   }
 }
@@ -675,8 +455,96 @@ export default {
 .course-recommend-container {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   overflow: hidden;
-  height: calc(100vh - 60px);
+}
+
+.save-section {
+  padding: 1rem;
+  background-color: white;
+  border-top: 1px solid #eee;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.save-status-message {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.alert-success {
+  background-color: #d1edff;
+  color: #0c5460;
+  border: 1px solid #b8daff;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.save-btn-bottom {
+  width: 327px;
+  height: 48px;
+  border-radius: 30px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.save-btn-bottom:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* 드래그 관련 스타일 */
+.draggable-item {
+  transition: transform 0.2s ease;
+  cursor: grab;
+}
+
+.draggable-item:active {
+  cursor: grabbing;
+}
+
+.ghost-item {
+  opacity: 0.5;
+  background-color: #f8f9fa;
+}
+
+.chosen-item {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.drag-item {
+  transform: rotate(5deg);
+  opacity: 0.8;
+}
+
+/* 기존 스타일들... */
+.status-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  text-align: center;
 }
 
 .map-area {
@@ -697,13 +565,12 @@ export default {
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
+  margin-bottom: 1rem;
 }
 
-/* [헤더]
-   채팅방 헤더와 동일한 구조
-*/
 .chat-header {
   position: relative;
+  flex-shrink: 0;
 }
 
 .chat-header .header-left,

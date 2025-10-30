@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.AiCourseMapper">
+    <insert id="insertAiRecommendedCourse" parameterType="com.example.demo.dto.AiRecommendedCourseDTO"
+                                                                    useGeneratedKeys="true" keyProperty="aiCourseId" keyColumn="ai_course_id">
+    INSERT INTO ai_recommended_course (
+    course_name
+    <if test="sourceCourseType == 'ai_course'">
+        , source_place_id
+    </if>
+    <if test="sourceCourseType == 'inner_course'">
+        , source_exhibition_id
+    </if>
+    )
+    VALUES (
+    #{courseName}
+    <if test="sourceCourseType == 'ai_course'">
+        , #{sourceId}
+    </if>
+    <if test="sourceCourseType == 'inner_course'">
+        , #{sourceId}
+    </if>
+    )
+    </insert>
+
+    <insert id="insertAiCourseItems" parameterType="java.util.List">
+        INSERT INTO ai_course_item (ai_course_id, place_id, sequence, exhibition_id)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.aiCourseId}, #{item.placeId}, #{item.sequence}, #{item.exhibitionId})
+        </foreach>
+    </insert>
+
+</mapper>
