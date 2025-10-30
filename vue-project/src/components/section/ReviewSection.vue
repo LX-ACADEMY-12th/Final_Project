@@ -289,7 +289,6 @@ export default {
           limit: 3 // ⭐️ UI에 표시할 썸네일 개수
         };
 
-        // ❗️ [중요] 이 API는 백엔드에 새로 만들어야 할 수 있습니다.
         // targetId/Type에 해당하는 "모든" 사진 리뷰 중 
         // 최신순 4개의 썸네일(reviewId, url)을 반환하는 API입니다.
         const { data: thumbs } = await axios.get(`${API_BASE}/api/reviews/photos-summary`, { params });
