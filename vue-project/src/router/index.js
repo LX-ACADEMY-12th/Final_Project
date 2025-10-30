@@ -9,6 +9,7 @@ import UserLikeCourseListView from '@/views/UserLikeCourseListView.vue'
 import UserLikeCourseDetailView from '@/views/UserLikeCourseDetailView.vue'
 import PlaceDetailsView from '@/views/PlaceDetailsView.vue'
 import PlaceListView from '@/views/PlaceListView.vue'
+import ReviewPhotoGridView from '@/views/ReviewPhotoGridView.vue'
 import LoginView from '@/views/LoginView.vue'
 import SignupView from '@/views/SignupView.vue'
 
@@ -81,6 +82,13 @@ const router = createRouter({
       path: '/place/:id',
       name: 'PlaceDetail',
       component: PlaceDetailsView, // 같은 뷰 재사용
+    },
+    // 장소/전시의 모든 사진을 모아보는 페이지
+    {
+      path: '/photos/:targetType/:targetId',
+      name: 'AllPhotos',
+      component: ReviewPhotoGridView, 
+      props: true
     },
   ],
 })
