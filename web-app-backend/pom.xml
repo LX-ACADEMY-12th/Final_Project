@@ -95,11 +95,12 @@
             <artifactId>google-cloud-vertexai</artifactId>
             <version>1.2.0</version>
         </dependency>
-        <dependency>
+        <!--
+		<dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-storage</artifactId>
             <version>LATEST_VERSION</version>
-        </dependency>
+        </dependency>  -->
     </dependencies>
 
     <dependencyManagement>
