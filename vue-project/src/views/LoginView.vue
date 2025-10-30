@@ -293,7 +293,7 @@ export default {
   font-size: 16px;
   font-weight: 500;
   color: #fff;
-  background-color: #3674B5;
+  background-color: #4A7CEC;
   border: none;
   border-radius: 15px;
   cursor: pointer;
@@ -301,7 +301,7 @@ export default {
 }
 
 .submit-button:hover {
-  background-color: #3367D6;
+  background-color: #4A7CEC;
 }
 
 .signup-link-wrapper {
@@ -313,7 +313,7 @@ export default {
 
 .signup-link-wrapper a {
   font-weight: 500;
-  color: #3674B5;
+  color: #4A7CEC;
   text-decoration: none;
 }
 

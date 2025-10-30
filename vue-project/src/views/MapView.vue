@@ -17,9 +17,11 @@
         <div class="fw-bold" style="font-size: 1.1rem;">김민수 학부모님</div>
       </div>
       <button class="btn btn-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-        style="width: 48px; height: 48px;" @click.prevent="isModalOpen = true">
+        style="width: 48px; height: 48px; background-color: #4A7CEC; border-color: #4A7CEC; color: white;"
+        @click.prevent="isModalOpen = true">
         <i class="bi bi-search fs-5"></i>
       </button>
+
     </div>
     <div class="position-absolute d-flex flex-row" style="z-index: 10; top: 104px; left: 18px; gap: 8px;">
       <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
@@ -437,7 +439,7 @@ const handleNavigation = (navItemName) => {
   /* 원 크기 */
   border-radius: 50%;
   /* 동그랗게 */
-  background-color: #007AFF;
+  background-color: #4A7CEC;
   /* 파란색 */
   border: 3px solid white;
   /* 흰색 테두리 */
