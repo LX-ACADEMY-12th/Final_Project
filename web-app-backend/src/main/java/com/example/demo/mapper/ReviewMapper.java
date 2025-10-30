@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.example.demo.dto.PhotoThumbDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
 import com.example.demo.dto.ReviewResponseDTO;
 
@@ -92,4 +93,8 @@ public interface ReviewMapper {
     // ===================== 사진 썸네일 띄우기 ====================
     List<java.util.Map<String, Object>> findPhotosByReviewIds(
     								@Param("reviewIds") List<Long> reviewIds);
+    
+    List<PhotoThumbDTO> findPhotoThumbnailsByTarget(String targetType, Long targetId, int limit);
+    
+    
 }

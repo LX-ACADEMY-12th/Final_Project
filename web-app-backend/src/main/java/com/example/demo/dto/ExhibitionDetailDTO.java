@@ -27,6 +27,7 @@ public class ExhibitionDetailDTO {
 	private String categoryName; // 물,화,생,지
 	private String subCategoryName; // 빛과 파동 -- 이런식으로 중분류
 	private String grade; // 학년 태그
-	
+	// ⭐️ [추가] 사진 리뷰 총 개수
+	private Long totalPhotoReviews;
 	
 }

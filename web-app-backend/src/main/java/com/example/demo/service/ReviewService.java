@@ -17,6 +17,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.example.demo.dto.PageResponseDTO;
+import com.example.demo.dto.PhotoThumbDTO;
 import com.example.demo.dto.PlaceDetailDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
 import com.example.demo.dto.ReviewResponseDTO;
@@ -141,6 +142,12 @@ public class ReviewService {
             page,           // pageNumber
             size            // pageSize
         );
+	}
+	
+	// 리뷰 후기 아래 사진들
+	public List<PhotoThumbDTO> findPhotoThumbnailsByTarget(String targetType, Long targetId, int limit) {
+	    // ⭐️ 매퍼를 호출합니다.
+	    return reviewMapper.findPhotoThumbnailsByTarget(targetType, targetId, limit);
 	}
 	
 	

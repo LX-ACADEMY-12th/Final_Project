@@ -13,7 +13,7 @@
         :current-user-id="currentUserId"
         :rating="exhibition.rating" 
         :review-count="exhibition.reviewCount"
-        :photo-review-count="exhibition.photoReviewCount || 0" 
+        :photo-review-count="photoReviewCount || 0" 
         :is-place="isPlace" 
         @show-modal="showModal" 
         @edit-review="handleEditReview"
@@ -91,6 +91,10 @@ export default {
       required: true
     },
     currentUserId: [String, Number],
+    photoReviewCount: {
+      type: Number,
+      default: 0
+    }
   },
 
   // 모든 데이터를 중앙에서 관리합니다.
