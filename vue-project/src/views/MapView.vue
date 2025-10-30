@@ -92,16 +92,25 @@ export default {
 </script>
 
 <script setup>
-import { ref, onMounted, watch, onActivated } from 'vue';
+import { ref, onMounted, watch, onActivated, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import axios from '@/api/axiosSetup';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import FilterModal from '@/components/modal/FilterModal.vue';
 import PlaceCard from '@/components/card/PlaceCard.vue';
 // Haversine 거리 계산 함수 import
 // import { calculateDistance } from '@/utils/distance'; // (경로는 실제 파일 위치에 맞게 수정!)
+// 🟢 Pinia 스토어 관련 import 추가
+import { useAuthStore } from '@/stores/authStore'; 
+import { storeToRefs } from 'pinia';
 
 const router = useRouter();
+
+// 🟢 [추가] Pinia 스토어 초기화 및 상태 가져오기
+const authStore = useAuthStore();
+// user 객체와 isLoggedIn 상태를 반응형으로 가져옵니다.
+const { user, isLoggedIn } = storeToRefs(authStore);
+
 const selectedTab = ref('전시');
 const selectedNavItem = ref('지도');
 const isModalOpen = ref(false);
@@ -110,11 +119,15 @@ const map = ref(null);
 const markers = ref([]);
 const currentLocationMarker = ref(null);
 
-// API 기본 경로 설정 (MyPageView에서 사용한 것과 동일)
-const API_BASE_URL = 'http://localhost:8080/api/user';
-
-// ⭐ 사용자 이름 상태를 정의합니다. (초기값: '로그인 필요') ⭐
-const userName = ref(' '); 
+// 🟢 [추가] user 상태에 따라 화면에 표시할 이름을 계산하는 computed 속성
+const userName = computed(() => {
+    // user.value에 정보가 있고 name이 있다면 'OOO 학부모님' 형식으로 반환
+    if (user.value?.name) {
+        return `${user.value.name} 학부모님`;
+    }
+    // user 정보가 없으면 기본 메시지 반환
+    return '로그인 필요';
+});
 
 // --- 필터 및 검색 상태 ---
 const locationType = ref('all'); // 'all', 'radius', 'region' (이름 및 기본값 변경)
@@ -143,46 +156,6 @@ const changeTab = (tabName) => {
   selectedTab.value = tabName;
   router.replace({ query: { tab: tabName } });
   performSearch();
-};
-
-// ⭐ 사용자 이름(정보)을 가져오는 비동기 함수를 정의합니다. ⭐
-const fetchUserName = async () => {
-  // 1. 로컬 또는 세션 스토리지에서 인증 토큰을 가져옵니다.
-  const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
-
-  if (!token) {
-    console.log('토큰 없음. 로그인 필요 상태로 표시.');
-    userName.value = ' ';
-    return;
-  }
-
-  try {
-    // 2. 백엔드 API 호출: /api/user/info
-    const response = await axios.get(`${API_BASE_URL}/info`, {
-      headers: {
-        'Authorization': `Bearer ${token}` // JWT 토큰 형식으로 전송
-      }
-    });
-
-    // 3. 성공적으로 사용자 정보를 가져왔다면 이름만 업데이트합니다.
-    const userInfo = response.data;
-
-    // 백엔드 응답 구조에 따라 'name' 필드가 사용자 이름을 담고 있다고 가정
-    if (userInfo && userInfo.name) { 
-      userName.value = `${userInfo.name} 학부모님`;
-    } else {
-      userName.value = '사용자 없음';
-    }
-
-    console.log('지도 컴포넌트: 사용자 이름 로드 성공:', userName.value);
-
-  } catch (error) {
-    console.error('지도 컴포넌트: 사용자 정보 로드 실패:', error);
-    // 인증 실패 시 토큰 제거 및 이름 초기화
-    localStorage.removeItem('user-auth-token');
-    sessionStorage.removeItem('user-auth-token');
-    userName.value = '로그인 필요';
-  }
 };
 
 // 상세 페이지 이동
@@ -387,9 +360,7 @@ const performSearch = async () => {
 
 // --- 맵 초기화 시 첫 검색 실행 ---
 onMounted(async () => {
-   // ⭐ onMounted 시 사용자 이름 로드 함수를 먼저 호출합니다. ⭐
-  await fetchUserName(); 
-
+   
   if (window.kakao && window.kakao.maps) {
     const options = {
       center: new window.kakao.maps.LatLng(37.566826, 126.9786567),
