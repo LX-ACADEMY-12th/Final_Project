@@ -700,10 +700,10 @@ export default {
 }
 
 .page-btn.active {
-  background-color: #4A89F3;
+  background-color: #4A7CEC;
   /* (기존 .write-review-btn 색상과 통일) */
   color: white;
-  border-color: #4A89F3;
+  border-color: #4A7CEC;
   font-weight: bold;
 }
 

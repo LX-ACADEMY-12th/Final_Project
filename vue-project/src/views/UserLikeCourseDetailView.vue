@@ -588,7 +588,7 @@ export default {
   width: 327px;
   height: 48px;
   border-radius: 30px;
-  background-color: #007bff;
+  background-color: #4A7CEC;
   color: white;
   border: none;
   font-size: 16px;
