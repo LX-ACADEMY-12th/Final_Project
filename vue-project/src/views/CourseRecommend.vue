@@ -14,6 +14,8 @@
 
     </div>
 
+    <RecommendationCTA />
+
   </div>
   <!--
   <RecommendationCTA @request-new="fetchNewCourse" />-->
@@ -25,6 +27,7 @@ import CourseMap from '@/components/map/CourseMap.vue';
 //import RecommendationCTA from '@/components/RecommendationCTA.vue';
 import ExhibitionCourseCard from '@/components/card/CourseExhibitionPlaceCard.vue';
 import CoursePlaceCard from '@/components/card/CoursePlaceCard.vue';
+import RecommendationCTA from '@/components/RecommendationCTA.vue';
 
 export default {
   name: 'CourseRecommended',
@@ -33,6 +36,7 @@ export default {
     // RecommendationCTA,
     ExhibitionCourseCard,
     CoursePlaceCard,
+    RecommendationCTA,
   },
 
   props: {
