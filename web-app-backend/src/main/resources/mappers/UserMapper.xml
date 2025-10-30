@@ -2,60 +2,66 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.demo.mapper.UserMapper">
 
-	<!-- 아이디 중복 확인 -->
+    <!-- 아이디 중복 확인 (변경 없음) -->
     <select id="countByLoginId" resultType="int">
         SELECT COUNT(*)
         FROM "user"
         WHERE "login_id" = #{loginId}
     </select>
 
-	<!-- 이메일 중복 확인 -->
+    <!-- 이메일 중복 확인 (변경 없음) -->
     <select id="countByEmail" resultType="int">
         SELECT COUNT(*)
         FROM "user"
         WHERE email = #{email}
     </select>
 
-	<!-- 회원가입 -->
-   	<insert id="insertUser">
-	    INSERT INTO "user"
-	    ( "login_id", "password", "name", "email", "phone_number", "created_at" )
-	    VALUES
-	    ( #{loginId}, #{password}, #{name}, #{email}, #{phoneNumber}, NOW() )
-	</insert>
-	
-	<!-- 로그인 -->
-	<select id="selectUserByLoginIdAndPassword" resultType="com.example.demo.dto.UserDTO">
-	     SELECT "user_id", "login_id", "name", "email", "phone_number", "created_at", "updated_at"
-	     FROM "user"
-	     WHERE "login_id" = #{loginId} AND "password" = #{password}
-     </select>
-     
-    <!-- 사용자 정보 (마이페이지) -->
+    <!-- 회원가입 (변경 없음) -->
+    <insert id="insertUser" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO "user"
+            ( "login_id", "password", "name", "email", "phone_number", "created_at" )
+        VALUES
+            ( #{loginId}, #{password}, #{name}, #{email}, #{phoneNumber}, NOW() )
+    </insert>
+
+    <!-- 🔴 [삭제] 로그인 (UserService에서 비밀번호를 비교하므로 삭제) -->
+    <!-- <select id="selectUserByLoginIdAndPassword" ... </select> -->
+
+    <!-- 🟢 [유지] 'loginId'(String)로 사용자 조회 (UserService의 'login' 메서드에서 사용) -->
     <select id="selectUserByLoginId" resultType="com.example.demo.dto.UserDTO">
-        SELECT "user_id", "login_id", "name", "email", "phone_number", "gender", "region", "child_grade", "created_at", "updated_at"
+        SELECT "user_id", "login_id", "password", "name", "email", "phone_number", "gender", "region", "child_grade", "created_at", "updated_at"
         FROM "user"
         WHERE "login_id" = #{loginId}
     </select>
-    
-    <!-- 회원 탈퇴 -->
-    <delete id="deleteUserByLoginId">
+
+    <!-- 🟢 [추가] 'userId'(Long)로 사용자 조회 (PK 조회) -->
+    <!-- (UserService의 'getUserInfoByUserId' 메서드에서 사용) -->
+    <select id="selectUserById" resultType="com.example.demo.dto.UserDTO">
+        SELECT "user_id", "login_id", "name", "email", "phone_number", "gender", "region", "child_grade", "created_at", "updated_at"
+        FROM "user"
+        WHERE "user_id" = #{userId}
+    </select>
+
+    <!-- 🟢 [수정] 'userId'(Long)로 회원 탈퇴 -->
+    <!-- (id 변경: deleteUserByLoginId -> deleteUserById, WHERE 조건 변경) -->
+    <delete id="deleteUserById">
         DELETE FROM "user"
-        WHERE "login_id" = #{loginId}
+        WHERE "user_id" = #{userId}
     </delete>
-    
-    <!-- 사용자 정보 수정 -->
+
+    <!-- 🟢 [수정] 'userId'(Long)로 사용자 정보 수정 -->
+    <!-- (WHERE 조건 변경: login_id -> user_id) -->
     <update id="updateUser">
         UPDATE "user"
-        SET 
-            "name" = #{name}, 
-            "email" = #{email}, 
-            "phone_number" = #{phoneNumber}, 
+        SET
+            "name" = #{name},
+            "email" = #{email},
+            "phone_number" = #{phoneNumber},
             "gender" = #{gender},
             "region" = #{region},
             "child_grade" = #{childGrade},
             "updated_at" = NOW()
-        WHERE "login_id" = #{loginId}
+        WHERE "user_id" = #{userId}
     </update>
 
 </mapper>
