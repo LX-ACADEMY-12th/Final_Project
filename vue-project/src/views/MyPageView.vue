@@ -24,8 +24,8 @@
         </button>
       </div>
       <div>
-        <div class="fw-bold text-dark">{{ user.name || '로그인 해주세요' }}</div> 
-        <div class="small text-dark">{{ user.email || ' ' }}</div> 
+        <div class="fw-bold text-dark">{{ user.name || '로그인 해주세요' }}</div>
+        <div class="small text-dark">{{ user.email || ' ' }}</div>
       </div>
     </div>
 
@@ -71,14 +71,8 @@
       </li>
     </ul>
 
-    <SettingsModal 
-      :show="isSettingsModalOpen" 
-      :isLoggedIn="isLoggedIn"
-      @close="isSettingsModalOpen = false" 
-      @logout="handleLogout"
-      @withdraw="handleWithdraw" 
-      @login="goToLoginView" 
-    />
+    <SettingsModal :show="isSettingsModalOpen" :isLoggedIn="isLoggedIn" @close="isSettingsModalOpen = false"
+      @logout="handleLogout" @withdraw="handleWithdraw" @login="goToLoginView" />
   </div>
 </template>
 
@@ -94,7 +88,7 @@ export default {
   components: {
     SettingsModal
   },
-  
+
   // 1. 상태(Data) 정의
   data() {
     return {
@@ -133,7 +127,7 @@ export default {
       if (!token) {
         //console.log('토큰 없음. 로그인 페이지로 리다이렉션 필요.');
         // 토큰이 없을 때 이동하는 화면
-        // this.$router.replace({ name: 'Mypage' }); 
+        // this.$router.replace({ name: 'Mypage' });
         console.log('토큰 없음. 로그인 상태가 아님.');
         this.user.loginId = ''; // ⭐⭐⭐ 수정 부분: 토큰이 없을 때 loginId를 명확히 초기화합니다. ⭐⭐⭐
         return;
@@ -161,15 +155,15 @@ export default {
         localStorage.removeItem('user-auth-token');
         sessionStorage.removeItem('user-auth-token');
         this.user.loginId = ''; // ⭐⭐⭐ 수정 부분: 실패 시 loginId를 초기화합니다. ⭐⭐⭐
-        // this.$router.replace({ name: 'Mypage' }); 
+        // this.$router.replace({ name: 'Mypage' });
       }
     },
 
-    // 뒤로가기 함수 
+    // 뒤로가기 함수
     goBack() {
       this.$router.back();
     },
-    // // 계정설정화면으로 이동하는 함수 
+    // // 계정설정화면으로 이동하는 함수
     // goToAccountView() {
     //   this.$router.push({ name: 'AccountView' })
     // },
@@ -200,7 +194,7 @@ export default {
       this.isSettingsModalOpen = false; // 모달을 닫습니다.
     },
 
-    // 저장된 추천 코스로 이동하는 함수 
+    // 저장된 추천 코스로 이동하는 함수
     goToUserLikeCouseList() {
       this.$router.push({ name: 'UserLikeCourseList' })
     },
@@ -218,11 +212,17 @@ export default {
       this.user.email = '';
       this.user.loginId = ''; // ⭐ 로그인 ID 초기화 ⭐
 
+
+
+
+
+
+
       // 3. 모달 닫기
       this.isSettingsModalOpen = false;
 
       // 4. 로그인 페이지 또는 메인 페이지로 이동
-      this.$router.replace({ name: 'Home' }); 
+      this.$router.replace({ name: 'Home' });
       console.log('로그아웃 완료 및 페이지 이동');
     },
 
@@ -233,7 +233,7 @@ export default {
         return;
       }
 
-      // 2. 인증 토큰 가져오기 
+      // 2. 인증 토큰 가져오기
       const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
       if (!token) {
         alert('로그인 상태를 확인할 수 없습니다.');
@@ -253,7 +253,7 @@ export default {
         if (response.status === 204) {
           alert('회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.');
           // 탈퇴 성공 후 로그아웃 처리
-          this.handleLogout(); 
+          this.handleLogout();
         }
       } catch (error) {
         console.error('회원 탈퇴 실패:', error);

@@ -22,11 +22,11 @@ public class RecommendedCourseService {
     private final FinalScheduleMapper finalScheduleMapper;
 
     @Transactional // 모든 DB 작업이 함께 성공하거나 실패하도록 보장
-    public void saveRecommendedCourse(RecommendedCourseSaveRequestDTO requestDto) {
-        log.info("[TX] 추천 코스 저장 트랜잭션 시작 - userId: {}", requestDto.getUserId());
+    public void saveRecommendedCourse(RecommendedCourseSaveRequestDTO requestDto, Long userId) {
+        log.info("[TX] 추천 코스 저장 트랜잭션 시작 - userId: {}", userId);
 
         if (requestDto.getItems() == null || requestDto.getItems().isEmpty()) {
-            log.warn("[TX] 요청에 아이템 없음 - userId: {}. 저장 중단.", requestDto.getUserId());
+            log.warn("[TX] 요청에 아이템 없음 - userId: {}. 저장 중단.", userId);
             throw new IllegalArgumentException("추천 코스에 포함된 항목이 없습니다.");
         }
 
@@ -65,7 +65,7 @@ public class RecommendedCourseService {
             // --- 3단계 & 4단계: final_schedule 와 final_schedule_item 에 저장 ---
             log.debug("[TX] 사용자 최종 스케줄 저장 준비.");
             FinalScheduleDTO finalScheduleDto = new FinalScheduleDTO(
-                    requestDto.getUserId(), // 로그인 사용자 userId
+                    userId,
                     requestDto.getScheduleName(),
                     requestDto.getSourceCourseType(),
                     finalAiCourseId

@@ -17,17 +17,10 @@
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView 
-          :exhibitionInformation="exhibitionInformation" 
-          :exhibition="exhibition" 
-          :isPlace="false"
-          :target-id="currentId"
-          :target-type="pageType"
-          :current-user-id="tempCurrentUserId" 
-          @review-posted="handleReviewPosted"
-          @review-deleted="handleReviewDeleted"
-          :photo-review-count="exhibition.photoReviewCount"
-          />
+          <ContentDetailView :exhibitionInformation="exhibitionInformation" :exhibition="exhibition" :isPlace="false"
+            :target-id="currentId" :target-type="pageType" :current-user-id="currentUserId"
+            @review-posted="handleReviewPosted" @review-deleted="handleReviewDeleted"
+            :photo-review-count="exhibition.photoReviewCount" />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -48,17 +41,9 @@
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView 
-          :exhibitionInformation="placeInformation" 
-          :exhibition="place" 
-          :target-id="currentId"
-          :target-type="pageType"
-          :current-user-id="tempCurrentUserId"
-          :isPlace="true" 
-          @review-posted="handleReviewPosted"
-          @review-deleted="handleReviewDeleted"
-          :photo-review-count="place.photoReviewCount"
-          />
+          <ContentDetailView :exhibitionInformation="placeInformation" :exhibition="place" :target-id="currentId"
+            :target-type="pageType" :current-user-id="currentUserId" :isPlace="true" @review-posted="handleReviewPosted"
+            @review-deleted="handleReviewDeleted" :photo-review-count="place.photoReviewCount" />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -80,7 +65,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from '@/api/axiosSetup';
 
 // 하위 컴포넌트들
 import ExhibitionHeader from '@/components/header/ExhibitionHeader.vue';
@@ -88,6 +73,10 @@ import InfoSection from '@/components/section/InfoSection.vue';
 import TabSection from '@/components/section/TabSection.vue';
 import ContentDetailView from './ContentDetailView.vue';
 import CourseRecommend from './CourseRecommend.vue';
+// 🟢 [추가] Pinia 스토어 (로그인 상태 확인용)
+import { useAuthStore } from '@/stores/authStore';
+import { storeToRefs } from 'pinia';
+
 
 // API 베이스
 const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
@@ -102,10 +91,24 @@ export default {
     CourseRecommend,
     ContentDetailView,
   },
+  // 🟢 Options API에서 Pinia를 사용하기 위한 setup()
+  setup() {
+    // 1. auth 스토어를 가져옵니다.
+    const authStore = useAuthStore();
 
+    // 2. storeToRefs를 사용해 스토어의 상태(state)와 게터(getter)를
+    //    반응성을 유지(reactive)하면서 가져옵니다.
+    const { isLoggedIn, currentUserId } = storeToRefs(authStore);
+
+    // 3. setup()에서 이 값들을 반환하면,
+    //    computed, methods 등 다른 옵션에서 this.isLoggedIn, this.currentUserId로 접근할 수 있습니다.
+    return {
+      isLoggedIn,
+      currentUserId // (authStore.js의 'currentUserId' getter)
+    };
+  },
   data() {
     return {
-      tempCurrentUserId: 1, // 현재 로그인한 유저 Id를 '1' 로 가정
       // 현재 ID를 저장할 변수
       currentId: null, // <-- 여기에 targetId를 저장
       // 화면 상태
@@ -158,7 +161,7 @@ export default {
         lng: 0,
       },
 
-      // 공통 <-- 
+      // 공통 <--
       // reviews: [],
 
       // AI 추천 코스 결과를 담을 배열
@@ -189,6 +192,8 @@ export default {
       this.pageType = 'exhibition';
       this.fetchExhibitionData(id);
     }
+    // (디버깅) setup에서 가져온 currentUserId가 잘 찍히는지 확인
+    console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
   },
 
   computed: {
@@ -349,10 +354,12 @@ export default {
     // 추천 코스 저장 요청 처리
     async handleSaveRecommendedCourse(items) {
       console.log('💾 [PlaceDetailsView] 추천 코스 저장 시작...', items);
-
-      // RecommendationCTA 컴포넌트의 기본 버튼 로딩 상태 관리를 위해
-      // data()에 primaryLoading 상태 추가 필요
-      // this.primaryLoading = true; // (아래 data() 섹션 참고)
+      // 🟢 로그인 상태 확인
+      if (!this.isLoggedIn) {
+        alert('로그인이 필요한 기능입니다.');
+        this.$router.push('/login'); // 로그인 페이지로 이동
+        return;
+      }
 
       if (!items || items.length === 0) {
         console.warn('저장할 추천 코스 아이템이 없습니다.');
@@ -366,7 +373,6 @@ export default {
         const currentItemData = (this.pageType === 'place') ? this.place : this.exhibition;
         const scheduleName = `AI 추천: ${currentItemData.title || '코스'}`; // 스케줄 이름 생성
         const sourceId = this.currentId; // 현재 보고 있는 상세 페이지의 ID
-        const userId = 2; // ❗️ TODO: 실제 사용자 ID로 교체 필요 (로그인 정보 등에서 가져오기)
 
         // 프론트엔드 items 배열 -> 백엔드 DTO 형식으로 변환
         const backendItems = items.map(item => ({
@@ -380,7 +386,6 @@ export default {
 
         // 최종 요청 페이로드
         const requestDto = {
-          userId: userId,
           scheduleName: scheduleName,
           sourceId: sourceId,
           sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course', // 전시 추천 코스이면 'inner_course', 장소 추천 코스이면 'ai_course'
@@ -406,11 +411,15 @@ export default {
 
       } catch (error) {
         // 4. 실패 처리
+        // (401 오류는 axiosSetup.js가 자동으로 처리하므로, 여기서는 403, 500 등 다른 오류를 처리)
         console.error('💥 [PlaceDetailsView] 추천 코스 저장 API 호출 실패:', error);
-        alert(`코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`);
+        if (error.response?.status === 403) {
+          alert('접근 권한이 없습니다.');
+        } else {
+          alert(`코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`);
+        }
       } finally {
-        // 5. 로딩 상태 해제 (data()에 primaryLoading 추가 필요)
-        // this.primaryLoading = false;
+        // 5. 로딩 상태 해제
       }
     },
 

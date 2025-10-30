@@ -28,7 +28,7 @@
           {{ errorMessage }}
         </div>
 
-          <!-- <label class="radio-group">
+        <!-- <label class="radio-group">
             <input type="checkbox" id="keep-logged-in" v-model="keepLoggedIn" name="keep-login" />
             <span class="checkbox-label">로그인 유지</span>
           </label> -->
@@ -45,10 +45,13 @@
 
 <script>
 // ⭐⭐⭐ 1. axios 라이브러리 import (설치 필요: npm install axios) ⭐⭐⭐
-import axios from 'axios'; 
+import axios from 'axios';
+// 🟢 [추가] Pinia 스토어 import
+import { useAuthStore } from '@/stores/authStore';
 
-// 백엔드 API의 기본 URL을 상수로 정의합니다. (실제 환경에 맞게 변경 필요)
-const API_URL = 'http://localhost:8080/api/user';
+// API URL (Login API는 토큰이 필요 없으므로 Base URL만 사용)
+const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
+const API_URL = `${API_BASE}/api/user`; // '/api/user' 경로
 
 // export default를 사용하여 컴포넌트의 로직(데이터, 계산된 속성, 메서드 등)을 정의합니다.
 export default {
@@ -60,13 +63,13 @@ export default {
     return {
       id: '',
       password: '',
-      // keepLoggedIn: false, 
+      // keepLoggedIn: false,
       isPasswordVisible: false,
       errorMessage: '',
     };
   },
 
-  // 2. 계산된 속성(Computed) 
+  // 2. 계산된 속성(Computed)
   computed: {
     isFormValid() {
       // 아이디와 비밀번호가 모두 채워져야 로그인 버튼 활성화
@@ -91,10 +94,13 @@ export default {
 
       this.errorMessage = ''; // 에러 메시지 초기화
 
+      // 🟢 [추가] Pinia 스토어 인스턴스 가져오기
+      const authStore = useAuthStore();
+
       // 2. 서버로 전송할 데이터 객체 생성 (LoginRequestDTO의 필드명과 일치)
-      const loginData = { 
+      const loginData = {
         loginId: this.id, // 프론트의 'id'를 백엔드의 'loginId'로 매핑
-        password: this.password, 
+        password: this.password,
       };
 
       console.log('로그인 요청 데이터:', loginData);
@@ -102,23 +108,22 @@ export default {
       try {
         // 3. 백엔드 API 호출: POST /api/user/login
         const response = await axios.post(`${API_URL}/login`, loginData);
-        
+
         // 4. 응답 처리 (성공: HTTP 200 OK)
-        if (response.status === 200) { 
-          const userData = response.data; // LoginResponseDTO 데이터
+        if (response.status === 200) {
+          // 🟢 [수정] Pinia 스토어의 login 액션 호출
+          // (response.data = LoginResponseDTO { userId, ..., accessToken, refreshToken })
+          authStore.login(response.data);
 
-          console.log('로그인 성공. 사용자 데이터:', userData);
+          console.log('로그인 성공. authStore 상태:', response.data);
 
-          // ⭐ 수정 사항: 항상 토큰을 저장합니다. ⭐
-          this.saveLoginSession(userData.token);
-          
-          // 메인 페이지('/home')로 이동 (Vue Router의 replace 사용)
-          this.$router.replace('/home'); 
+          // 메인 페이지('/home' 또는 '/')로 이동
+          this.$router.replace('/');
         }
       } catch (error) {
         // 5. 에러 처리 (실패: HTTP 401 Unauthorized 등)
         console.error('로그인 요청 실패:', error);
-        
+
         // 백엔드에서 보낸 에러 메시지(401)를 출력합니다.
         if (error.response && error.response.status === 401) {
           this.errorMessage = error.response.data || '아이디 또는 비밀번호를 확인해주세요.';
@@ -126,32 +131,8 @@ export default {
           this.errorMessage = '로그인 처리 중 오류가 발생했습니다.';
         }
       }
-    },
-
-    // // [코드 설명 4] 로그인 세션을 저장하는 새로운 메서드 (변동 없음)
-    // saveLoginSession(token) {
-    //   // '로그인 유지' 체크 여부에 따라 저장 방식을 결정합니다.
-    //   if (this.keepLoggedIn) {
-    //       // 체크 O: 로컬 스토리지에 저장 -> 브라우저 종료 후에도 유지
-    //       localStorage.setItem('user-auth-token', token);
-    //       console.log('로그인 유지 설정됨: LocalStorage에 토큰 저장');
-    //   } else {
-    //       // 체크 X: 세션 스토리지에 저장 -> 브라우저 탭/창 종료 시 사라짐
-    //       sessionStorage.setItem('user-auth-token', token);
-    //       console.log('로그인 유지 설정 안 됨: SessionStorage에 토큰 저장');
-    //   }
-    // },
-
-    // ⭐ 수정 사항: 로그인 세션을 localStorage에 무조건 저장합니다. ⭐
-    saveLoginSession(token) {
-      // 💡 세션 스토리지 옵션 제거, 무조건 LocalStorage에 저장하여 세션 유지
-      localStorage.setItem('user-auth-token', token);
-      console.log('로그인 유지 설정됨: LocalStorage에 토큰 저장');
-      
-      // 혹시 이전에 남아있을 세션 스토리지 토큰은 삭제합니다.
-      sessionStorage.removeItem('user-auth-token');
-    },
-  }
+    }
+  },
 };
 </script>
 
@@ -265,7 +246,7 @@ export default {
   width: 20px;
   height: 20px;
   border: 1px solid #000000;
-  border-radius: 50%; 
+  border-radius: 50%;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
