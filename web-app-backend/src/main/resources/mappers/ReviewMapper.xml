@@ -191,11 +191,6 @@
 	
 	<!-- 타깃 집계 재계산(동적 분기) -->
 	<update id="recomputeTargetStats" parameterType="map">
-	  <!--
-	    파라미터:
-	      - targetId: Long
-	      - targetType: String ('PLACE' or 'EXHIBITION')
-	  -->
 	  <choose>
 	    <when test="targetType == 'science_place'">
 		      UPDATE science_place sp
@@ -210,7 +205,17 @@
 	          FROM review r
 	          WHERE r.target_type = 'science_place'
 	            AND r.target_id   = #{targetId}
-	        ), 0)
+	        ), 0),
+          
+          -- ⭐️ [추가] 사진 리뷰 개수 집계
+          total_photo_reviews = (
+            SELECT COUNT(DISTINCT r.review_id)
+            FROM review r
+            JOIN review_photo rp ON r.review_id = rp.review_id
+            WHERE r.target_type = 'science_place'
+              AND r.target_id = #{targetId}
+          )
+          
 	      	WHERE sp.place_id = #{targetId}
     	</when>
 
@@ -227,7 +232,17 @@
 	          FROM review r
 	          WHERE r.target_type = 'exhibition'
 	            AND r.target_id   = #{targetId}
-	        ), 0)
+	        ), 0),
+            
+          -- ⭐️ [추가] 사진 리뷰 개수 집계
+          total_photo_reviews = (
+            SELECT COUNT(DISTINCT r.review_id)
+            FROM review r
+            JOIN review_photo rp ON r.review_id = rp.review_id
+            WHERE r.target_type = 'exhibition'
+              AND r.target_id = #{targetId}
+          )
+            
 	      WHERE e.exhibition_id = #{targetId}
     	</when>
   	</choose>
@@ -256,6 +271,21 @@
 	    #{reviewId}
 	  </foreach>
 	  ORDER BY review_id, sequence NULLS LAST, photo_id
+	</select>
+	
+	<select id="findPhotoThumbnailsByTarget" resultType="com.example.demo.dto.PhotoThumbDTO">
+	    SELECT 
+	        R.review_id AS reviewId, 
+	        RP.photo_url AS url
+	    FROM 
+	        review R
+	    JOIN 
+	        review_photo RP ON R.review_id = RP.review_id
+	    WHERE 
+	        R.target_id = #{targetId} 
+	        AND R.target_type = #{targetType}
+	    ORDER BY 
+	        R.created_at DESC  LIMIT #{limit}
 	</select>
 	
 

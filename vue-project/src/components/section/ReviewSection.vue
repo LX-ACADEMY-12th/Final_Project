@@ -8,16 +8,18 @@
       <span class="review-count">({{ totalReviews }}개 리뷰)</span>
     </div>
 
-    <span class="subsection-title">사진 후기</span>
-    <span class="subsection-title">({{ morePhotoCount }})개</span>
+    <span class="subsection-title">사진 후기 ({{ photoReviewCount }})개</span>
 
     <div class="photo-reviews">
-      <button v-for="(p, i) in photoThumbs" :key="i" class="photo-btn"
+      <button v-for="(p, i) in allPhotoThumbnails" :key="p.reviewId || i" class="photo-btn"
         :style="{ backgroundImage: `url(${p.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }"
-        @click="openReviewFromThumb(p.url)" :title="`리뷰 ${p.reviewId}`"></button>
-      <button class="photo-btn more-btn" v-if="morePhotoCount > 0" @click="goToAllPhotosPage">+{{ morePhotoCount
-        }}</button>
-      <button class="photo-btn more-btn" v-else>사진 없음</button>
+        @click="openModalFromThumb(p, i)" :title="`리뷰 ${p.reviewId}`"></button>
+      
+      <button class="photo-btn more-btn" v-if="morePhotoCountToShow > 0" @click="goToAllPhotosPage">
+        <i class="bi bi-plus-circle"></i>
+      </button>
+      
+      <button class="photo-btn more-btn" v-else-if="allPhotoThumbnails.length === 0 && photoReviewCount === 0">사진 없음</button>
     </div>
 
     <button class="write-review-btn" @click="$emit('show-modal')">
@@ -94,6 +96,7 @@
       @close="photoModal.visible = false" />
   </section>
 </template>
+
 <script>
 import axios from 'axios'
 import PhotoModal from '../modal/PhotoModal.vue';
@@ -128,9 +131,8 @@ export default {
       required: true,
       default: 0
     },
-    photoReviewCount: { // 사진 전체 개수
+    photoReviewCount: {
       type: Number,
-      required: true,
       default: 0
     },
     isPlace: {
@@ -167,6 +169,8 @@ export default {
           console.log(`✅ [ReviewSection] ID 변경 감지, 1페이지 로드`);
           this.currentPage = 1;
           this.fetchReviews();
+          this.fetchPhotoThumbnails(); // ⭐️ [추가] 썸네일도 새로고침
+          this.allPhotoUrlsCache = null; // ⭐️ [추가] 캐시 비우기
         }
       },
       immediate: true
@@ -177,6 +181,8 @@ export default {
           console.log(`✅ [ReviewSection] Type 변경 감지, 1페이지 로드`);
           this.currentPage = 1;
           this.fetchReviews();
+          this.fetchPhotoThumbnails(); // ⭐️ [추가] 썸네일도 새로고침
+          this.allPhotoUrlsCache = null; // ⭐️ [추가] 캐시 비우기
         }
       },
       immediate: true
@@ -199,6 +205,8 @@ export default {
       pageSize: 3,
       totalPages: 1,
       totalReviews: 0,
+      allPhotoThumbnails: [],
+      allPhotoUrlsCache: null, // ⭐️ [추가] 이 선언이 빠졌습니다.
     };
   },
 
@@ -211,12 +219,49 @@ export default {
       this.currentPage = pageNumber;
       this.fetchReviews();
     },
-    openReviewFromThumb(clickedUrl) {
-      const allPhotos = this.allPhotoUrls;
-      if (!allPhotos || !allPhotos.length) return;
-      const startIndex = allPhotos.indexOf(clickedUrl);
+    // ⭐️ [신규] 1~3번 썸네일 클릭 시 모달 여는 메서드
+    async openModalFromThumb(clickedThumbnail, index) {
+      let allPhotos = this.allPhotoUrlsCache;
+
+      // 1. 캐시가 없으면 API로 '모든' 사진 URL을 가져옵니다.
+      if (!allPhotos) {
+        console.log('[modal-thumb] 캐시 없음. 전체 사진 URL 로드 시도...');
+        try {
+          // ❗️ 이 API는 백엔드에 있어야 합니다.
+          // (지난 대화에서 확인한 '사진 전체 모아보기' API)
+          const { data } = await axios.get(`${API_BASE}/api/reviews/target/${this.targetType}/${this.targetId}/photos`);
+          
+          if (!Array.isArray(data) || data.length === 0) {
+              console.error('[modal-thumb] 사진이 없습니다.');
+              return;
+          }
+          
+          allPhotos = data;
+          this.allPhotoUrlsCache = allPhotos; // ⭐️ 캐시에 저장
+          console.log(`[modal-thumb] 전체 사진 ${allPhotos.length}개 로드 및 캐시 완료.`);
+
+        } catch (err) {
+          console.error('[modal-thumb] 전체 사진 URL 로드 실패:', err);
+          alert('사진을 불러오는 데 실패했습니다.');
+          return;
+        }
+      } else {
+          console.log(`[modal-thumb] 캐시된 사진 ${allPhotos.length}개 사용.`);
+      }
+
+      // 2. 모달을 엽니다.
+      // 썸네일(limit 3)과 전체 사진이 같은 순서(예: 최신순)라고 가정합니다.
+      // 만약 순서가 다르면, clickedThumbnail.url로 findIndex를 수행해야 합니다.
+      let startIndex = allPhotos.indexOf(clickedThumbnail.url);
+      
+      if (startIndex === -1) {
+          console.warn(`[modal-thumb] 썸네일 URL(${clickedThumbnail.url})을 전체 목록에서 찾지 못했습니다. 썸네일 순서(${index})를 사용합니다.`);
+          // 썸네일 순서(0, 1, 2)를 시작 인덱스로 사용
+          startIndex = index; 
+      }
+
       this.photoModal.images = allPhotos;
-      this.photoModal.startIndex = (startIndex === -1) ? 0 : startIndex;
+      this.photoModal.startIndex = startIndex;
       this.photoModal.visible = true;
     },
 
@@ -231,6 +276,30 @@ export default {
     onClickDelete(reviewId) {
       this.$emit('request-delete', { reviewId });
       this.openReportMenuId = null;
+    },
+
+    // ⭐️ [신규] 썸네일 전용 API 호출 메서드
+    async fetchPhotoThumbnails() {
+      if (!this.targetId || !this.targetType) return;
+
+      try {
+        const params = {
+          targetId: this.targetId,
+          targetType: this.targetType,
+          limit: 3 // ⭐️ UI에 표시할 썸네일 개수
+        };
+
+        // ❗️ [중요] 이 API는 백엔드에 새로 만들어야 할 수 있습니다.
+        // targetId/Type에 해당하는 "모든" 사진 리뷰 중 
+        // 최신순 4개의 썸네일(reviewId, url)을 반환하는 API입니다.
+        const { data: thumbs } = await axios.get(`${API_BASE}/api/reviews/photos-summary`, { params });
+        this.allPhotoThumbnails = Array.isArray(thumbs) ? thumbs : [];
+        console.log('[photo-thumbs] 썸네일 로드 성공:', this.allPhotoThumbnails);
+
+      } catch (err) {
+        console.error('[photo-thumbs] 썸네일 로드 실패:', err?.response?.data || err.message);
+        this.allPhotoThumbnails = []; // 실패시 비움
+      }
     },
 
     // ⭐️ [수정] fetchReviews 메서드 구조 수정

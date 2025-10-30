@@ -25,7 +25,9 @@
           :target-type="pageType"
           :current-user-id="tempCurrentUserId" 
           @review-posted="handleReviewPosted"
-          @review-deleted="handleReviewDeleted" />
+          @review-deleted="handleReviewDeleted"
+          :photo-review-count="exhibition.photoReviewCount"
+          />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -54,7 +56,9 @@
           :current-user-id="tempCurrentUserId"
           :isPlace="true" 
           @review-posted="handleReviewPosted"
-          @review-deleted="handleReviewDeleted"/>
+          @review-deleted="handleReviewDeleted"
+          :photo-review-count="place.photoReviewCount"
+          />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -119,6 +123,7 @@ export default {
         type: '',
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
+        photoReviewCount: 0,
       },
       // 이게 LocationSection에 들어갈 부분
       exhibitionInformation: {
@@ -141,6 +146,7 @@ export default {
         type: '',
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
+        photoReviewCount: 0,
       },
       // (LocationSection이 'placeAddress'를 사용)
       placeInformation: {
@@ -224,6 +230,7 @@ export default {
         type: dto.type ?? 'exhibition',
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
+        photoReviewCount: dto.totalPhotoReviews ?? 0,
       };
 
       // LocationSection이 사용할 데이터
@@ -277,6 +284,7 @@ export default {
         gradeTag: grade, // PillTag
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
+        photoReviewCount: dto.totalPhotoReviews ?? 0,
       };
 
       // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)

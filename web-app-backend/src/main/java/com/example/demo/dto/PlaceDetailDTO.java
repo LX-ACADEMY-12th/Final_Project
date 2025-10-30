@@ -43,4 +43,8 @@ public class PlaceDetailDTO {
      * (e.g., "3학년, 4학년")
      */
     private String grade;
+    
+    // ⭐️ [추가] 사진 리뷰 총 개수
+ 	private Long totalPhotoReviews;
+    
 }
