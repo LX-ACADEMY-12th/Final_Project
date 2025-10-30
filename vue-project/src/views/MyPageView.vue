@@ -37,12 +37,13 @@
       <div class="display-4 fw-bolder">12 / 20</div>
     </button>
     <button
-      class="btn btn-primary w-100 p-3 mb-4 custom-rounded text-start d-flex align-items-center justify-content-between saved-route-btn">
+      class="btn btn-primary w-100 p-3 mb-4 custom-rounded text-start d-flex align-items-center justify-content-between saved-route-btn"
+      @click="goToUserLikeCouseList">
       <div class="d-flex align-items-center">
         <i class="bi bi-bookmark-plus-fill me-2 fs-5"></i>
         <span class="fw-bold">저장된 추천 경로</span>
       </div>
-      <i class="bi bi-plus-lg fs-5" @click="goToUserLikeCouseList"></i>
+      <!-- <i class="bi bi-plus-lg fs-5"></i> -->
     </button>
     <ul class="list-group list-group-flush">
       <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
@@ -52,18 +53,12 @@
         </div>
         <i class="bi bi-chevron-right text-muted"></i>
       </li>
-      <!-- <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
-        <div class="d-flex align-items-center">
-          <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
-          <span>관심 장소 목록</span>
-        </div>
-        <i class="bi bi-chevron-right text-muted"></i>
-      </li> -->
+
       <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0"
-        @click=" isSettingsModalOpen = true">
+        @click="showSettingsModal">
         <div class=" d-flex align-items-center">
           <i class="bi bi-gear-fill me-3 fs-5 text-secondary"></i>
-          <span>로그아웃/탈퇴</span>
+          <span>{{ isLoggedIn ? '로그아웃/탈퇴' : '로그인/탈퇴' }}</span>
         </div>
         <i class="bi bi-chevron-right text-muted"></i>
       </li>
@@ -76,8 +71,14 @@
       </li>
     </ul>
 
-    <SettingsModal :show="isSettingsModalOpen" @close="isSettingsModalOpen = false" @logout="handleLogout"
-      @withdraw="handleWithdraw" />
+    <SettingsModal 
+      :show="isSettingsModalOpen" 
+      :isLoggedIn="isLoggedIn"
+      @close="isSettingsModalOpen = false" 
+      @logout="handleLogout"
+      @withdraw="handleWithdraw" 
+      @login="goToLoginView" 
+    />
   </div>
 </template>
 
@@ -108,13 +109,21 @@ export default {
     }
   },
 
-  // 2. 컴포넌트 생성 후 사용자 정보를 불러오는 로직
+  // 2. Computed 속성 추가 (로그인 상태 확인)
+  computed: {
+    // ⭐ 로그인 ID가 있으면 true 반환 ⭐
+    isLoggedIn() {
+      return !!this.user.loginId;
+    }
+  },
+
+  // 3. 컴포넌트 생성 후 사용자 정보를 불러오는 로직
   created() {
     // 컴포넌트가 생성된 직후, 사용자 정보를 가져오는 메서드를 호출
     this.fetchUserInfo();
   },
 
-  // 3. 메서드(Methods)
+  // 4. 메서드(Methods)
   methods: {
     // ⭐ 사용자 정보를 가져오는 비동기 메서드 ⭐
     async fetchUserInfo() {
@@ -122,9 +131,11 @@ export default {
       const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
 
       if (!token) {
-        console.log('토큰 없음. 로그인 페이지로 리다이렉션 필요.');
+        //console.log('토큰 없음. 로그인 페이지로 리다이렉션 필요.');
         // 토큰이 없을 때 이동하는 화면
         // this.$router.replace({ name: 'Mypage' }); 
+        console.log('토큰 없음. 로그인 상태가 아님.');
+        this.user.loginId = ''; // ⭐⭐⭐ 수정 부분: 토큰이 없을 때 loginId를 명확히 초기화합니다. ⭐⭐⭐
         return;
       }
 
@@ -149,6 +160,7 @@ export default {
         // 토큰 만료 등 인증 실패 시, 토큰을 지우고 이동할 화면
         localStorage.removeItem('user-auth-token');
         sessionStorage.removeItem('user-auth-token');
+        this.user.loginId = ''; // ⭐⭐⭐ 수정 부분: 실패 시 loginId를 초기화합니다. ⭐⭐⭐
         // this.$router.replace({ name: 'Mypage' }); 
       }
     },
@@ -177,6 +189,17 @@ export default {
       this.$router.push({ name: 'AccountView' })
     },
 
+    // ⭐⭐⭐ 수정 4: SettingsModal을 띄우는 전용 메서드를 사용합니다. ⭐⭐⭐
+    showSettingsModal() {
+      this.isSettingsModalOpen = true;
+    },
+
+    // ⭐⭐⭐ 수정 5: SettingsModal에서 @login 이벤트 발생 시 호출되는 메서드입니다. ⭐⭐⭐
+    goToLoginView() {
+      this.$router.push({ name: 'login' });
+      this.isSettingsModalOpen = false; // 모달을 닫습니다.
+    },
+
     // 저장된 추천 코스로 이동하는 함수 
     goToUserLikeCouseList() {
       this.$router.push({ name: 'UserLikeCourseList' })
@@ -193,6 +216,7 @@ export default {
       // 2. 사용자 정보 초기화
       this.user.name = '';
       this.user.email = '';
+      this.user.loginId = ''; // ⭐ 로그인 ID 초기화 ⭐
 
       // 3. 모달 닫기
       this.isSettingsModalOpen = false;

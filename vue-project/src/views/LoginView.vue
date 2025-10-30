@@ -28,10 +28,10 @@
           {{ errorMessage }}
         </div>
 
-        <label class="radio-group">
-          <input type="checkbox" id="keep-logged-in" v-model="keepLoggedIn" name="keep-login" />
-          <span class="checkbox-label">로그인 유지</span>
-        </label>
+          <!-- <label class="radio-group">
+            <input type="checkbox" id="keep-logged-in" v-model="keepLoggedIn" name="keep-login" />
+            <span class="checkbox-label">로그인 유지</span>
+          </label> -->
 
         <button type="submit" class="submit-button">로그인</button>
       </form>
@@ -60,13 +60,13 @@ export default {
     return {
       id: '',
       password: '',
-      keepLoggedIn: false, 
+      // keepLoggedIn: false, 
       isPasswordVisible: false,
       errorMessage: '',
     };
   },
 
-  // 2. 계산된 속성(Computed) - 변동 없음
+  // 2. 계산된 속성(Computed) 
   computed: {
     isFormValid() {
       // 아이디와 비밀번호가 모두 채워져야 로그인 버튼 활성화
@@ -109,8 +109,8 @@ export default {
 
           console.log('로그인 성공. 사용자 데이터:', userData);
 
-          // 로그인 세션 저장 (토큰 저장)
-          this.saveLoginSession(userData.token); 
+          // ⭐ 수정 사항: 항상 토큰을 저장합니다. ⭐
+          this.saveLoginSession(userData.token);
           
           // 메인 페이지('/home')로 이동 (Vue Router의 replace 사용)
           this.$router.replace('/home'); 
@@ -128,18 +128,28 @@ export default {
       }
     },
 
-    // [코드 설명 4] 로그인 세션을 저장하는 새로운 메서드 (변동 없음)
+    // // [코드 설명 4] 로그인 세션을 저장하는 새로운 메서드 (변동 없음)
+    // saveLoginSession(token) {
+    //   // '로그인 유지' 체크 여부에 따라 저장 방식을 결정합니다.
+    //   if (this.keepLoggedIn) {
+    //       // 체크 O: 로컬 스토리지에 저장 -> 브라우저 종료 후에도 유지
+    //       localStorage.setItem('user-auth-token', token);
+    //       console.log('로그인 유지 설정됨: LocalStorage에 토큰 저장');
+    //   } else {
+    //       // 체크 X: 세션 스토리지에 저장 -> 브라우저 탭/창 종료 시 사라짐
+    //       sessionStorage.setItem('user-auth-token', token);
+    //       console.log('로그인 유지 설정 안 됨: SessionStorage에 토큰 저장');
+    //   }
+    // },
+
+    // ⭐ 수정 사항: 로그인 세션을 localStorage에 무조건 저장합니다. ⭐
     saveLoginSession(token) {
-      // '로그인 유지' 체크 여부에 따라 저장 방식을 결정합니다.
-      if (this.keepLoggedIn) {
-          // 체크 O: 로컬 스토리지에 저장 -> 브라우저 종료 후에도 유지
-          localStorage.setItem('user-auth-token', token);
-          console.log('로그인 유지 설정됨: LocalStorage에 토큰 저장');
-      } else {
-          // 체크 X: 세션 스토리지에 저장 -> 브라우저 탭/창 종료 시 사라짐
-          sessionStorage.setItem('user-auth-token', token);
-          console.log('로그인 유지 설정 안 됨: SessionStorage에 토큰 저장');
-      }
+      // 💡 세션 스토리지 옵션 제거, 무조건 LocalStorage에 저장하여 세션 유지
+      localStorage.setItem('user-auth-token', token);
+      console.log('로그인 유지 설정됨: LocalStorage에 토큰 저장');
+      
+      // 혹시 이전에 남아있을 세션 스토리지 토큰은 삭제합니다.
+      sessionStorage.removeItem('user-auth-token');
     },
   }
 };
@@ -244,7 +254,7 @@ export default {
   margin-bottom: 20px;
 }
 
-.radio-group {
+/* .radio-group {
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -285,7 +295,7 @@ export default {
 .checkbox-label {
   font-size: 15px;
   color: #000000;
-}
+} */
 
 .submit-button {
   width: 100%;
@@ -298,6 +308,8 @@ export default {
   border-radius: 15px;
   cursor: pointer;
   transition: background-color 0.3s;
+  /* ⭐ 수정: 체크박스 삭제로 인해 상단 간격을 조정했습니다. ⭐ */
+  margin-top: 10px;
 }
 
 .submit-button:hover {
