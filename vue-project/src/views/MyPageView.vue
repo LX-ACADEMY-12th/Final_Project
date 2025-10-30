@@ -46,7 +46,7 @@
     </button>
     <ul class="list-group list-group-flush">
       <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center" @click="goToLikePlace()">
           <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
           <span>관심 목록</span>
         </div>
@@ -84,6 +84,7 @@
 <script>
 import SettingsModal from '@/components/modal/SettingsModal.vue';
 import axios from 'axios'; // axios import
+import router from '@/router';
 
 // API 기본 경로 설정
 const API_BASE_URL = 'http://localhost:8080/api/user';
@@ -116,6 +117,11 @@ export default {
 
   // 3. 메서드(Methods)
   methods: {
+    // 사용자 관심 목록으로 이동
+    goToLikePlace() {
+      router.push('/likePlace');
+    },
+
     // ⭐ 사용자 정보를 가져오는 비동기 메서드 ⭐
     async fetchUserInfo() {
       // 1. 로컬 또는 세션 스토리지에서 인증 토큰을 가져옵니다.
@@ -167,7 +173,7 @@ export default {
       // this.user.loginId가 비어있다면, 로그인이 되지 않은 상태로 간주합니다.
       if (!this.user.loginId) {
         // 1. 알림 메시지 띄우기
-        alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
+        this.$alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
         // 2. 로그인 페이지로 이동
         this.$router.push({ name: 'login' });
         return;
@@ -212,7 +218,7 @@ export default {
       // 2. 인증 토큰 가져오기 
       const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
       if (!token) {
-        alert('로그인 상태를 확인할 수 없습니다.');
+        this.$alert('로그인 상태를 확인할 수 없습니다.');
         this.handleLogout();
         return;
       }
@@ -227,16 +233,16 @@ export default {
 
         // 4. 응답 처리: HTTP 204 No Content (삭제 성공)
         if (response.status === 204) {
-          alert('회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.');
+          this.$alert('회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.');
           // 탈퇴 성공 후 로그아웃 처리
           this.handleLogout(); 
         }
       } catch (error) {
         console.error('회원 탈퇴 실패:', error);
         if (error.response && error.response.data) {
-          alert('회원 탈퇴 실패: ' + error.response.data);
+          this.$alert('회원 탈퇴 실패: ' + error.response.data);
         } else {
-          alert('회원 탈퇴 중 알 수 없는 오류가 발생했습니다.');
+          this.$alert('회원 탈퇴 중 알 수 없는 오류가 발생했습니다.');
         }
         this.isSettingsModalOpen = false;
       }

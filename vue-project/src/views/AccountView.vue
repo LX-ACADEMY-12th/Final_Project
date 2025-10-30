@@ -137,7 +137,7 @@ export default {
       const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
 
       if (!token) {
-        alert('로그인이 필요합니다.');
+        this.$alert('로그인이 필요합니다.');
         this.$router.replace({ name: 'Login' }); // 로그인 페이지로 리다이렉션
         return;
       }
@@ -165,7 +165,7 @@ export default {
 
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
-        alert('사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.');
+        this.$alert('사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.');
         // 인증 실패 시 로그인 페이지로 이동
         // // this.$router.replace({ name: 'Login' }); 
       }
@@ -176,7 +176,7 @@ export default {
       const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
 
       if (!token) {
-        alert('인증 토큰이 없습니다. 다시 로그인해주세요.');
+        this.$alert('인증 토큰이 없습니다. 다시 로그인해주세요.');
         return;
       }
       
@@ -203,16 +203,16 @@ export default {
 
         // 수정 성공
         if (response.status === 200) {
-          alert(response.data); // "사용자 정보가 성공적으로 수정되었습니다."
+          this.$alert(response.data); // "사용자 정보가 성공적으로 수정되었습니다."
           // 마이페이지로 복귀하거나 현재 페이지 새로고침
           this.goBack();  
         }
       } catch (error) {
         console.error('정보 수정 실패:', error);
         if (error.response && error.response.data) {
-          alert('정보 수정 실패: ' + error.response.data);
+          this.$alert('정보 수정 실패: ' + error.response.data);
         } else {
-           alert('정보 수정 중 알 수 없는 오류가 발생했습니다.');
+           this.$alert('정보 수정 중 알 수 없는 오류가 발생했습니다.');
         }
       }   
     },

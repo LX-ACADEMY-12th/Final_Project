@@ -69,7 +69,7 @@ export default {
       this.fetchReviewPhotos();
     } else {
       console.error('targetId 또는 targetType이 props로 전달되지 않았습니다.');
-      alert('잘못된 접근입니다.');
+      this.$alert('잘못된 접근입니다.');
       this.isLoading = false;
     }
   },
@@ -97,7 +97,7 @@ export default {
 
       } catch (error) {
         console.error('후기 사진 전체 목록 조회 실패:', error);
-        alert('사진을 불러오지 못했습니다.');
+        this.$alert('사진을 불러오지 못했습니다.');
         this.photos = [];
       } finally {
         this.isLoading = false;

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.WishListMapper">
+
+	<!-- wishlist 추가 -->
+	<insert id="addWishlist">
+	    INSERT INTO wishlist (user_id, target_type, target_id)
+	    VALUES (#{userId}, #{targetType}, #{targetId})
+	    ON CONFLICT (user_id, target_type, target_id) DO NOTHING
+	</insert>
+	
+	<!-- wishlist 취소 -->
+	<delete id="removeWishlist">
+	    DELETE FROM wishlist
+	    WHERE user_id = #{userId}
+	      AND target_type = #{targetType}
+	      AND target_id = #{targetId}
+	</delete>
+	
+	<!-- 사용자의 찜 여부 확인 -->
+	<select id="existsInWishlist" resultType="boolean">
+	    SELECT EXISTS (
+	        SELECT 1
+	        FROM wishlist
+	        WHERE user_id = #{userId}
+	          AND target_type = #{targetType}
+	          AND target_id = #{targetId}
+	    )
+	</select>
+
+	<!-- 사용자가 찜을 누른 위시리스트를 조회 -->
+	<select id="findMyWishlistByUserId" resultType="com.example.demo.dto.UserWishListDTO">
+	    (
+	        SELECT 
+	            w.wishlist_id AS wishlistId,
+	            w.target_type AS targetType,
+	            w.target_id AS targetId,
+	            e.exhibition_name AS name,
+	            e.main_image_url AS mainImageUrl,
+	            e.average_rating AS averageRating,
+	            e.total_reviews AS totalReviews,
+	            w.created_at AS likedAt,
+	            
+	            e.type AS type,               h.hall_name AS location      FROM wishlist w
+	        JOIN exhibition e ON w.target_id = e.exhibition_id
+	        
+	        LEFT JOIN exhibition_hall h ON e.hall_id = h.hall_id 
+	        
+	        WHERE w.user_id = #{userId}
+	          AND w.target_type = 'exhibition'
+	    )
+	    UNION ALL
+	    (
+	        SELECT 
+	            w.wishlist_id AS wishlistId,
+	            w.target_type AS targetType,
+	            w.target_id AS targetId,
+	            p.place_name AS name,
+	            p.main_image_url AS mainImageUrl,
+	            p.average_rating AS averageRating,
+	            p.total_reviews AS totalReviews,
+	            w.created_at AS likedAt,
+	
+	            p.place_type AS type,        p.address_detail AS location FROM wishlist w
+	        JOIN science_place p ON w.target_id = p.place_id
+	        WHERE w.user_id = #{userId}
+	          AND w.target_type = 'science_place'
+	    )
+	    ORDER BY likedAt DESC
+	</select>
+	
+	
+</mapper>

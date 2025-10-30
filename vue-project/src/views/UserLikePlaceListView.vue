@@ -1,0 +1,300 @@
+<template>
+  <div class="page-container" style="font-family: 'SUIT', sans-serif">
+    <!-- 헤더 -->
+    <div class="chat-header d-flex justify-content-between align-items-center p-3 bg-white border-bottom flex-shrink-0">
+      <div class="header-left" style="flex: 1;">
+        <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
+      </div>
+      <div class="header-center fw-bold fs-6" style="flex: 1; text-align: center;">
+        관심 장소 목록
+      </div>
+      <div class="header-right" style="flex: 1; text-align: right;">
+        <i class="bi bi-sliders fs-5" style="cursor: pointer;" @click.prevent="isModalOpen = true">
+        </i>
+      </div>
+    </div>
+
+    <!-- 전시 / 답사 선택 토글-->
+    <div class="segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
+      <div class="segmented-control d-flex gap-3">
+        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
+          @click="changeTab('전시')">전시</button>
+        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
+          @click="changeTab('답사')">답사</button>
+      </div>
+    </div>
+
+    <div class="user-like-course">
+
+      <div v-if="isSearching" class="text-center p-5 text-muted w-100" style="margin-top: 20px;">
+        검색 중...
+      </div>
+      <div v-else-if="displayedItems.length === 0" class="text-center p-5 text-muted w-100" sytle="margin-top: 20px;">
+        <div>표시할 장소가 없습니다.</div>
+        <div class="text-sm mt-2" style="font-size:  0.9rem; color: #888">
+          과목 : {{ selectedSubject }} / 학년: {{ selectedGrade.replace('초등 ', '') }}
+        </div>
+      </div>
+
+      <template v-else>
+        <PlaceCard2 v-for="item in displayedItems" :key="item.id" :item="item" @add="goToDetail(item)"
+          @item-click="handleItemClick(item)" />
+      </template>
+    </div>
+
+    <!-- 필터모달: 학년과 과학영역만 선택 가능하도록 설정 -->
+    <FilterModal v-if="isModalOpen" :showLocationOptions="false" :initialSubject="selectedSubject"
+      :initialGrade="selectedGrade" @close="isModalOpen = false" @complete="handleFilterComplete" />
+  </div>
+</template>
+<script>
+import PlaceCard2 from '@/components/card/PlaceCard2.vue';
+import FilterModal from '@/components/modal/FilterModal.vue';
+import axios from 'axios';
+
+// API 베이스 (일관성을 위해 정의)
+const API_BASE = 'http://localhost:8080';
+
+export default {
+ name: 'LikePlace',
+ components: {
+  PlaceCard2,
+  FilterModal
+ },
+ data() {
+  return {
+   // 🌟 [추가] 하드코딩된 사용자 ID (찜 API 로직과 일치)
+   tempCurrentUserId: 1, 
+   selectedTab: '전시', // '전시' 또는 '답사'
+   isModalOpen: false,
+   selectedSubject: '물리',
+   selectedGrade: '초등 3학년',
+   
+   // 🌟 [수정] API 원본 데이터를 저장할 배열
+   allWishlistItems: [], 
+   
+   // 화면에 실제로 표시할 데이터 (필터링 결과)
+   displayedItems: [], 
+   
+   // 로딩 상태
+   isSearching: false,
+  };
+ },
+ computed: {
+    // 🌟 [추가] 학년 태그를 백엔드에서 쓰는 형태로 정제
+    gradeTag() {
+      // 예: '초등 3학년' -> '3학년' 또는 '초등3학년' 
+      // 현재는 쿼리스트링에 전체를 사용하므로, 띄어쓰기만 제거합니다.
+      return this.selectedGrade.replace(/\s/g, ''); 
+    }
+ },
+ methods: {
+
+  // 탭 클릭 시 상태 변경 (API 재호출이 아닌 필터링만 실행)
+  changeTab(tabName) {
+   this.selectedTab = tabName;
+   this.$router.replace({ query: { tab: tabName } });
+   // 🌟 [수정] API 재호출 대신, 이미 로드된 데이터로 필터링만 수행
+   this.applyFilters();
+  },
+
+  // 장소 상세페이지 이동 함수 (기존 로직 유지)
+  goToDetail(item) {
+   // ... (기존 로직 유지) ...
+      const queryParams = {
+    mainCategoryTags: item.mainCategory, // 👈 [수정] 아이템의 카테고리를 사용
+    subCategoryTags: item.hashtags,
+    gradeTags: item.gradeTag,     // 👈 [수정] 아이템의 학년 태그를 사용
+   };
+
+      // item.itemType (exhibition/science_place)에 따라 경로 설정
+      const typePath = item.itemType === 'exhibition' ? '/exhibition' : '/place';
+
+   this.$router.push({
+    path: `${typePath}/${item.id}`,
+    query: queryParams
+   });
+  },
+
+  // 아이템 클릭 핸들러 (기존 로직 유지)
+  handleItemClick(item) {
+   this.goToDetail(item);
+  },
+
+  // 뒤로가기 함수 (기존 로직 유지)
+  goBack() {
+   this.$router.back();
+  },
+
+  // 모달에서 '선택 완료를 눌렀을 때 실행되는 함수'
+  handleFilterComplete(filterData) {
+   console.log(`필터 선택 완료:`, filterData);
+
+   this.selectedSubject = filterData.subject;
+   this.selectedGrade = filterData.grade;
+
+   this.isModalOpen = false;
+
+   // 🌟 [수정] API 재호출 없이, 로드된 데이터로 필터링만 수행
+   this.applyFilters();
+  },
+
+  // 🌟 [추가] 로드된 데이터를 필터 조건에 맞게 거르는 함수
+  applyFilters() {
+   // 1. 탭 필터: '전시' -> 'exhibition' / '답사' -> 'science_place'
+   const typeFilter = this.selectedTab === '전시' ? 'exhibition' : 'science_place';
+      
+      // 2. 최종 필터링된 배열 생성
+   this.displayedItems = this.allWishlistItems.filter(item => {
+    // item.itemType는 백엔드에서 받은 실제 타입입니다. (exhibition 또는 science_place)
+    const typeMatch = item.itemType === typeFilter;
+    
+    // item.mainCategory (물리, 화학 등)와 item.gradeTag (초등 3학년 등)
+    const subjectMatch = this.selectedSubject === '전체' || item.mainCategory === this.selectedSubject;
+    const gradeMatch = this.selectedGrade === '전체' || item.gradeTag === this.selectedGrade;
+
+    return typeMatch && subjectMatch && gradeMatch;
+   });
+
+      // 결과 콘솔 출력
+      console.log(`[필터링 완료] 표시 ${this.displayedItems.length}개 (타입: ${typeFilter}, 과목: ${this.selectedSubject}, 학년: ${this.selectedGrade})`);
+  },
+
+
+  // 🌟 [수정] 찜 목록을 최초에 한 번만 가져오는 함수
+  async performSearch() {
+   this.isSearching = true;
+   this.allWishlistItems = []; 
+   this.displayedItems = []; // 화면 목록 초기화
+
+   try {
+    // 🌟 [수정] 백엔드 API에 userId를 쿼리 파라미터로 전달
+    const response = await axios.get(`${API_BASE}/api/wishlist/my-list`, {
+            params: {
+                userId: this.tempCurrentUserId
+            }
+        });
+
+    if (response.data && Array.isArray(response.data)) {
+     // 🌟 [수정] API 응답을 원본 데이터 배열에 저장
+     this.allWishlistItems = response.data.map(item => ({
+              // PlaceCard2 컴포넌트에 필요한 필드 매핑
+              id: item.targetId,
+              title: item.title,
+              mainCategory: item.mainCategory,
+              hashtags: item.subCategories, // 예: subCategories를 hashtags로 사용
+              gradeTag: item.gradeTag,
+              imageUrl: item.mainImageUrl,
+              itemType: item.targetType, // exhibition 또는 science_place
+              // 추가 필드가 있다면 여기에 매핑
+          }));
+          
+     console.log('API 응답 결과 (원본): ', this.allWishlistItems.length, '개');
+          
+          // 🌟 [수정] 모든 데이터를 가져온 후, 현재 선택된 필터로 즉시 필터링
+          this.applyFilters(); 
+
+    } else {
+     console.error('API 응답 형식이 잘못되었습니다.', response.data);
+     this.allWishlistItems = [];
+     this.displayedItems = [];
+    }
+   } catch (error) {
+    console.error("찜 목록 조회 중 오류 발생", error.response ? error.response.data : error.message);
+    this.$alert("찜 목록을 불러오는 중 오류가 발생했습니다.");
+    this.allWishlistItems = [];
+    this.displayedItems = [];
+   } finally {
+    this.isSearching = false;
+   }
+  },
+ },
+ created() {
+  // URL에서 탭 상태 로드 (기존 로직 유지)
+  const tabFromQuery = this.$route.query.tab;
+  if (tabFromQuery === '답사') {
+   this.selectedTab = '답사';
+  } else {
+   this.selectedTab = '전시';
+  }
+
+  // 컴포넌트 생성 시 (최초 로드 시) API 호출
+  this.performSearch();
+ }
+}
+</script>
+<style scoped>
+/* 상단 필터 버튼 (전시, 탐험) */
+.spec-button {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 5px 16px;
+  gap: 8px;
+  position: relative;
+  height: 38px;
+  border-radius: 20px;
+  background: #FFFFFF;
+  color: #333;
+  border: 1px solid #ddd;
+  transition: background-color 0.2s, color 0.2s;
+  font-family: 'SUIT', sans-serif;
+  font-weight: 500;
+}
+
+.spec-button.active {
+  background: #4A7CEC;
+  color: white;
+  border: none;
+  font-weight: 700;
+}
+
+/* 페이지 전체 컨테이너 */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 헤더 */
+.chat-header {
+  position: relative;
+}
+
+.chat-header .header-left,
+.chat-header .header-right {
+  flex: 1;
+}
+
+.chat-header .header-center {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* 카드 목록 영역 */
+.user-like-course {
+  flex: 1;
+  overflow-y: auto;
+
+  /* 스크롤바 숨기기 */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  /* 카드 목록이 잘 보이도록 패딩 추가 */
+  padding: 16px;
+  /* 목록 배경색 */
+  background-color: #f9f9f9;
+
+  display: flex;
+  flex-direction: column;
+  /* 카드 아이템 간 간격 */
+  gap: 16px;
+}
+</style>

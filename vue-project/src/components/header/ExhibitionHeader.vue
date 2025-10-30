@@ -5,7 +5,7 @@
     </button>
     <h1 class="page-title">{{ pageTitle }}</h1>
     <button class="favorite-btn" @click="toggleFavorite">
-      <i :class="isFavorite ? 'bi-heart-fill' : 'bi-heart'" :style="{ color: isFavorite ? 'red' : 'black' }"></i>
+      <i :class="isFavorite ? 'bi-heart-fill' : 'bi-heart'" :style="{ color: isFavorite ? 'Red' : 'black' }"></i>
     </button>
   </header>
 </template>
@@ -16,11 +16,16 @@ export default {
   // 부모 컴포넌트로부터 pageTitle을 props로 받습니다.
   props: {
     pageTitle: String,
+    // 1. (수정) 찜 상태를 부모로부터 props로 받습니다.
+    isFavorite: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   data() {
     return {
-      isFavorite: false,
+      
     };
   },
 
@@ -32,7 +37,7 @@ export default {
     },
     toggleFavorite() {
       // this.isFavorite 값을 현재 값의 반대(true면 false로, false면 true로)로 바꿉니다.
-      this.isFavorite = !this.isFavorite;
+      this.$emit('toggle-favorite');
     },
   },
 };

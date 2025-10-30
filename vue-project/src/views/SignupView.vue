@@ -214,7 +214,7 @@ export default {
     async checkIdDuplicate() {
       // 1. 유효성 검사
       if (!this.id || this.id.length < 4) {
-        alert('아이디를 4자 이상 입력해 주세요.');
+        this.$alert('아이디를 4자 이상 입력해 주세요.');
         this.isIdChecked = false;
         this.idCheckLoading = false;
         this.isIdDuplicate = true;
@@ -241,7 +241,7 @@ export default {
 
       } catch (error) {
         console.error('아이디 중복 확인 실패:', error);
-        alert('아이디 중복 확인 중 오류가 발생했습니다.');
+        this.$alert('아이디 중복 확인 중 오류가 발생했습니다.');
         this.isIdDuplicate = true; // 오류 발생 시 안전하게 중복으로 처리
       } finally {
         this.idCheckLoading = false; // 로딩 종료
@@ -335,7 +335,7 @@ export default {
     // ⭐ 폼 제출 핸들러 (백엔드 통신으로 수정) ⭐
     async handleSubmit() {
       if (!this.isFormValid) {
-        alert('모든 필수 정보를 입력하고 아이디 중복 확인, 비밀번호 및 이메일 조건을 충족해야 합니다.');
+        this.$alert('모든 필수 정보를 입력하고 아이디 중복 확인, 비밀번호 및 이메일 조건을 충족해야 합니다.');
         return;
       }
 
@@ -360,15 +360,15 @@ export default {
           this.showSuccessModal = true; // 성공 모달 표시
         } else {
           // 200번대 상태 코드가 아닌 경우
-          alert('회원가입에 실패했습니다. (응답 상태: ' + response.status + ')');
+          this.$alert('회원가입에 실패했습니다. (응답 상태: ' + response.status + ')');
         }
       } catch (error) {
         // 4. 에러 처리 (4xx, 5xx 에러 등)
         console.error('회원가입 요청 실패:', error);
         if (error.response && error.response.data) {
-          alert('회원가입 요청 중 오류가 발생했습니다: ' + error.response.data);
+          this.$alert('회원가입 요청 중 오류가 발생했습니다: ' + error.response.data);
         } else {
-          alert('회원가입 요청 중 알 수 없는 오류가 발생했습니다.');
+          this.$alert('회원가입 요청 중 알 수 없는 오류가 발생했습니다.');
         }
       } 
     },

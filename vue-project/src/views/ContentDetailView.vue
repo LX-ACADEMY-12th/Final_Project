@@ -20,25 +20,25 @@
         @request-delete="handleRequestDelete"
       />
 
-    <ReviewModal v-if="showReviewModal" 
-      :reviewText="reviewText" 
-      :selectedRating="selectedRating"
-      :uploadedFiles="uploadedFiles"  
-      :isFormValid="isFormValid" 
-      @update:reviewText="reviewText = $event"
-      @update:selectedRating="selectedRating = $event" 
-      @close="closeModal" 
-      @submit="submitReview" 
-      :isEditing="!!editingReviewId"
-      @files-selected="handleFiles"
-      @remove-file="handleRemoveFile"
-      />
+      <ReviewModal v-if="showReviewModal" 
+        :reviewText="reviewText" 
+        :selectedRating="selectedRating"
+        :uploadedFiles="uploadedFiles"  
+        :isFormValid="isFormValid" 
+        @update:reviewText="reviewText = $event"
+        @update:selectedRating="selectedRating = $event" 
+        @close="closeModal" 
+        @submit="submitReview" 
+        :isEditing="!!editingReviewId"
+        @files-selected="handleFiles"
+        @remove-file="handleRemoveFile"
+        />
 
-      <ConfirmDeleteModal
-      :show="showConfirmDeleteModal"
-      @confirm="confirmDelete"
-      @close="cancelDelete"
-      />
+        <ConfirmDeleteModal
+        :show="showConfirmDeleteModal"
+        @confirm="confirmDelete"
+        @close="cancelDelete"
+        />
   </div>
 </template>
 
@@ -151,7 +151,7 @@ export default {
       
       const remainingSlots = 5 - this.uploadedFiles.length;
       if (newFiles.length > remainingSlots) {
-        alert(`최대 5개의 이미지만 업로드할 수 있습니다. ${remainingSlots}개만 추가됩니다.`);
+        this.$alert(`최대 5개의 이미지만 업로드할 수 있습니다. ${remainingSlots}개만 추가됩니다.`);
       }
 
       const filesToAdd = newFiles.slice(0, remainingSlots);
@@ -209,13 +209,13 @@ export default {
         if(this.editingReviewId) {
           // 수정 모드 api 호출 : PUT /api/reviews/{reviewId} 호출
             await axios.put(`${API_BASE}/api/reviews/${this.editingReviewId}`, formData);
-            alert('리뷰가 성공적으로 수정되었습니다.');
+            this.$alert('리뷰가 성공적으로 수정되었습니다.');
             // 수정 성공시 부모에게 알림
             this.$emit('review-posted'); // (posted 이벤트를 재사용)
           } else {
             // API호출(POST/api/reviews) -> 그냥 새 리뷰
             await axios.post(`${API_BASE}/api/reviews`, formData);
-            alert(`리뷰가 성공적으로 등록되었습니다.`);
+            this.$alert(`리뷰가 성공적으로 등록되었습니다.`);
             // 부모(PlaceDetailsView)에게 "리뷰 등록됨" 이벤트 쏘기
             this.$emit('review-posted');
           }
@@ -231,7 +231,7 @@ export default {
       } catch(error) {
         // 5. API 호출 실패 시
         console.error('리뷰 등록 실패:', error);
-        alert(`리뷰 ${this.editingReviewId ? '수정' : '등록'}에 실패했습니다.`);
+        this.$alert(`리뷰 ${this.editingReviewId ? '수정' : '등록'}에 실패했습니다.`);
       }
     },
 
@@ -262,7 +262,7 @@ export default {
         await axios.delete(`${API_BASE}/api/reviews/${this.pendingDeleteReviewId}`);
 
         // 9-2. 성공 처리
-        alert('리뷰가 삭제되었습니다.');
+        this.$alert('리뷰가 삭제되었습니다.');
         this.showConfirmDeleteModal = false;
         this.pendingDeleteReviewId = null;
 
@@ -275,7 +275,7 @@ export default {
 
       } catch (error) {
         console.error('리뷰 삭제 실패:', error);
-        alert('리뷰 삭제에 실패했습니다.');
+        this.$alert('리뷰 삭제에 실패했습니다.');
         this.showConfirmDeleteModal = false; // 실패해도 모달은 닫기
         this.pendingDeleteReviewId = null;
       } finally {
