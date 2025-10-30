@@ -137,10 +137,23 @@ public class ReviewService {
 	}
 	
 	// 리뷰 후기 아래 사진들
-	public List<PhotoThumbDTO> findPhotoThumbnailsByTarget(String targetType, Long targetId, int limit) {
-	    // ⭐️ 매퍼를 호출합니다.
-	    return reviewMapper.findPhotoThumbnailsByTarget(targetType, targetId, limit);
-	}
+ 	public List<PhotoThumbDTO> findPhotoThumbnailsByTarget(String targetType, Long targetId, int limit) {
+ 	    // 1. ⭐️ 매퍼에서 DTO 목록 (url 필드에 blobName이 담겨 있음)을 가져옵니다.
+ 	    List<PhotoThumbDTO> thumbs = reviewMapper.findPhotoThumbnailsByTarget(targetType, targetId, limit);
+ 	
+ 	    // 2. ⭐️ 각 DTO의 blobName을 Signed URL로 변환합니다.
+         //    (findAllPhotosByTarget 메서드에서 하던 것과 동일한 작업입니다)
+ 	    for (PhotoThumbDTO thumb : thumbs) {
+ 	        String blobName = thumb.getUrl(); // (예: "reviews/ba8cd8ae-...")
+ 	        String signedUrl = generateSignedUrl(blobName); // (예: "https://storage.googleapis.com/...")
+ 	        
+             // ⭐️ DTO의 URL을 Signed URL로 덮어씁니다.
+             thumb.setUrl(signedUrl); 
+ 	    }
+ 	
+ 	    // 3. ⭐️ Signed URL이 적용된 목록을 반환합니다.
+ 	    return thumbs;
+ 	}
 	
 	
 	// 리뷰에 좋아요 누른 아이디..
