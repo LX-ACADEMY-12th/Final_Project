@@ -83,8 +83,10 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from '@/api/axiosSetup';
 import draggable from 'vuedraggable';
+import { useAuthStore } from '@/stores/authStore';
+import { storeToRefs } from 'pinia';
 
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import AddPlaceModal from '@/components/modal/AddPlaceModal.vue';
@@ -102,6 +104,15 @@ export default {
     CourseExhibitionCard,
     CoursePlaceEditCard
   },
+  setup() {
+    const authstore = useAuthStore();
+    const {isLoggedin, currentUserId} = storeToRefs(authstore);
+    return {
+      isLoggedin,
+      currentUserId
+    }
+  },
+
   data() {
     return {
       course: null,
@@ -126,8 +137,6 @@ export default {
 
       // 드래그 상태
       isDragging: false,
-
-      userId: 1, // 백엔드 호출로 유저 id
 
       mapKey: 0, // 지도 강제 리렌더링용
     };
@@ -154,6 +163,13 @@ export default {
       this.loading = true;
       this.error = null;
       let targetCourse = null;
+      // 로그인 상태 확인
+      if (!this.isLoggedin) {
+        this.error = '로그인이 필요합니다.';
+        this.loadding = false;
+        this.$router.push('/login');
+        return;
+      }  
 
       try {
         const courseId = this.$route.params.courseId;
@@ -177,7 +193,7 @@ export default {
         // 3단계: API fallback
         if (!targetCourse) {
           console.log('저장된 데이터 없음. API로 fallback 시도');
-          const response = await axios.get(`http://localhost:8080/api/schedules/user/${this.userId}`);
+          const response = await axios.get(`api/schedules/user/${this.currentUserId}`);
 
           const allMappedCourses = response.data.map(schedule => {
             const mappedCourseItems = schedule.items
@@ -293,7 +309,13 @@ export default {
     // 변경사항 저장
     async saveChanges() {
       if (!this.hasChanges || this.isSaving) return;
-
+      // 로그인 상태 확인
+      if (!this.isLoggedin) {
+        this.error = '로그인이 필요합니다.';
+        this.loadding = false;
+        this.$router.push('/login');
+        return;
+      }  
       this.isSaving = true;
       this.saveMessage = '';
 
@@ -322,9 +344,10 @@ export default {
 
         console.log('저장할 데이터:', JSON.stringify(updateData, null, 2));
 
+
         // API 호출 - Post 요청
         const response = await axios.post(
-          `http://localhost:8080/api/schedules/items`,
+          `api/schedules/items`,
           updateData
         );
 
