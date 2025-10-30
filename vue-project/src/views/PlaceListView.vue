@@ -170,7 +170,7 @@ export default {
         }
       } catch (error) {
         console.error("API 검색 중 오류 발생", error.response ? error.response.data : error.message);
-        alert("장소를 검색하는 중 오류가 발생했습니다.");
+        this.$alert("장소를 검색하는 중 오류가 발생했습니다.");
         this.displayedItems = [];
       } finally {
         this.isSearching = false;

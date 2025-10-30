@@ -276,7 +276,7 @@ const goToCurrentLocation = async () => {
     }
   } catch (error) {
     console.error("현위치 이동 실패:", error);
-    alert("현위치를 가져올 수 없습니다. GPS가 켜져 있는지 확인해주세요.");
+    this.$alert("현위치를 가져올 수 없습니다. GPS가 켜져 있는지 확인해주세요.");
   }
 };
 
@@ -377,7 +377,7 @@ const performSearch = async () => {
 
   } catch (error) {
     console.error("API 검색 중 오류 발생:", error.response ? error.response.data : error.message);
-    alert("장소를 검색하는 중 오류가 발생했습니다. " + (error.message.includes("위치") ? "위치 정보를 확인해주세요." : ""));
+    this.$alert("장소를 검색하는 중 오류가 발생했습니다. " + (error.message.includes("위치") ? "위치 정보를 확인해주세요." : ""));
     displayedItems.value = [];
   } finally {
     isSearching.value = false;

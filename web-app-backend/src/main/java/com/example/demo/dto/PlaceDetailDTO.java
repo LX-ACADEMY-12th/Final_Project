@@ -47,4 +47,6 @@ public class PlaceDetailDTO {
     // ⭐️ [추가] 사진 리뷰 총 개수
  	private Long totalPhotoReviews;
     
+ 	// 찜 여부 필드 추가
+ 	private boolean isLiked;
 }

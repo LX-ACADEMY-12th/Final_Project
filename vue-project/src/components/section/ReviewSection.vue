@@ -242,7 +242,7 @@ export default {
 
         } catch (err) {
           console.error('[modal-thumb] 전체 사진 URL 로드 실패:', err);
-          alert('사진을 불러오는 데 실패했습니다.');
+          this.$alert('사진을 불러오는 데 실패했습니다.');
           return;
         }
       } else {
@@ -411,7 +411,7 @@ export default {
       try {
         const review = this.reviews.find(r => r.reviewId === reviewId);
         if (review && String(review.authorId) === String(this.currentUserId)) {
-          alert('본인 리뷰는 신고할 수 없습니다.');
+          this.$alert('본인 리뷰는 신고할 수 없습니다.');
           return;
         }
 
@@ -423,10 +423,10 @@ export default {
           reporterUserId: this.currentUserId
         });
 
-        alert('신고가 접수되었습니다.');
+        this.$alert('신고가 접수되었습니다.');
       } catch (e) {
         console.error('신고 실패:', e);
-        alert(`신고에 실패했습니다: ${e.response?.data || e.message}`);
+        this.$alert(`신고에 실패했습니다: ${e.response?.data || e.message}`);
       } finally {
         this.openReportMenuId = null;
       }
@@ -455,7 +455,7 @@ export default {
         console.log(`리뷰 ID: ${reviewId}, API 성공 후 상태: ${!isLiked ? '좋아요' : '취소'}`);
       } catch (error) {
         console.error('좋아요 처리 실패:', error);
-        alert(`좋아요 처리에 실패했습니다: ${error.response?.data || error.message}`);
+        this.$alert(`좋아요 처리에 실패했습니다: ${error.response?.data || error.message}`);
       }
     },
 

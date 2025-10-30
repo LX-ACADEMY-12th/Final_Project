@@ -12,6 +12,7 @@ import PlaceListView from '@/views/PlaceListView.vue'
 import ReviewPhotoGridView from '@/views/ReviewPhotoGridView.vue'
 import LoginView from '@/views/LoginView.vue'
 import SignupView from '@/views/SignupView.vue'
+import UserLikePlaceListView from '@/views/UserLikePlaceListView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -88,6 +89,13 @@ const router = createRouter({
       path: '/photos/:targetType/:targetId',
       name: 'AllPhotos',
       component: ReviewPhotoGridView, 
+      props: true
+    },
+    // 사용자 관심 목록(전시, 장소)
+    {
+      path: '/likePlace',
+      name: 'LikePlace',
+      component: UserLikePlaceListView, 
       props: true
     },
   ],

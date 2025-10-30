@@ -2,16 +2,18 @@
   <div class="exhibition-detail-page">
 
     <div class="header">
-      <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시 상세" />
-      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="장소 상세" />
+      <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시 상세" :isFavorite="exhibition.isFavorite"
+        @toggle-favorite="handleToggleFavorite" />
+      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="장소 상세" :isFavorite="place.isFavorite"
+        @toggle-favorite="handleToggleFavorite" />
       <ExhibitionHeader v-else pageTitle="로딩 중..." />
     </div>
 
     <div class="scroll-content">
 
-      <!--전시일때-->
+      <!--전일때-->
       <div v-if="pageType === 'exhibition'">
-        <InfoSection :exhibition="exhibition" imageTag="전시 태그" :mainCategory="exhibition.mainCategory"
+        <InfoSection :exhibition="exhibition" imageTag="전 태그" :mainCategory="exhibition.mainCategory"
           :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag" />
         <hr class="divider" />
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
@@ -26,7 +28,7 @@
         <div v-else-if="currentTab === 'recommend'">
           <div v-if="isRecommending" class="recommend-loading">
             <p>🤖 AI가 코스를 생성 중입니다.</p>
-            <p>잠시만 기다려 주세요...</p>
+            <p>잠만 기다려 주세요...</p>
           </div>
           <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
             @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
@@ -42,14 +44,15 @@
 
         <div v-if="currentTab === 'detail'">
           <ContentDetailView :exhibitionInformation="placeInformation" :exhibition="place" :target-id="currentId"
-            :target-type="pageType" :current-user-id="currentUserId" :isPlace="true" @review-posted="handleReviewPosted"
-            @review-deleted="handleReviewDeleted" :photo-review-count="place.photoReviewCount" />
+            :target-type="pageType" :current-user-id="tempCurrentUserId" :isPlace="true"
+            @review-posted="handleReviewPosted" @review-deleted="handleReviewDeleted"
+            :photo-review-count="place.photoReviewCount" />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
           <div v-if="isRecommending" class="recommend-loading">
             <p>🤖 AI가 코스를 생성 중입니다.</p>
-            <p>잠시만 기다려 주세요...</p>
+            <p>잠만 기다려 주세요...</p>
           </div>
           <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
             @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
@@ -115,7 +118,7 @@ export default {
       pageType: null,     // 'exhibition' | 'place' <-- 여기에 targetType을 저장
       currentTab: 'detail',
 
-      // 전시 상세
+      // 전 상세
       exhibition: {
         title: '데이터 로딩 중...',
         rating: 0,
@@ -127,7 +130,10 @@ export default {
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
+        isFavorite: false, // 찜 상태 (DB에서 불러온 초기값)
       },
+      isLoading: false, // 중복 클릭 방지용
+
       // 이게 LocationSection에 들어갈 부분
       exhibitionInformation: {
         exhibitionLocation: '',
@@ -150,6 +156,7 @@ export default {
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
+        isFavorite: false, // 찜 상태 (DB에서 불러온 초기값)
       },
       // (LocationSection이 'placeAddress'를 사용)
       placeInformation: {
@@ -175,19 +182,19 @@ export default {
     };
   },
 
-  // 컴포넌트 로드 시 훅 설정
+  // 컴포넌트 로드  훅 설정
   created() {
     // URL에서 ID 가져오기
     const id = this.$route.params.id; // url에서 id를 가져와서 targetId로 사용!
     // ID를 data()에 저장
     this.currentId = id;
-    // URL 경로가 place 시작인지 판별
+    // URL 경로가 place 작인지 판별
     const isPlace = this.$route.path.startsWith('/place/'); // 1. URL 경로를 분석해서 'targetType'으로 사용
     // 장소인 경우
     if (isPlace) {
       this.pageType = 'science_place';
       this.fetchPlaceData(id);
-      // 전시인 경우
+      // 전인 경우
     } else {
       this.pageType = 'exhibition';
       this.fetchExhibitionData(id);
@@ -236,6 +243,7 @@ export default {
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
+        isFavorite: dto.isLiked ?? false
       };
 
       // LocationSection이 사용할 데이터
@@ -290,13 +298,14 @@ export default {
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
+        isFavorite: dto.isLiked ?? false
       };
 
       // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
       this.placeInformation = {
         // dto.location -> dto.addressDetail
         placeAddress: dto.addressDetail ?? '정보 없음',
-        // DTO에 기간 정보가 없으므로 '상시 운영' 또는 '정보 없음' 처리
+        // DTO에 기간 정보가 없으므로 '상 운영' 또는 '정보 없음' 처리
         operationPeriod: this.formatPeriod(null, null),
         operationHours: dto.openingHours ?? '정보 없음',
         // ★ 수정: Place DTO의 admissionFee는 '무료' 같은 문자열(String)이므로 formatFee() 사용 안함
@@ -315,8 +324,8 @@ export default {
 
     // ✨ (Helper) 날짜 포맷 함수 추가
     formatPeriod(start, end) {
-      if (!start && !end) return '상시 운영';
-      if (start && !end) return `${start} ~ 별도 안내시까지`;
+      if (!start && !end) return '상 운영';
+      if (start && !end) return `${start} ~ 별도 안내까지`;
       if (!start && end) return `~ ${end}`;
       return `${start} ~ ${end}`;
     },
@@ -328,13 +337,14 @@ export default {
       return `${fee.toLocaleString('ko-KR')}원`; // 4000 -> "4,000원"
     },
 
-    /** 전시 상세 - 백엔드 연동 */
+    /** 전 상세 - 백엔드 연동 */
     async fetchExhibitionData(id) {
       try {
 
         const res = await axios.get(`${API_BASE}/api/exhibitions`, {
           params: {
             exhibitionId: id,
+            userId: this.tempCurrentUserId // 로그인 연결 전 임시로
           },
         });
 
@@ -342,13 +352,96 @@ export default {
         console.log('✅ [PlaceDetailsView] API 원본 응답 (exhibition dto):', dto);
 
         if (!dto || Object.keys(dto).length === 0) {
-          console.warn('전시 데이터가 비어 있습니다.');
+          console.warn('전 데이터가 비어 있습니다.');
           return;
         }
         this.mapExhibitionDTO(dto);
       } catch (error) {
-        console.error('전시 상세 조회 실패:', error);
-        alert('전시 정보를 불러오지 못했습니다.');
+        console.error('전 상세 조회 실패:', error);
+        this.$alert('전 정보를 불러오지 못했습니다.');
+      }
+    },
+
+    async handleToggleFavorite() {
+      if (this.isLoading) return;
+      this.isLoading = true;
+
+      const isExhibition = (this.pageType === 'exhibition');
+      let currentState = isExhibition ? this.exhibition.isFavorite : this.place.isFavorite;
+      const currentId = this.currentId;
+      const targetType = this.pageType;
+      const userId = this.tempCurrentUserId;
+
+      // 요청 본문에 보낼 데이터 (DELETE/POST 공통)
+      const requestData = {
+        targetId: currentId,
+        targetType: targetType,
+        userId: userId
+      };
+
+      try {
+        if (currentState) {
+          // 1. 찜 취소 (DELETE) - 🌟 [수정] params 대신 data 속성 사용 🌟
+          await axios.delete(`${API_BASE}/api/wishlist`, {
+            data: requestData // 요청 본문에 데이터 포함
+          });
+          // 성공: 상태 업데이트
+          currentState = false;
+          this.$alert('찜 목록에서 삭제되었습니다.');
+
+        } else {
+          // 2. 찜 추가 (POST)
+          await axios.post(`${API_BASE}/api/wishlist`, requestData);
+          // 성공: 상태 업데이트
+          currentState = true;
+          this.$alert('찜 목록에 추가되었습니다.');
+        }
+        // 최종 상태 반영
+        if (isExhibition) {
+          this.exhibition.isFavorite = currentState;
+        } else {
+          this.place.isFavorite = currentState;
+        }
+
+      } catch (error) {
+        // 3. 에러 처리
+        const status = error.response?.status;
+
+        // 409 Conflict 에러 처리 (자동 취소)
+        if (status === 409) {
+          this.$alert('중복된 찜 항목입니다. 자동으로 취소합니다.');
+
+          try {
+            // DELETE 요청 재시도 (취소) - 🌟 [수정] data 속성 사용 🌟
+            await axios.delete(`${API_BASE}/api/wishlist`, {
+              data: requestData // 요청 본문에 데이터 포함
+            });
+            // 취소 성공: 상태를 false로 업데이트
+            if (isExhibition) {
+              this.exhibition.isFavorite = false;
+            } else {
+              this.place.isFavorite = false;
+            }
+            this.$alert('찜이 취소되었습니다.');
+
+          } catch (deleteError) {
+            // DELETE 재시도 실패 시
+            console.error('409 후 찜 취소 실패:', deleteError);
+            this.$alert('찜 상태 동기화에 실패했습니다. (다음 클릭 시 취소됩니다.)');
+          }
+        }
+        // 403 Forbidden 에러 처리 (권한 문제)
+        else if (status === 403) {
+          this.$alert('로그인이 필요하거나 권한이 없습니다.');
+        }
+        // 그 외 에러 처리
+        else {
+          console.error('찜 처리 중 에러 발생:', error);
+          this.$alert('찜 처리에 실패했습니다. 다시 시도해 주세요.');
+        }
+
+      } finally {
+        this.isLoading = false;
       }
     },
     // 추천 코스 저장 요청 처리
@@ -364,7 +457,7 @@ export default {
       if (!items || items.length === 0) {
         console.warn('저장할 추천 코스 아이템이 없습니다.');
         // this.primaryLoading = false;
-        alert('저장할 코스 정보가 없습니다.'); // 사용자 알림
+        this.$alert('저장할 코스 정보가 없습니다.'); // 사용자 알림
         return;
       }
 
@@ -381,14 +474,14 @@ export default {
           sequence: item.number,  // 프론트엔드 number -> sequence
           itemType: item.type === 'exhibition' ? 'exhibition' : 'science_place' // 아이템 타입 설정 (백엔드와 일치 필요)
           // ❗️ 중요: item.type이 백엔드 Enum/String과 일치하는지 확인 필요
-          // 예시: 백엔드가 'science_place'만 받는다면 그에 맞게 조정
+          // 예: 백엔드가 'science_place'만 받는다면 그에 맞게 조정
         }));
 
         // 최종 요청 페이로드
         const requestDto = {
           scheduleName: scheduleName,
           sourceId: sourceId,
-          sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course', // 전시 추천 코스이면 'inner_course', 장소 추천 코스이면 'ai_course'
+          sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course', // 전 추천 코스이면 'inner_course', 장소 추천 코스이면 'ai_course'
           items: backendItems
         };
 
@@ -400,19 +493,20 @@ export default {
         // 3. 성공 처리
         if (response.status === 200) {
           console.log('✅ [PlaceDetailsView] 추천 코스 저장 성공!');
-          alert('추천 코스가 "관심 코스"에 성공적으로 저장되었습니다.'); // 성공 메시지
-          // TODO: (선택) 저장 후 사용자를 마이페이지나 다른 곳으로 이동시킬 수 있습니다.
+          this.$alert('추천 코스가 "관심 코스"에 성공적으로 저장되었습니다.'); // 성공 메지
+          // TODO: (선택) 저장 후 사용자를 마이페이지나 다른 곳으로 이동킬 수 있습니다.
           // 예: this.$router.push('/mypage/likes');
         } else {
-          // 200 외의 응답 처리 (필요시)
+          // 200 외의 응답 처리 (필요)
           console.error('⚠️ [PlaceDetailsView] 추천 코스 저장 응답 오류:', response);
-          alert(`코스 저장 중 문제가 발생했습니다: ${response.data?.message || response.statusText}`);
+          this.$alert(`코스 저장 중 문제가 발생했습니다: ${response.data?.message || response.statusText}`);
         }
 
       } catch (error) {
         // 4. 실패 처리
         // (401 오류는 axiosSetup.js가 자동으로 처리하므로, 여기서는 403, 500 등 다른 오류를 처리)
         console.error('💥 [PlaceDetailsView] 추천 코스 저장 API 호출 실패:', error);
+        this.$alert(`코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`);
         if (error.response?.status === 403) {
           alert('접근 권한이 없습니다.');
         } else {
@@ -430,6 +524,7 @@ export default {
         const res = await axios.get(`${API_BASE}/api/place`, {
           params: {
             placeId: id,
+            userId: this.tempCurrentUserId
           },
         });
 
@@ -447,7 +542,7 @@ export default {
 
       } catch (error) {
         console.error('장소 상세 조회 실패:', error);
-        alert('장소 정보를 불러오지 못했습니다.');
+        this.$alert('장소 정보를 불러오지 못했습니다.');
       }
 
       // ★ 수정: API 호출 후 Mock 데이터를 덮어쓰면 안되므로 삭제
@@ -468,12 +563,12 @@ export default {
       this.refreshData();
     },
 
-    // 리뷰 삭제 모달 -> 삭제시 카운트 감소
+    // 리뷰 삭제 모달 -> 삭제 카운트 감소
     handleReviewDeleted() {
       this.refreshData();
     },
 
-    // 탭 변경시 호출될 메서드
+    // 탭 변경 호출될 메서드
     handleTabChange(tabName) {
       this.currentTab = tabName;
 
@@ -530,7 +625,7 @@ export default {
           // (item = 백엔드 DTO: { placeId, placeName, imageUrl, address, latitude, longitude ... })
           return {
             id: item.placeId,
-            number: index + 2,     // [!!] 2번부터 시작
+            number: index + 2,     // [!!] 2번부터 작
             imageUrl: item.imageUrl || 'https://via.placeholder.com/60x60',
             title: item.placeName,
             subject: item.subjectName,
@@ -546,12 +641,12 @@ export default {
 
         // 1번 항목과 (2,3,4..) 항목 리스트를 합쳐서 최종 저장
         this.courseItems = [currentItemFormatted, ...aiItemsFormatted];
-        this.hasLoadedRecommendations = true; // 에러 시 무한 재시도 방지
+        this.hasLoadedRecommendations = true; // 에러  무한 재도 방지
         console.log('🤖 AI 추천 코스 수신 완료 (1번 + 추천 리스트):', this.courseItems);
 
       } catch (error) {
         console.error("AI 추천 코스 로딩 실패:", error);
-        // 에러가 나도 로드는 되었다고 처리해야, 탭 이동 후 다시 눌렀을 때 재시도 가능
+        // 에러가 나도 로드는 되었다고 처리해야, 탭 이동 후 다 눌렀을 때 재도 가능
         this.hasLoadedRecommendations = true;
       } finally {
         this.isRecommending = false;

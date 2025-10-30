@@ -47,7 +47,7 @@
     </button>
     <ul class="list-group list-group-flush">
       <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center" @click="goToLikePlace()">
           <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
           <span>관심 목록</span>
         </div>
@@ -126,7 +126,7 @@ export default {
       // this.user.loginId가 비어있다면, 로그인이 되지 않은 상태로 간주합니다.
       if (!this.isLoggedIn) {
         // 1. 알림 메시지 띄우기
-        alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
+        this.$alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
         // 2. 로그인 페이지로 이동
         this.$router.push({ name: 'login' });
         return;
@@ -195,9 +195,9 @@ export default {
         // 🟢 (axiosSetup.js가 401(토큰만료)을 자동으로 처리 시도)
         console.error('회원 탈퇴 실패:', error);
         if (error.response && error.response.data) {
-          alert('회원 탈퇴 실패: ' + error.response.data);
+          this.$alert('회원 탈퇴 실패: ' + error.response.data);
         } else {
-          alert('회원 탈퇴 중 알 수 없는 오류가 발생했습니다.');
+          this.$alert('회원 탈퇴 중 알 수 없는 오류가 발생했습니다.');
         }
         this.isSettingsModalOpen = false;
       }
