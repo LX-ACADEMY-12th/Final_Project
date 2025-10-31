@@ -606,27 +606,23 @@ export default {
         }
 
       } catch (error) {
-        // 4. 실패 처리
-        // (401 오류는 axiosSetup.js가 자동으로 처리하므로, 여기서는 403, 500 등 다른 오류를 처리)
         console.error('💥 [PlaceDetailsView] 추천 코스 저장 API 호출 실패:', error);
-        eventBus.emit('show-global-alert', {
-          message: `코스 저장 중 문제가 발생했습니다: ${error.response?.data || error.message}`,
-          type: 'error'
-        });
+
         if (error.response?.status === 403) {
           eventBus.emit('show-global-alert', {
-            message: `접근 권한이 없습니다.`,
+            message: '접근 권한이 없습니다.',
             type: 'error'
           });
         } else {
           eventBus.emit('show-global-alert', {
-            message: `코스 저장 중 문제가 발생했습니다: ${error.response?.data || error.message}`,
+            message: `코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`,
             type: 'error'
           });
         }
       } finally {
         // 5. 로딩 상태 해제
       }
+
     },
 
     /** 장소 상세 - 백엔드 연동 ★★★ 버그 수정 ★★★ */
@@ -719,24 +715,27 @@ export default {
 
         // 2. "1번 항목" (현재 페이지 장소) 데이터 준비
         // (created()에서 이미 불러온 this.place 또는 this.exhibition 객체 활용)
-        const currentItemData = (this.pageType === 'place') ? this.place : this.exhibition;
-        const currentItemInfo = (this.pageType === 'place') ? this.placeInformation : this.exhibitionInformation;
+        const currentItemData = (this.pageType === 'science_place') ? this.place : this.exhibition;
+        const currentItemInfo = (this.pageType === 'science_place') ? this.placeInformation : this.exhibitionInformation;
+
 
         // 3. "1번 항목"을 카드 형식으로 포맷
         const currentItemFormatted = {
-          id: this.currentId, // 고유 ID
-          number: 1,            // 1번으로 고정
+          id: this.currentId,
+          number: 1,
           imageUrl: currentItemData.mainImage || 'https://via.placeholder.com/60x60',
-          title: currentItemData.title,
-          subject: currentItemData.mainCategory,
-          grade: currentItemData.gradeTag,
-          hashtags: Array.isArray(currentItemData.subCategories) ? currentItemData.subCategories : [currentItemData.subCategories].filter(Boolean),
-          type: currentItemData.type,
-          place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation,
-          // 지도(CourseMap)를 위한 1번 항목의 좌표
-          lat: currentItemInfo.lat,
-          lng: currentItemInfo.lng,
+          title: currentItemData.title || '제목 없음',  // ← null 체크 추가
+          subject: currentItemData.mainCategory || '분류 없음',  // ← null 체크 추가
+          grade: currentItemData.gradeTag || '학년 정보 없음',  // ← null 체크 추가
+          hashtags: Array.isArray(currentItemData.subCategories)
+            ? currentItemData.subCategories
+            : (currentItemData.subCategories ? [currentItemData.subCategories] : []),  // ← 예외 처리
+          type: this.pageType === 'science_place' ? 'science_place' : 'exhibition',
+          place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation || '주소 정보 없음',  // ← null 체크 추가
+          lat: currentItemInfo.lat || 0,
+          lng: currentItemInfo.lng || 0,
         };
+
 
         // 4. "2번, 3번..." (AI 추천 목록)을 카드 형식으로 포맷
         const aiItemsFormatted = aiRecommendedDtos.map((item, index) => {
