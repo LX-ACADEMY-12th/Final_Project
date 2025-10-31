@@ -481,9 +481,11 @@ export default {
         const requestDto = {
           scheduleName: scheduleName,
           sourceId: sourceId,
-          sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course', // 전 추천 코스이면 'inner_course', 장소 추천 코스이면 'ai_course'
-          items: backendItems
+          sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course',
+          items: backendItems,
+          userId: this.currentUserId // 여기에 userId를 추가하세요
         };
+
 
         console.log('💾 [PlaceDetailsView] API 요청 데이터:', JSON.stringify(requestDto, null, 2));
 

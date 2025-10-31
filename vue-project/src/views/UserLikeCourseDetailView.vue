@@ -106,9 +106,10 @@ export default {
   },
   setup() {
     const authstore = useAuthStore();
-    const {isLoggedin, currentUserId} = storeToRefs(authstore);
+    // 🟢 [수정] isLoggedin → isLoggedIn (대소문자 일치)
+    const { isLoggedIn, currentUserId } = storeToRefs(authstore);
     return {
-      isLoggedin,
+      isLoggedIn,  // 수정됨
       currentUserId
     }
   },
@@ -163,13 +164,14 @@ export default {
       this.loading = true;
       this.error = null;
       let targetCourse = null;
-      // 로그인 상태 확인
-      if (!this.isLoggedin) {
+
+      // 🟢 [수정] this.isLoggedin → this.isLoggedIn + currentUserId 체크로 변경
+      if (!this.currentUserId) {
         this.error = '로그인이 필요합니다.';
-        this.loadding = false;
+        this.loading = false;  // 오타 수정: loadding → loading
         this.$router.push('/login');
         return;
-      }  
+      }
 
       try {
         const courseId = this.$route.params.courseId;
@@ -309,13 +311,14 @@ export default {
     // 변경사항 저장
     async saveChanges() {
       if (!this.hasChanges || this.isSaving) return;
-      // 로그인 상태 확인
-      if (!this.isLoggedin) {
+
+      // 🟢 [수정] this.isLoggedin → this.currentUserId 체크
+      if (!this.currentUserId) {
         this.error = '로그인이 필요합니다.';
-        this.loadding = false;
+        this.loading = false;  // 오타 수정
         this.$router.push('/login');
         return;
-      }  
+      }
       this.isSaving = true;
       this.saveMessage = '';
 
