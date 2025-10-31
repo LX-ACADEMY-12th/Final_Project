@@ -374,31 +374,46 @@ export default {
         });
       }
     },
-
+    // 찜 기능 함수
     async handleToggleFavorite() {
+      // 🟢 로그인 상태 확인 (Pinia 스토어)
+      if (!this.isLoggedIn) {
+        this.$alert('로그인이 필요한 서비스입니다.');
+        this.$router.push({ name: 'login' }); // (라우터 이름이 'login'이라고 가정)
+        return;
+      }
+
       if (this.isLoading) return;
-      this.isLoading = true;
 
       const isExhibition = (this.pageType === 'exhibition');
+      // 찜 상태와 현재 아이템 데이터 가져오기
       let currentState = isExhibition ? this.exhibition.isFavorite : this.place.isFavorite;
-      const currentId = this.currentId;
-      const targetType = this.pageType;
+      const currentItem = isExhibition ? this.exhibition : this.place;
       const userId = this.tempCurrentUserId;
 
-      // 요청 본문에 보낼 데이터 (DELETE/POST 공통)
-      const requestData = {
-        targetId: currentId,
-        targetType: targetType,
-        userId: userId
+      // 1. 찜 취소 (DELETE) 요청 데이터 (기존과 동일)
+      // 찜 취소는 해당 아이템의 모든 '찜'을 삭제하는 것으로 통일 (이것이 UX상 가장 간단합니다)
+      const deleteRequestData = {
+        targetId: this.currentId,
+      };
+
+      // 2. 찜 추가 (POST) 요청 데이터 (🌟 맥락 정보 추가 🌟)
+      const postRequestData = {
+        targetId: this.currentId,
+        targetType: this.pageType,
+
+        // 🌟 현재 페이지의 맥락(과학영역, 학년)을 함께 전송
+        mainCategory: currentItem.mainCategory,
+        gradeTag: currentItem.gradeTag
       };
 
       try {
         if (currentState) {
-          // 1. 찜 취소 (DELETE) - 🌟 [수정] params 대신 data 속성 사용 🌟
+          // 1. 찜 취소 (DELETE)
+          // 🌟 [수정] data: deleteRequestData
           await axios.delete(`${API_BASE}/api/wishlist`, {
-            data: requestData // 요청 본문에 데이터 포함
+            data: deleteRequestData
           });
-          // 성공: 상태 업데이트
           currentState = false;
           eventBus.emit('show-global-alert', {
           message: '찜 목록에서 삭제되었습니다.',
@@ -407,8 +422,10 @@ export default {
 
         } else {
           // 2. 찜 추가 (POST)
-          await axios.post(`${API_BASE}/api/wishlist`, requestData);
-          // 성공: 상태 업데이트
+          // 🌟 postRequestData (맥락 정보가 포함된 DTO 전송)
+          await axios.post(`${API_BASE}/api/wishlist`, postRequestData);
+          // 요청 아이템
+          JSON.stringify(console.log(postRequestData), null, 2);
           currentState = true;
           eventBus.emit('show-global-alert', {
           message: '찜 목록에 추가되었습니다.',
@@ -472,11 +489,11 @@ export default {
             type: 'error'
           });
         }
-
       } finally {
         this.isLoading = false;
       }
     },
+
     // 추천 코스 저장 요청 처리
     async handleSaveRecommendedCourse(items) {
       console.log('💾 [PlaceDetailsView] 추천 코스 저장 시작...', items);
@@ -520,9 +537,11 @@ export default {
         const requestDto = {
           scheduleName: scheduleName,
           sourceId: sourceId,
-          sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course', // 전 추천 코스이면 'inner_course', 장소 추천 코스이면 'ai_course'
-          items: backendItems
+          sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course',
+          items: backendItems,
+          userId: this.currentUserId // 여기에 userId를 추가하세요
         };
+
 
         console.log('💾 [PlaceDetailsView] API 요청 데이터:', JSON.stringify(requestDto, null, 2));
 
