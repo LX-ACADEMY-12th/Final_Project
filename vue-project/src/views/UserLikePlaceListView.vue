@@ -25,13 +25,13 @@
     <div class="user-like-course">
 
       <div v-if="isSearching" class="text-center p-5 text-muted w-100" style="margin-top: 20px;">
-        검색 중...
+        가져오는 중...
       </div>
       <div v-else-if="displayedItems.length === 0" class="text-center p-5 text-muted w-100" sytle="margin-top: 20px;">
         <div>표시할 장소가 없습니다.</div>
-        <div class="text-sm mt-2" style="font-size:  0.9rem; color: #888">
+        <!-- <div class="text-sm mt-2" style="font-size:  0.9rem; color: #888">
           과목 : {{ selectedSubject }} / 학년: {{ selectedGrade.replace('초등 ', '') }}
-        </div>
+        </div> -->
       </div>
 
       <template v-else>
@@ -124,19 +124,6 @@ export default {
     // 뒤로가기 함수 (기존 로직 유지)
     goBack() {
       this.$router.back();
-    },
-
-    // 모달에서 '선택 완료를 눌렀을 때 실행되는 함수'
-    handleFilterComplete(filterData) {
-      console.log(`필터 선택 완료:`, filterData);
-
-      this.selectedSubject = filterData.subject;
-      this.selectedGrade = filterData.grade;
-
-      this.isModalOpen = false;
-
-      // API 재호출 없이, 로드된 데이터로 필터링만 수행
-      this.applyFilters();
     },
 
     // 로드된 데이터를 필터 조건에 맞게 거르는 함수

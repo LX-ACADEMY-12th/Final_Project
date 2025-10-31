@@ -30,8 +30,17 @@
 	    )
 	</select>
 
+    <resultMap id="wishlistResultMap"
+               type="com.example.demo.dto.WishListResponseDTO"
+               autoMapping="true">
+
+        <result property="subCategories"
+                column="subCategories"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+    </resultMap>
+
 	<!-- 사용자가 찜을 누른 위시리스트를 조회 -->
-    <select id="findMyWishlistByUserId" resultType="com.example.demo.dto.WishListResponseDTO">
+    <select id="findMyWishlistByUserId" resultMap="wishlistResultMap">
         (
             -- [파트 1: 전시 찜 목록]
             SELECT
@@ -44,7 +53,7 @@
                 e.main_image_url AS mainImageUrl,
                 e.average_rating AS averageRating,
                 e.total_reviews AS totalReviews,
-                ARRAY_AGG(DISTINCT csc.sub_category_name) AS subCategories,
+                ARRAY_REMOVE(ARRAY_AGG(DISTINCT csc.sub_category_name), NULL) AS subCategories,
                 w.created_at AS likedAt,
                 e.type AS type,
                 CONCAT_WS(' ', h.science_center_name, h.hall_name) AS place
@@ -87,7 +96,7 @@
                 sp.main_image_url AS mainImageUrl,
                 sp.average_rating AS averageRating,
                 sp.total_reviews AS totalReviews,
-                ARRAY_AGG(DISTINCT csc.sub_category_name) AS subCategories,
+                ARRAY_REMOVE(ARRAY_AGG(DISTINCT csc.sub_category_name), NULL) AS subCategories,
                 w.created_at AS likedAt,
                 sp.place_type AS type,
                 sp.address_detail AS place
@@ -112,12 +121,10 @@
                 w.created_at,
                 sp.place_type,
                 sp.address_detail
-        ) -- 👈 [수정] 세미콜론(;) 삭제
-
+        )
         -- [정렬] 합쳐진 전체 결과를 찜한 날짜 최신순으로 정렬
         ORDER BY
             likedAt DESC
-        -- 👈 [수정] 마지막 세미콜론(;)도 제거
     </select>
 	
 	

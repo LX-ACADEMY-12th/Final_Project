@@ -67,7 +67,6 @@ public class WishListService {
 
             // 3. 🟢 DB 호출 완료 (이 로그가 찍히면 성공)
             log.info("[WishListService] findMyWishlistByUserId - Mapper(DB) 호출 완료. 결과: {}건", result.size());
-
             return result;
 
         } catch (Exception e) {
