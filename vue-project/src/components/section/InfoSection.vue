@@ -234,8 +234,11 @@ export default {
   /* 해시태그가 여러 줄로 표시될 수 있도록 flex-wrap을 적용합니다. */
   display: flex;
   flex-wrap: wrap;
+  gap: 12px;
+  /* 해시태그 사이 간격 추가 */
   margin-bottom: 16px;
 }
+
 
 .description {
   font-size: 14px;
