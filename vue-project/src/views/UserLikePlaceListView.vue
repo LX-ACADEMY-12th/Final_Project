@@ -9,8 +9,6 @@
         관심 장소 목록
       </div>
       <div class="header-right" style="flex: 1; text-align: right;">
-        <i class="bi bi-sliders fs-5" style="cursor: pointer;" @click.prevent="isModalOpen = true">
-        </i>
       </div>
     </div>
 
