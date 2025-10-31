@@ -111,15 +111,10 @@ export default {
 
   // 4. 메서드(Methods)
   methods: {
-
     // 뒤로가기 함수
     goBack() {
       this.$router.back();
     },
-    // // 계정설정화면으로 이동하는 함수
-    // goToAccountView() {
-    //   this.$router.push({ name: 'AccountView' })
-    // },
 
     // ⭐ 계정설정화면으로 이동하는 함수 (로그인 확인 로직 추가) ⭐
     goToAccountView() {
@@ -144,6 +139,11 @@ export default {
     goToLoginView() {
       this.$router.push({ name: 'login' });
       this.isSettingsModalOpen = false; // 모달을 닫습니다.
+    },
+
+    // 관심 목록 페이지로 이동
+    goToLikePlace() {
+      this.$router.push({ name: 'LikePlace' })
     },
 
     // 저장된 추천 코스로 이동하는 함수
