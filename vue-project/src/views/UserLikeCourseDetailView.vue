@@ -49,7 +49,7 @@
           <!-- 답사 타입: 드래그 가능 -->
           <div v-else-if="pageType === 'place'">
             <draggable v-model="courseItems" :animation="200" ghost-class="ghost-item" chosen-class="chosen-item"
-              drag-class="drag-item" @start="onDragStart" @end="onDragEnd" item-key="id">
+              drag-class="drag-item" @start="onDragStart" @end="onDragEnd" @change="onDragChange" item-key="id">
               <template #item="{ element }">
                 <CoursePlaceEditCard :item="element" :showControls="true" couseType="답사" @edit="handleEdit"
                   @delete="handleDelete" class="draggable-item" />
@@ -85,8 +85,6 @@
 <script>
 import axios from '@/api/axiosSetup';
 import draggable from 'vuedraggable';
-import { useAuthStore } from '@/stores/authStore';
-import { storeToRefs } from 'pinia';
 
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import AddPlaceModal from '@/components/modal/AddPlaceModal.vue';
@@ -104,15 +102,6 @@ export default {
     CourseExhibitionCard,
     CoursePlaceEditCard
   },
-  setup() {
-    const authstore = useAuthStore();
-    const {isLoggedin, currentUserId} = storeToRefs(authstore);
-    return {
-      isLoggedin,
-      currentUserId
-    }
-  },
-
   data() {
     return {
       course: null,
@@ -137,6 +126,8 @@ export default {
 
       // 드래그 상태
       isDragging: false,
+
+      userId: 1, // 백엔드 호출로 유저 id
 
       mapKey: 0, // 지도 강제 리렌더링용
     };
@@ -163,13 +154,6 @@ export default {
       this.loading = true;
       this.error = null;
       let targetCourse = null;
-      // 로그인 상태 확인
-      if (!this.isLoggedin) {
-        this.error = '로그인이 필요합니다.';
-        this.loadding = false;
-        this.$router.push('/login');
-        return;
-      }  
 
       try {
         const courseId = this.$route.params.courseId;
@@ -193,7 +177,7 @@ export default {
         // 3단계: API fallback
         if (!targetCourse) {
           console.log('저장된 데이터 없음. API로 fallback 시도');
-          const response = await axios.get(`api/schedules/user/${this.currentUserId}`);
+          const response = await axios.get(`/api/schedules/user/${this.userId}`);
 
           const allMappedCourses = response.data.map(schedule => {
             const mappedCourseItems = schedule.items
@@ -309,13 +293,7 @@ export default {
     // 변경사항 저장
     async saveChanges() {
       if (!this.hasChanges || this.isSaving) return;
-      // 로그인 상태 확인
-      if (!this.isLoggedin) {
-        this.error = '로그인이 필요합니다.';
-        this.loadding = false;
-        this.$router.push('/login');
-        return;
-      }  
+
       this.isSaving = true;
       this.saveMessage = '';
 
@@ -344,10 +322,9 @@ export default {
 
         console.log('저장할 데이터:', JSON.stringify(updateData, null, 2));
 
-
         // API 호출 - Post 요청
         const response = await axios.post(
-          `api/schedules/items`,
+          `/api/schedules/items`,
           updateData
         );
 
@@ -423,12 +400,18 @@ export default {
       console.log('지도 키 업데이트:', this.mapKey);
     },
 
-    // 드래그 종료시 지도 업데이트
+    // 드래그 종료 함수
     onDragEnd() {
       this.isDragging = false;
-      console.log('드래그 종료');
+      console.log('드래그 종료 (상태 변경만 처리)');
+    },
+    // 드래그 종료시 변경
+    onDragChange() {
+      console.log('드래그로 인해 v-model 변경됨. 번호 및 지도 갱신 시작.');
+      // 1. 변경사항 감지 및 번호 재정렬
       this.checkForChanges();
-      this.updateMapKey(); // 추가
+      // 2. 지도 강제 리렌더링
+      this.updateMapKey();
     },
 
     // 아이템 삭제시 지도 업데이트

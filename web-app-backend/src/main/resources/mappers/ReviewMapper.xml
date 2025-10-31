@@ -248,18 +248,19 @@
   	</choose>
 	</update>
 
-	<select id="findLikedReviewIdsByTargetAndUser"
-	        parameterType="map"
-	        resultType="long">
+	<!-- 리뷰들 중에서, 특정 사용자(viewer)가 '좋아요'를 누른 리뷰의 ID 목록"**을 조회하는 기능 -->
+	<!-- 대상(Target)과 사용자(User)를 기준으로 '좋아요'를 누른(Liked) 리뷰 ID(ReviewIds)를 찾는다(find)"는 의미 -->
+	<select id="findLikedReviewIdsByTargetAndUser" resultType="long">
 	  SELECT rl.review_id
 	  FROM review_like rl
 	  JOIN review r ON r.review_id = rl.review_id
-	  WHERE r.target_type = #{targetType, jdbcType=VARCHAR}
-	    AND r.target_id   = #{targetId,   jdbcType=BIGINT}
-	    AND rl.user_id    = #{viewerUserId, jdbcType=BIGINT}
+	  WHERE r.target_type = #{targetType}
+	    AND r.target_id   = #{targetId}
+	    AND rl.user_id    = #{userId}
 	</select>
+
 	
-	<!-- 최신/순번 기준으로 사진 N장 -->
+	<!-- 최신/순번 기준으로 사진 N장 ??-->
 	<select id="findPhotosByReviewIds" resultType="map">
 	  SELECT
 	    review_id,
@@ -272,6 +273,7 @@
 	  </foreach>
 	  ORDER BY review_id, sequence NULLS LAST, photo_id
 	</select>
+	
 	
 	<select id="findPhotoThumbnailsByTarget" resultType="com.example.demo.dto.PhotoThumbDTO">
 	    SELECT 
@@ -287,6 +289,9 @@
 	    ORDER BY 
 	        R.created_at DESC  LIMIT #{limit}
 	</select>
+	
+	
+	
 	
 
 

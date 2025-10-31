@@ -9,8 +9,8 @@
       <div class="d-flex justify-content-between align-items-center gap-1">
         <!-- 알약 태그 프레임 -->
         <div class="d-flex flex-row gap-2 flex-shrink-1 min-w-0">
-          <PillTag :text="item.subject" type="subject" />
-          <PillTag :text="item.grade.replace('초등 ', '')" type="grade" />
+          <PillTag :text="item.subject || ''" type="subject" />
+          <PillTag :text="(item.grade || '').replace('초등 ', '')" type="grade" />
         </div>
         <!-- 더보기 버튼 -->
         <button class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center btn-add flex-shrink-0"
@@ -23,14 +23,14 @@
         <!-- 첫 줄 프레임 -->
         <div class="d-flex align-items-center gap-1 min-w-0">
           <!-- 상설 및 기획 태그 -->
-          <TypeTag :text="item.type" class="flex-shrink-0" />
+          <TypeTag :text="item.type || ''" class="flex-shrink-0" />
           <!-- 전시명 -->
-          <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title }}</h5>
+          <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title || '' }}</h5>
         </div>
         <!-- 두번째 줄 프레임 -->
         <div class="d-flex flex-row align-items-center gap-2 min-w-0">
           <!-- 전시관명 -->
-          <span class="text-truncate flex-grow-1 min-w-0">{{ item.place }}</span>
+          <span class="text-truncate flex-grow-1 min-w-0">{{ item.place || '' }}</span>
         </div>
         <!-- 세번째 줄 프레임 -->
         <div class="hashtag-container">

@@ -5,6 +5,7 @@ import axios from '@/api/axiosSetup'; // 👈 [추가] axiosSetup 인스턴스�
 // (설치: npm install pinia-plugin-persistedstate)
 
 export const useAuthStore = defineStore(
+  // 스토어의 ID
   'auth',
   () => {
     // 1. 상태 (State)

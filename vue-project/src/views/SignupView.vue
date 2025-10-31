@@ -96,6 +96,7 @@
 
 <script>
 // 1. axios 라이브러리 import 
+import eventBus from '@/utils/eventBus';
 import axios from 'axios'; 
 
 // 백엔드 API의 기본 URL을 상수로 정의합니다. (실제 환경에 맞게 변경 필요)
@@ -214,7 +215,10 @@ export default {
     async checkIdDuplicate() {
       // 1. 유효성 검사
       if (!this.id || this.id.length < 4) {
-        this.$alert('아이디를 4자 이상 입력해 주세요.');
+        eventBus.emit('show-global-alert', {
+          message: '아이디를 4자 이상 입력해 주세요.',
+          type: 'error'
+        });
         this.isIdChecked = false;
         this.idCheckLoading = false;
         this.isIdDuplicate = true;
@@ -241,7 +245,10 @@ export default {
 
       } catch (error) {
         console.error('아이디 중복 확인 실패:', error);
-        this.$alert('아이디 중복 확인 중 오류가 발생했습니다.');
+        eventBus.emit('show-global-alert', {
+          message: '아이디 중복 확인 중 오류가 발생했습니다.',
+          type: 'error'
+        });
         this.isIdDuplicate = true; // 오류 발생 시 안전하게 중복으로 처리
       } finally {
         this.idCheckLoading = false; // 로딩 종료
@@ -335,7 +342,10 @@ export default {
     // ⭐ 폼 제출 핸들러 (백엔드 통신으로 수정) ⭐
     async handleSubmit() {
       if (!this.isFormValid) {
-        this.$alert('모든 필수 정보를 입력하고 아이디 중복 확인, 비밀번호 및 이메일 조건을 충족해야 합니다.');
+        eventBus.emit('show-global-alert', {
+          message: '모든 필수 정보를 입력하고 아이디 중복 확인, 비밀번호 및 이메일 조건을 충족해야 합니다.',
+          type: 'error'
+        });
         return;
       }
 
@@ -360,15 +370,24 @@ export default {
           this.showSuccessModal = true; // 성공 모달 표시
         } else {
           // 200번대 상태 코드가 아닌 경우
-          this.$alert('회원가입에 실패했습니다. (응답 상태: ' + response.status + ')');
+          eventBus.emit('show-global-alert', {
+          message: '회원가입에 실패했습니다. (응답 상태: ' + response.status + ')',
+          type: 'error'
+        });
         }
       } catch (error) {
         // 4. 에러 처리 (4xx, 5xx 에러 등)
         console.error('회원가입 요청 실패:', error);
         if (error.response && error.response.data) {
-          this.$alert('회원가입 요청 중 오류가 발생했습니다: ' + error.response.data);
+          eventBus.emit('show-global-alert', {
+          message: '회원가입 요청 중 오류가 발생했습니다: ' + error.response.data,
+          type: 'error'
+        });
         } else {
-          this.$alert('회원가입 요청 중 알 수 없는 오류가 발생했습니다.');
+          eventBus.emit('show-global-alert', {
+          message: '회원가입 요청 중 알 수 없는 오류가 발생했습니다.',
+          type: 'error'
+        });
         }
       } 
     },

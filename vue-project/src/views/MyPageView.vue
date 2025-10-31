@@ -82,6 +82,7 @@ import SettingsModal from '@/components/modal/SettingsModal.vue';
 import axios from '@/api/axiosSetup'; // axios import
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
+import eventBus from '@/utils/eventBus';
 
 export default {
   name: 'MyPageView',
@@ -111,15 +112,10 @@ export default {
 
   // 4. 메서드(Methods)
   methods: {
-
     // 뒤로가기 함수
     goBack() {
       this.$router.back();
     },
-    // // 계정설정화면으로 이동하는 함수
-    // goToAccountView() {
-    //   this.$router.push({ name: 'AccountView' })
-    // },
 
     // ⭐ 계정설정화면으로 이동하는 함수 (로그인 확인 로직 추가) ⭐
     goToAccountView() {
@@ -144,6 +140,11 @@ export default {
     goToLoginView() {
       this.$router.push({ name: 'login' });
       this.isSettingsModalOpen = false; // 모달을 닫습니다.
+    },
+
+    // 관심 목록 페이지로 이동
+    goToLikePlace() {
+      this.$router.push({ name: 'LikePlace' })
     },
 
     // 저장된 추천 코스로 이동하는 함수
@@ -175,7 +176,10 @@ export default {
 
       // 2. 🟢 로그인 상태 확인 (Pinia 스토어 사용)
       if (!this.isLoggedIn) {
-        alert('로그인 상태가 아닙니다.');
+        eventBus.emit('show-global-alert', {
+          message: '로그인이 필요한 기능입니다.',
+          type: 'error'
+        });
         this.isSettingsModalOpen = false;
         this.$router.push({ name: 'login' });
         return;
@@ -186,7 +190,10 @@ export default {
 
         // 4. 응답 처리: HTTP 204 No Content (삭제 성공)
         if (response.status === 204) {
-          alert('회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.');
+          eventBus.emit('show-global-alert', {
+          message: '회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다',
+          type: 'error'
+        });
 
           // 🟢 5. 탈퇴 성공 후 로그아웃 처리 (Pinia 스토어)
           this.handleLogout();
@@ -195,9 +202,15 @@ export default {
         // 🟢 (axiosSetup.js가 401(토큰만료)을 자동으로 처리 시도)
         console.error('회원 탈퇴 실패:', error);
         if (error.response && error.response.data) {
-          this.$alert('회원 탈퇴 실패: ' + error.response.data);
+          eventBus.emit('show-global-alert', {
+          message: '회원 탈퇴 실패: ' + error.response.data,
+          type: 'error'
+        });
         } else {
-          this.$alert('회원 탈퇴 중 알 수 없는 오류가 발생했습니다.');
+          eventBus.emit('show-global-alert', {
+          message: '회원 탈퇴 중 알 수 없는 오류가 발생했습니다.: ',
+          type: 'error'
+        });
         }
         this.isSettingsModalOpen = false;
       }

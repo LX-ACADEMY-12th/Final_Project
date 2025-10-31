@@ -7,16 +7,15 @@
 
 	<!-- wishlist 추가 -->
 	<insert id="addWishlist">
-	    INSERT INTO wishlist (user_id, target_type, target_id)
-	    VALUES (#{userId}, #{targetType}, #{targetId})
-	    ON CONFLICT (user_id, target_type, target_id) DO NOTHING
+	    INSERT INTO wishlist (user_id, target_type, target_id, category_name, grade_name)
+	    VALUES (#{userId}, #{targetType}, #{targetId}, #{mainCategory}, #{gradeTag})
+	    ON CONFLICT (user_id, target_id, target_type) DO NOTHING
 	</insert>
 	
 	<!-- wishlist 취소 -->
 	<delete id="removeWishlist">
 	    DELETE FROM wishlist
 	    WHERE user_id = #{userId}
-	      AND target_type = #{targetType}
 	      AND target_id = #{targetId}
 	</delete>
 	
@@ -32,45 +31,94 @@
 	</select>
 
 	<!-- 사용자가 찜을 누른 위시리스트를 조회 -->
-	<select id="findMyWishlistByUserId" resultType="com.example.demo.dto.UserWishListDTO">
-	    (
-	        SELECT 
-	            w.wishlist_id AS wishlistId,
-	            w.target_type AS targetType,
-	            w.target_id AS targetId,
-	            e.exhibition_name AS name,
-	            e.main_image_url AS mainImageUrl,
-	            e.average_rating AS averageRating,
-	            e.total_reviews AS totalReviews,
-	            w.created_at AS likedAt,
-	            
-	            e.type AS type,               h.hall_name AS location      FROM wishlist w
-	        JOIN exhibition e ON w.target_id = e.exhibition_id
-	        
-	        LEFT JOIN exhibition_hall h ON e.hall_id = h.hall_id 
-	        
-	        WHERE w.user_id = #{userId}
-	          AND w.target_type = 'exhibition'
-	    )
-	    UNION ALL
-	    (
-	        SELECT 
-	            w.wishlist_id AS wishlistId,
-	            w.target_type AS targetType,
-	            w.target_id AS targetId,
-	            p.place_name AS name,
-	            p.main_image_url AS mainImageUrl,
-	            p.average_rating AS averageRating,
-	            p.total_reviews AS totalReviews,
-	            w.created_at AS likedAt,
-	
-	            p.place_type AS type,        p.address_detail AS location FROM wishlist w
-	        JOIN science_place p ON w.target_id = p.place_id
-	        WHERE w.user_id = #{userId}
-	          AND w.target_type = 'science_place'
-	    )
-	    ORDER BY likedAt DESC
-	</select>
+    <select id="findMyWishlistByUserId" resultType="com.example.demo.dto.WishListResponseDTO">
+        (
+            -- [파트 1: 전시 찜 목록]
+            SELECT
+                w.wishlist_id AS wishlistId,
+                w.target_type AS targetType,
+                w.target_id AS targetId,
+                w.category_name AS mainCategory,
+                w.grade_name AS gradeTag,
+                e.exhibition_name AS title,
+                e.main_image_url AS mainImageUrl,
+                e.average_rating AS averageRating,
+                e.total_reviews AS totalReviews,
+                ARRAY_AGG(DISTINCT csc.sub_category_name) AS subCategories,
+                w.created_at AS likedAt,
+                e.type AS type,
+                CONCAT_WS(' ', h.science_center_name, h.hall_name) AS place
+            FROM wishlist w
+                     JOIN exhibition e ON w.target_id = e.exhibition_id
+                     LEFT JOIN exhibition_hall h ON e.hall_id = h.hall_id
+                     LEFT JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
+                     LEFT JOIN curriculum_main_category cmc ON cmc.category_name = w.category_name
+                     LEFT JOIN curriculum_sub_category csc ON csc.main_category_id = cmc.main_category_id
+            WHERE w.user_id = #{userId}
+              AND w.target_type = 'exhibition'
+            GROUP BY
+                w.wishlist_id,
+                w.target_type,
+                w.target_id,
+                w.category_name,
+                w.grade_name,
+                e.exhibition_id,
+                e.exhibition_name,
+                e.main_image_url,
+                e.average_rating,
+                e.total_reviews,
+                w.created_at,
+                e.type,
+                h.science_center_name,
+                h.hall_name
+        ) -- 👈 [수정] 세미콜론(;) 삭제
+
+        UNION ALL
+
+        -- [파트 2: 과학 장소 찜 목록]
+        (
+            SELECT
+                w.wishlist_id AS wishlistId,
+                w.target_type AS targetType,
+                w.target_id AS targetId,
+                w.category_name AS mainCategory,
+                w.grade_name AS gradeTag,
+                sp.place_name AS title,
+                sp.main_image_url AS mainImageUrl,
+                sp.average_rating AS averageRating,
+                sp.total_reviews AS totalReviews,
+                ARRAY_AGG(DISTINCT csc.sub_category_name) AS subCategories,
+                w.created_at AS likedAt,
+                sp.place_type AS type,
+                sp.address_detail AS place
+            FROM wishlist w
+                     JOIN science_place sp ON w.target_id = sp.place_id
+                     LEFT JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
+                     LEFT JOIN curriculum_main_category cmc ON cmc.category_name = w.category_name
+                     LEFT JOIN curriculum_sub_category csc ON csc.main_category_id = cmc.main_category_id
+            WHERE w.user_id = #{userId}
+              AND w.target_type = 'science_place'
+            GROUP BY
+                w.wishlist_id,
+                w.target_type,
+                w.target_id,
+                w.category_name,  -- 👈 [수정] 누락된 컬럼 추가
+                w.grade_name,     -- 👈 [수정] 누락된 컬럼 추가
+                sp.place_id,
+                sp.place_name,
+                sp.main_image_url,
+                sp.average_rating,
+                sp.total_reviews,
+                w.created_at,
+                sp.place_type,
+                sp.address_detail
+        ) -- 👈 [수정] 세미콜론(;) 삭제
+
+        -- [정렬] 합쳐진 전체 결과를 찜한 날짜 최신순으로 정렬
+        ORDER BY
+            likedAt DESC
+        -- 👈 [수정] 마지막 세미콜론(;)도 제거
+    </select>
 	
 	
 </mapper>

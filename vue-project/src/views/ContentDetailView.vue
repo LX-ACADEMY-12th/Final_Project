@@ -43,7 +43,12 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from '@/api/axiosSetup';
+
+import { useAuthStore } from '@/stores/authStore';
+import { storeToRefs } from 'pinia';
+import eventBus from '@/utils/eventBus'; // 💡 [추가] 글로벌 알림용
+
 // 필요한 모든 하위 컴포넌트들을 불러옵니다.
 import LocationSection from '@/components/section/LocationSection.vue';
 import ReviewSection from '@/components/section/ReviewSection.vue';
@@ -54,6 +59,7 @@ import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
 
 export default {
+  name: 'ViewDetailWithModal',
   // 컴포넌트들을 등록하여 사용할 수 있게 합니다.
   components: {
     LocationSection,
@@ -61,8 +67,6 @@ export default {
     ReviewModal,
     ConfirmDeleteModal,
   },
-
-  name: 'ViewDetailWithModal',
 
   // 1. Props 정의
   // 부모인 PlaceDetailsView로부터 데이터를 받도록 Props를 정의
@@ -90,7 +94,6 @@ export default {
       type: String,
       required: true
     },
-    currentUserId: [String, Number],
     photoReviewCount: {
       type: Number,
       default: 0
@@ -112,6 +115,8 @@ export default {
       showConfirmDeleteModal: false,
       pendingDeleteReviewId: null,
       isDeleting: false,
+      loading:true,
+      error: null,
     };
   },
 
@@ -121,13 +126,27 @@ export default {
     isFormValid() {
       // 텍스트가 비어있지 않고, 별점이 0보다 크면 true를 반환합니다.
       return this.reviewText.trim().length > 0 && this.selectedRating > 0;
-    }
+    },
+
+    // Pinia에서 직접 끌어와서 this.isLoggedIn / this.currentUserId로 사용
+    isLoggedIn() {
+      const auth = useAuthStore();
+      return !!auth.user; // 스토어 설계대로 user가 있으면 로그인
+    },
+    currentUserId() {
+      const auth = useAuthStore();
+      return auth.user?.userId ?? null;
+      },
   },
 
   // 사용자 정의 함수 (메서드): 모든 로직은 여기서 처리됩니다.
   methods: {
     // '후기작성' 버튼 클릭 시 모달을 표시하는 함수
     showModal() {
+      if(!this.isLoggedIn) {
+        this.$router.push('/login');
+        return;
+      }
       this.showReviewModal = true;
       this.editingReviewId = null; // 수정 모드 해제
       this.reviewText = '';
@@ -151,7 +170,10 @@ export default {
       
       const remainingSlots = 5 - this.uploadedFiles.length;
       if (newFiles.length > remainingSlots) {
-        this.$alert(`최대 5개의 이미지만 업로드할 수 있습니다. ${remainingSlots}개만 추가됩니다.`);
+        eventBus.emit('show-global-alert', {
+          message: `최대 5개의 이미지만 업로드할 수 있습니다.  ${remainingSlots}개만 추가됩니다.`,
+          type: 'error'
+        });
       }
 
       const filesToAdd = newFiles.slice(0, remainingSlots);
@@ -176,25 +198,40 @@ export default {
     },
 
     // 모달 내 후기 제출 함수 api 연결 -> 여기서 새글/ 편집을 if문으로 나누자
+    // 수정완료 - 로그인 연동
     async submitReview() {
+      this.loading = true;
+      this.error = null;
+
+      const loggedIn = this.isLoggedIn?.value ?? this.isLoggedIn;
+      // Pinia 스토어를 통해 로그인 상태를 확인
+      if (!this.isLoggedIn) {
+        this.error = "로그인이 필요한 기능입니다. 로그인 후 다시 시도해주세요.";
+        this.loading = false;
+        this.$router.push('/login');
+        return;
+      }
+
+      
       // 1. FormData 객체를 생성합니다.
       const formData = new FormData();
       
       // 1. 리뷰 텍스트 데이터 생성
+      // 서버 @RequestPart("dto")와 동일한 키 사용
       const dto = {
         targetId: this.targetId, // prop으로 받은 값
-        targetType : this.targetType,
+        targetType : this.targetType, // 'exhibition' | 'science_place' (서버와 합의값)
         content: this.reviewText, // data()의 값
         rating: this.selectedRating, // data()의 값
-        authorId: 1 // 아직 로그인 아이디가 없어서 하드코딩함
+        authorId: this.currentUserId
       };
 
       // 3. ⭐️ 중요: dto 객체를 JSON 문자열로 변환하여 'Blob'으로 감싸고,
       // 'dto'라는 이름(KEY)으로 FormData에 추가합니다.
       // 백엔드의 @RequestPart("dto")와 이름이 일치해야 합니다.
       formData.append('dto', new Blob([JSON.stringify(dto)], {
-        type: 'application/json'
-      }));
+        type: 'application/json'}
+      ));
 
       // 4. (⭐️ 중요) handleFiles가 저장해 둔 파일 목록을 FormData에 추가합니다.
       //    (data에 this.uploadedFiles가 있다고 가정)
@@ -206,32 +243,47 @@ export default {
       }
 
       try {
-        if(this.editingReviewId) {
-          // 수정 모드 api 호출 : PUT /api/reviews/{reviewId} 호출
-            await axios.put(`${API_BASE}/api/reviews/${this.editingReviewId}`, formData);
-            this.$alert('리뷰가 성공적으로 수정되었습니다.');
-            // 수정 성공시 부모에게 알림
-            this.$emit('review-posted'); // (posted 이벤트를 재사용)
-          } else {
-            // API호출(POST/api/reviews) -> 그냥 새 리뷰
-            await axios.post(`${API_BASE}/api/reviews`, formData);
-            this.$alert(`리뷰가 성공적으로 등록되었습니다.`);
-            // 부모(PlaceDetailsView)에게 "리뷰 등록됨" 이벤트 쏘기
-            this.$emit('review-posted');
-          }
+
+        const cfg = {
+          transformRequest: [(data, headers) => {
+            if (data instanceof FormData) {
+              // 🔑 boundary 자동 세팅 위해 Content-Type 제거
+              delete headers['Content-Type'];
+            }
+            return data;
+        }],
+      };
         
-        this.closeModal(); // 모달 닫기
-        // 수정/등록 후 목록 새로고침 (기존 로직)
-        // 자식(ReviewSection)의 리뷰 목록을 '새로고침'
-        // <template>에서 "ref"로 지정한 컴포넌트의 메소드를 직접 호출 -> 이게 먼말
-        if (this.$refs.reviewSectionRef) {
-          this.$refs.reviewSectionRef.fetchReviews();
-        }
+      if(this.editingReviewId) {
+        // 서버에 수정용 엔드포인트가 실제로 있을 때만 사용
+        await axios.put(`/api/reviews/${this.editingReviewId}/upload`, formData, cfg);
+        eventBus.emit('show-global-alert', {
+          message: '리뷰가 성공적으로 수정되었습니다.',
+          type: 'success'
+        });
+        this.$emit('review-posted');
+      } else {
+        await axios.post(`/api/reviews/upload`, formData, cfg);
+        eventBus.emit('show-global-alert', {
+          message: '리뷰가 성공적으로 등록되었습니다.',
+          type: 'success'
+        });
+        this.$emit('review-posted');
+      }
+
+        this.closeModal();
+        await this.$refs.reviewSectionRef?.fetchReviews();
 
       } catch(error) {
         // 5. API 호출 실패 시
         console.error('리뷰 등록 실패:', error);
-        this.$alert(`리뷰 ${this.editingReviewId ? '수정' : '등록'}에 실패했습니다.`);
+        const msg = error?.response?.data || `리뷰 ${this.editingReviewId ? '수정' : '등록'}에 실패했습니다.`;
+        eventBus.emit('show-global-alert', {
+          message: msg,
+          type: 'error'
+        });
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -246,12 +298,13 @@ export default {
       this.showConfirmDeleteModal = true;
     },
 
-    // ⭐️ 8. [추가] 삭제 확인 모달에서 '취소' 시 호출
+    // ⭐️ 8. [추가] 삭제 확인 모달에서 '취소' 시 호출 
     cancelDelete() {
       this.showConfirmDeleteModal = false;
       this.pendingDeleteReviewId = null;
     },
-    // ⭐️ 9. [추가] 삭제 확인 모달에서 '확인' 시 호출
+    
+    // ⭐️ 9. [추가] 삭제 확인 모달에서 '확인' 시 호출 - 로그인 연동 완료
     async confirmDelete() {
       if (!this.pendingDeleteReviewId) return;
       this.isDeleting = true;
@@ -259,10 +312,13 @@ export default {
       try {
         // 9-1. 백엔드 API 호출 (DELETE /api/reviews/{reviewId})
         // (백엔드에 DELETE API 필요)
-        await axios.delete(`${API_BASE}/api/reviews/${this.pendingDeleteReviewId}`);
+        await axios.delete(`api/reviews/${this.pendingDeleteReviewId}/delete`);
 
         // 9-2. 성공 처리
-        this.$alert('리뷰가 삭제되었습니다.');
+        eventBus.emit('show-global-alert', {
+          message: '리뷰가 삭제되었습니다.',
+          type: 'success'
+        });
         this.showConfirmDeleteModal = false;
         this.pendingDeleteReviewId = null;
 
@@ -275,7 +331,10 @@ export default {
 
       } catch (error) {
         console.error('리뷰 삭제 실패:', error);
-        this.$alert('리뷰 삭제에 실패했습니다.');
+        eventBus.emit('show-global-alert', {
+          message: '리뷰가 삭제에 실패했습니다.',
+          type: 'error'
+        });
         this.showConfirmDeleteModal = false; // 실패해도 모달은 닫기
         this.pendingDeleteReviewId = null;
       } finally {
