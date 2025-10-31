@@ -77,7 +77,8 @@ public class SecurityConfig {
                                 "/api/user/**",              // 내 정보, 수정, 탈퇴
                                 "/api/reviews/liked-status", // 내 좋아요 확인
                                 "/api/reviews/**",           // 리뷰 작성, 수정, 삭제, 좋아요, 신고
-                                "/api/schedules/**"
+                                "/api/schedules/**",
+                                "/api/wishlist/**"           // 찜
                         ).authenticated()
 
                         // API 외의 요청(예: React 정적 파일 접근)이 있을 수 있으므로 변경
@@ -94,7 +95,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // 🟢 [추가] CORS 설정 Bean
+    // 🟢 CORS 설정 Bean
     // 이 Bean을 추가하여 'http://localhost:5173' (Vue.js)로부터의 요청을 허용합니다.
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

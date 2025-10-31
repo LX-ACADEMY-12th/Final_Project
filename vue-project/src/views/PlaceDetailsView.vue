@@ -361,38 +361,55 @@ export default {
         this.$alert('전 정보를 불러오지 못했습니다.');
       }
     },
-
+    // 찜 기능 함수
     async handleToggleFavorite() {
+      // 🟢 로그인 상태 확인 (Pinia 스토어)
+      if (!this.isLoggedIn) {
+        this.$alert('로그인이 필요한 서비스입니다.');
+        this.$router.push({ name: 'login' }); // (라우터 이름이 'login'이라고 가정)
+        return;
+      }
+
       if (this.isLoading) return;
-      this.isLoading = true;
 
       const isExhibition = (this.pageType === 'exhibition');
+      // 찜 상태와 현재 아이템 데이터 가져오기
       let currentState = isExhibition ? this.exhibition.isFavorite : this.place.isFavorite;
-      const currentId = this.currentId;
-      const targetType = this.pageType;
+      const currentItem = isExhibition ? this.exhibition : this.place;
       const userId = this.tempCurrentUserId;
 
-      // 요청 본문에 보낼 데이터 (DELETE/POST 공통)
-      const requestData = {
-        targetId: currentId,
-        targetType: targetType,
-        userId: userId
+      // 1. 찜 취소 (DELETE) 요청 데이터 (기존과 동일)
+      // 찜 취소는 해당 아이템의 모든 '찜'을 삭제하는 것으로 통일 (이것이 UX상 가장 간단합니다)
+      const deleteRequestData = {
+        targetId: this.currentId,
+      };
+
+      // 2. 찜 추가 (POST) 요청 데이터 (🌟 맥락 정보 추가 🌟)
+      const postRequestData = {
+        targetId: this.currentId,
+        targetType: this.pageType,
+
+        // 🌟 현재 페이지의 맥락(과학영역, 학년)을 함께 전송
+        mainCategory: currentItem.mainCategory,
+        gradeTag: currentItem.gradeTag
       };
 
       try {
         if (currentState) {
-          // 1. 찜 취소 (DELETE) - 🌟 [수정] params 대신 data 속성 사용 🌟
+          // 1. 찜 취소 (DELETE)
+          // 🌟 [수정] data: deleteRequestData
           await axios.delete(`${API_BASE}/api/wishlist`, {
-            data: requestData // 요청 본문에 데이터 포함
+            data: deleteRequestData
           });
-          // 성공: 상태 업데이트
           currentState = false;
           this.$alert('찜 목록에서 삭제되었습니다.');
 
         } else {
           // 2. 찜 추가 (POST)
-          await axios.post(`${API_BASE}/api/wishlist`, requestData);
-          // 성공: 상태 업데이트
+          // 🌟 postRequestData (맥락 정보가 포함된 DTO 전송)
+          await axios.post(`${API_BASE}/api/wishlist`, postRequestData);
+          // 요청 아이템
+          JSON.stringify(console.log(postRequestData), null, 2);
           currentState = true;
           this.$alert('찜 목록에 추가되었습니다.');
         }
@@ -410,40 +427,24 @@ export default {
         // 409 Conflict 에러 처리 (자동 취소)
         if (status === 409) {
           this.$alert('중복된 찜 항목입니다. 자동으로 취소합니다.');
-
-          try {
-            // DELETE 요청 재시도 (취소) - 🌟 [수정] data 속성 사용 🌟
-            await axios.delete(`${API_BASE}/api/wishlist`, {
-              data: requestData // 요청 본문에 데이터 포함
-            });
-            // 취소 성공: 상태를 false로 업데이트
-            if (isExhibition) {
-              this.exhibition.isFavorite = false;
-            } else {
-              this.place.isFavorite = false;
-            }
-            this.$alert('찜이 취소되었습니다.');
-
-          } catch (deleteError) {
-            // DELETE 재시도 실패 시
-            console.error('409 후 찜 취소 실패:', deleteError);
-            this.$alert('찜 상태 동기화에 실패했습니다. (다음 클릭 시 취소됩니다.)');
+          // 찜 버튼을 누른 의도를 존중하여, UI를 '찜한 상태'로 강제 동기화합니다.
+          if (isExhibition) {
+            this.exhibition.isFavorite = true;
+          } else {
+            this.place.isFavorite = true;
           }
-        }
-        // 403 Forbidden 에러 처리 (권한 문제)
-        else if (status === 403) {
-          this.$alert('로그인이 필요하거나 권한이 없습니다.');
-        }
-        // 그 외 에러 처리
-        else {
+        } else if (status === 403 || status === 401) { // 401/403 (권한 없음)
+          this.$alert('찜하기 권한이 없습니다. 다시 로그인해 주세요.');
+          // (axiosSetup에서 401을 처리하겠지만, 403을 대비)
+        } else {
           console.error('찜 처리 중 에러 발생:', error);
           this.$alert('찜 처리에 실패했습니다. 다시 시도해 주세요.');
         }
-
       } finally {
         this.isLoading = false;
       }
     },
+
     // 추천 코스 저장 요청 처리
     async handleSaveRecommendedCourse(items) {
       console.log('💾 [PlaceDetailsView] 추천 코스 저장 시작...', items);
