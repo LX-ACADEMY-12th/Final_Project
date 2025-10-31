@@ -2,6 +2,8 @@ package com.example.demo.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 개별 스케줄 아이템 DTO (JSON 요청 및 DB 전달용)
  */
@@ -19,4 +21,10 @@ public class ScheduleItemDTO {
     private String customAddress;
     private Double customLatitude;
     private Double customLongitude;
+
+    // --- 스냅샷 필드 ---
+    private String categoryName;
+    private String gradeName;
+    private List<String> subCategories;
+
 }

@@ -19,7 +19,11 @@
         custom_name,
         custom_address,
         custom_latitude,
-        custom_longitude
+        custom_longitude,
+        --- 스냅샷 필드 ---
+        category_name,
+        grade_name,
+        sub_category_name
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
@@ -31,7 +35,10 @@
             #{item.customName},
             #{item.customAddress},
             #{item.customLatitude},
-            #{item.customLongitude}
+            #{item.customLongitude},
+            #{item.categoryName},
+            #{item.gradeName},
+            #{item.subCategories, typeHandler=com.example.demo.typehandler.StringListTypeHandler}
             )
         </foreach>
     </insert>

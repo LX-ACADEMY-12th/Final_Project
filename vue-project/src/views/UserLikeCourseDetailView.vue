@@ -86,6 +86,10 @@
 import axios from '@/api/axiosSetup';
 import draggable from 'vuedraggable';
 
+// Pinia 스토어 관련 임포트
+import { useAuthStore } from '@/stores/authStore';
+import { storeToRefs } from 'pinia';
+
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import AddPlaceModal from '@/components/modal/AddPlaceModal.vue';
 import CourseMap from '@/components/map/CourseMap.vue';
@@ -101,6 +105,16 @@ export default {
     AddPlaceModal,
     CourseExhibitionCard,
     CoursePlaceEditCard
+  },
+  // Pinia 스토어의 state/getter를 'this'에 바인딩
+  setup() {
+    const authStore = useAuthStore();
+    const { isLoggedIn, currentUserId } = storeToRefs(authStore);
+
+    return {
+      isLoggedIn,
+      currentUserId // 'this.currentUserId'로 사용 가능
+    };
   },
   data() {
     return {
@@ -126,8 +140,6 @@ export default {
 
       // 드래그 상태
       isDragging: false,
-
-      userId: 1, // 백엔드 호출로 유저 id
 
       mapKey: 0, // 지도 강제 리렌더링용
     };
@@ -177,7 +189,7 @@ export default {
         // 3단계: API fallback
         if (!targetCourse) {
           console.log('저장된 데이터 없음. API로 fallback 시도');
-          const response = await axios.get(`/api/schedules/user/${this.userId}`);
+          const response = await axios.get(`/api/schedules/user/${this.currentUserId}`);
 
           const allMappedCourses = response.data.map(schedule => {
             const mappedCourseItems = schedule.items
@@ -189,7 +201,24 @@ export default {
                 imageUrl: item.mainImageUrl,
                 lat: item.latitude,
                 lng: item.longitude,
-                type: null, subject: null, grade: null, hashtags: [],
+                // --- 스냅샷 태그 매핑 ---
+
+                // 1. type (itemType을 프론트엔드 'type'으로 매핑)
+                // (백엔드 DTO의 itemType이 'exhibition' 또는 'science_place')
+                type: item.itemType,
+
+                // 2. subject (mainCategoryNames 리스트의 [첫 번째 값]을 사용)
+                subject: (item.mainCategoryNames && item.mainCategoryNames.length > 0)
+                  ? item.mainCategoryNames[0]
+                  : null,
+
+                // 3. grade (gradeNames 리스트의 [첫 번째 값]을 사용)
+                grade: (item.gradeNames && item.gradeNames.length > 0)
+                  ? item.gradeNames[0]
+                  : null,
+
+                // 4. hashtags (subCategoryNames 리스트 자체를 사용)
+                hashtags: item.subCategoryNames || [],
               }))
               .sort((a, b) => a.number - b.number); // sequence 순서로 정렬
 
@@ -296,11 +325,26 @@ export default {
               itemId: item.itemId || null, // 기존 아이템의 경우 itemId 포함
               sourceItemId: isCustom ? null : item.id,
               sequence: index + 1,
-              itemType: item.itemType,
+              itemType: isCustom ? 'custom' : item.itemType,
               customName: isCustom ? (item.title || null) : null,
               customAddress: isCustom ? (item.place || null) : null,
               customLatitude: isCustom ? (item.lat || null) : null,
               customLongitude: isCustom ? (item.lng || null) : null,
+
+              // --- 스냅샷 태그 추가 ---
+              // (백엔드 DTO 필드명 기준)
+              // 1. categoryName (배열 -> 문자열)
+              categoryName: (Array.isArray(item.subject) && item.subject.length > 0)
+                ? item.subject[0]
+                : (item.subject || null), // (이미 문자열이거나 custom item일 경우 대비)
+
+              // 2. gradeName (배열 -> 문자열)
+              gradeName: (Array.isArray(item.grade) && item.grade.length > 0)
+                ? item.grade[0]
+                : (item.grade || null),
+
+              // 3. subCategories (List<String>) - 이 부분은 loadCourse가 올바르게 파싱해야 함
+              subCategories: item.hashtags
             };
           })
         };
@@ -316,19 +360,15 @@ export default {
         if (response.status === 200) {
           this.saveStatus = 'success';
           this.saveMessage = '변경사항이 성공적으로 저장되었습니다.';
+          // 저장 성공 후, 세션스토리지를 지우고 API Fallback을 강제로 유도합니다.
+          sessionStorage.removeItem(`courseData_${this.course.id}`);
 
-          // 원본 데이터 업데이트
-          this.originalCourseItems = JSON.parse(JSON.stringify(this.courseItems));
-          this.hasChanges = false;
-
-          // sessionStorage 업데이트
-          const updatedCourse = { ...this.course, courseItems: this.courseItems };
-          sessionStorage.setItem(`courseData_${this.course.id}`, JSON.stringify(updatedCourse));
-
-          // 3초 후 메시지 숨기기
+          // '저장됨' 메시지 표시 후 1.5초 뒤에 새로고침하여 API Fallback 실행
           setTimeout(() => {
             this.saveMessage = '';
-          }, 3000);
+            this.loadCourse(); // API Fallback 실행 (loadCourse가 태그를 매핑하도록 수정됨)
+            this.hasChanges = false; // 저장 버튼 숨기기
+          }, 1500); // 1.5초간 메시지 표시
         }
 
       } catch (error) {

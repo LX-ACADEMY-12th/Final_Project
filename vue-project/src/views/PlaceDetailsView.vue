@@ -518,9 +518,11 @@ export default {
           exhibitionId: this.pageType !== 'science_place' ? item.id : null,      // 프론트엔드 id -> exhibitionId
           placeId: this.pageType === 'science_place' ? item.id : null,
           sequence: item.number,  // 프론트엔드 number -> sequence
-          itemType: item.type === 'exhibition' ? 'exhibition' : 'science_place' // 아이템 타입 설정 (백엔드와 일치 필요)
-          // ❗️ 중요: item.type이 백엔드 Enum/String과 일치하는지 확인 필요
-          // 예: 백엔드가 'science_place'만 받는다면 그에 맞게 조정
+          itemType: item.type === 'exhibition' ? 'exhibition' : 'science_place', // 아이템 타입 설정 (백엔드와 일치 필요)
+          // [스냅샷] 추가
+          categoryName: item.subject,
+          gradeName: item.grade,
+          subCategories: item.hashtags
         }));
 
         // 최종 요청 페이로드
@@ -584,7 +586,7 @@ export default {
     async fetchPlaceData(id) {
       try {
         // API 호출
-        const res = await axios.get(`/api/place`, {
+        const res = await axios.get(`api/place`, {
           params: {
             placeId: id,
             userId: this.tempCurrentUserId

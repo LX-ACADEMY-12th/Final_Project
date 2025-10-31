@@ -6,24 +6,24 @@ import org.apache.ibatis.type.MappedJdbcTypes;
 import org.apache.ibatis.type.MappedTypes;
 
 import java.sql.*;
-import java.util.Arrays;
+import java.util.ArrayList; // 👈 [수정] ArrayList 사용
 import java.util.Collections;
 import java.util.List;
+import java.util.Arrays; // Fallback용
 
-@MappedJdbcTypes(JdbcType.ARRAY) // JDBC ARRAY 타입에 매핑
-@MappedTypes(List.class)         // Java List 타입에 매핑
+@MappedJdbcTypes(JdbcType.ARRAY)
+@MappedTypes(List.class)
 public class StringListTypeHandler extends BaseTypeHandler<List<String>> {
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, List<String> parameter, JdbcType jdbcType) throws SQLException {
-        // List<String>를 DB Array로 변환 (INSERT/UPDATE 시 필요하다면 구현)
-        // 여기서는 SELECT만 다루므로 일단 비워둠
-        // Connection conn = ps.getConnection();
-        // Array array = conn.createArrayOf("varchar", parameter.toArray());
-        // ps.setArray(i, array);
-        throw new UnsupportedOperationException("List<String> to SQL Array conversion not fully implemented yet.");
+        // [완료] 쓰기(INSERT) 로직 (수정 불필요)
+        String[] stringArray = parameter.toArray(new String[0]);
+        Array sqlArray = ps.getConnection().createArrayOf("text", stringArray);
+        ps.setArray(i, sqlArray);
     }
 
+    // --- 읽기(SELECT) 로직 ---
     @Override
     public List<String> getNullableResult(ResultSet rs, String columnName) throws SQLException {
         return convertSqlArrayToList(rs.getArray(columnName));
@@ -39,19 +39,56 @@ public class StringListTypeHandler extends BaseTypeHandler<List<String>> {
         return convertSqlArrayToList(cs.getArray(columnIndex));
     }
 
-    // 핵심 변환 로직
+    //
+    // 💥 [핵심 수정] .getArray() 대신 .getResultSet()을 사용하여 안정성 확보 💥
+    //
     private List<String> convertSqlArrayToList(Array sqlArray) throws SQLException {
         if (sqlArray == null) {
-            return Collections.emptyList(); // null 대신 빈 리스트 반환 (선호에 따라 null 반환 가능)
+            return Collections.emptyList();
         }
-        // JDBC Array를 Java String[]로 가져옴
-        Object arrayObject = sqlArray.getArray();
-        if (arrayObject instanceof String[]) {
-            // String[]를 List<String>으로 변환
-            return Arrays.asList((String[]) arrayObject);
+
+        List<String> list = new ArrayList<>();
+        ResultSet rs = null;
+        try {
+            // 1. (권장) SQL Array를 ResultSet으로 변환하여 직접 순회
+            rs = sqlArray.getResultSet();
+
+            while (rs.next()) {
+                // 배열 요소는 2번째 인덱스(VALUE)에 있습니다.
+                list.add(rs.getString(2));
+            }
+            return list;
+
+        } catch (Exception e) {
+            // 2. (Fallback) .getResultSet() 실패 시 기존 .getArray() 방식 시도
+            System.err.println("Failed to convert SQL Array using getResultSet, falling back to getArray(). Error: " + e.getMessage());
+            try {
+                Object arrayObject = sqlArray.getArray();
+                if (arrayObject instanceof String[]) {
+                    return Arrays.asList((String[]) arrayObject);
+                }
+                // [[Ljava.lang.String; (String[][]) 타입이 넘어오는 경우
+                if (arrayObject instanceof String[][]) {
+                    // 2차원 배열이면 첫 번째 요소(1차원 배열)의 첫 번째 값만 반환 (임시방편)
+                    String[][] multiDimArray = (String[][]) arrayObject;
+                    if (multiDimArray.length > 0 && multiDimArray[0].length > 0) {
+                        return Arrays.asList(multiDimArray[0]);
+                    }
+                }
+            } catch (Exception e2) {
+                System.err.println("Fallback getArray() also failed.");
+                return Collections.emptyList();
+            }
+            System.err.println("Unexpected array type returned from DB: " + (sqlArray.getArray() != null ? sqlArray.getArray().getClass().getName() : "null"));
+            return Collections.emptyList();
+
+        } finally {
+            if (rs != null) {
+                try { rs.close(); } catch (SQLException e) { /* 무시 */ }
+            }
+            try {
+                sqlArray.free();
+            } catch (SQLException e) { /* 무시 */ }
         }
-        // 예상치 못한 타입일 경우 (예: 다른 배열 타입) 빈 리스트 또는 null 반환
-        System.err.println("Unexpected array type returned from DB: " + arrayObject.getClass().getName());
-        return Collections.emptyList();
     }
 }

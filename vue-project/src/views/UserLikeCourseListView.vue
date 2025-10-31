@@ -163,13 +163,13 @@ export default {
 
             // --- 첫 번째 아이템 정보로 대표값 설정 ---
             address: mappedCourseItems[0] ? mappedCourseItems[0].place : '정보 없음', // 대표 주소
-            scienceCenter: mappedCourseItems[0] ? mappedCourseItems[0].scienceCenter : '정보 없음', // 대표 과학관
-            grade: mappedCourseItems[0] ? mappedCourseItems[0].grade?.[0] : null, // 대표 학년
-            subject: mappedCourseItems[0] ? mappedCourseItems[0].subject?.[0] : null, // 대표 과학 영역
+            scienceCenter: mappedCourseItems[0] ? mappedCourseItems[0].scienceCenter : '정보 없음',   // 대표 과학관
+            grade: mappedCourseItems[0] ? mappedCourseItems[0].grade?.[0] : null,                    // 대표 학년
+            subject: mappedCourseItems[0] ? mappedCourseItems[0].subject?.[0] : null,                // 대표 과학 영역
 
             // --- 아이템 목록에서 가공 ---
-            coursePlaces: mappedCourseItems.map(item => item.title), // 아이템 이름 목록
-            courseItems: mappedCourseItems, // 변환된 아이템 상세 리스트
+            coursePlaces: mappedCourseItems.map(item => item.title),     // 아이템 이름 목록
+            courseItems: mappedCourseItems,                              // 변환된 아이템 상세 리스트
 
           };
         });

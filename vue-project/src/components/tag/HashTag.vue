@@ -1,17 +1,28 @@
 <template>
   <span class="hashtag-badge bg-light text-secondary fw-normal px-2 py-1"
     style="font-family: 'SUIT', sans-serif; font-size: 0.7rem;">
-    #{{ text }}
+    #{{ displayText }}
   </span>
 </template>
 
 <script setup>
-defineProps({
+
+import { computed } from 'vue';
+
+const props = defineProps({
   text: {
     type: String,
     required: true
   }
 });
+
+// 텍스트를 정제하는 computed 속성 추가
+const displayText = computed(() => {
+  // props.text가 null이나 undefined일 경우를 대비해 || '' 추가
+  // replace()와 정규식(/[{}"']/g)을 사용해 모든 {, }, " 문자를 제거
+  return (props.text || '').replace(/[{}"]/g, '');
+});
+
 </script>
 
 <style scoped>

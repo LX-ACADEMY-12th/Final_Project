@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.dto.*;
 import com.example.demo.mapper.AiCourseMapper; // 매퍼 이름 가정
 import com.example.demo.mapper.FinalScheduleMapper; // 매퍼 이름 가정
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,8 @@ public class RecommendedCourseService {
                     requestDto.getSourceCourseType()
             );
             log.info("[TX] 들어온 AI 추천 코스 정보 {}", aiCourseDto);
-
+            
+            // 삽입
             aiCourseMapper.insertAiRecommendedCourse(aiCourseDto);
 
             Long generatedAiCourseId = aiCourseDto.getAiCourseId(); // 생성된 ID 가져오기
@@ -86,7 +88,11 @@ public class RecommendedCourseService {
                             finalScheduleId,
                             item.getExhibitionId(),
                             item.getPlaceId(),
-                            item.getSequence()
+                            item.getSequence(),
+                            // --- 스냅샷 전달 ---
+                            item.getCategoryName(),
+                            item.getGradeName(),
+                            item.getSubCategories()
                     ))
                     .collect(Collectors.toList());
 
@@ -108,26 +114,27 @@ public class RecommendedCourseService {
     // 내부 클래스 또는 별도 파일로 정의 가능
     @Data
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class AiCourseItemDto {
         private Long aiCourseId; // finalAiCourseId
         private Long exhibitionId; // exhibitionId에서 매핑됨
         private Long placeId; // placeId에서 매핑됨
         private Integer sequence;
-        public AiCourseItemDto(Long aiCourseId, Long exhibitionId, Long placeId, Integer sequence) {
-            this.aiCourseId = aiCourseId; this.exhibitionId = exhibitionId; this.placeId = placeId; this.sequence = sequence;
-        }
+
     }
 
-    @Data @NoArgsConstructor
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class FinalScheduleItemDto {
         private Long scheduleId;
         private Long exhibitionId;
         private Long placeId;
         private Integer sequence;
-//        private Long itemId1; // targetId에서 매핑됨
-        // 추천 아이템의 경우 custom 필드는 기본적으로 null
-        public FinalScheduleItemDto(Long scheduleId, Long exhibitionId, Long placeId, Integer sequence) {
-            this.scheduleId = scheduleId; this.exhibitionId=exhibitionId; this.placeId=placeId; this.sequence = sequence;
-        }
+
+        // --- 스냅샷 필드 ---
+        private String categoryName;
+        private String gradeName;
+        private List<String> subCategories;
     }
 }
