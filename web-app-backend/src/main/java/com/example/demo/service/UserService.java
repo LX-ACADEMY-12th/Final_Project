@@ -2,11 +2,14 @@ package com.example.demo.service;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.net.URL; // 🟢 [추가] Signed URL 생성을 위해
+import java.util.concurrent.TimeUnit; // 🟢 [추가] Signed URL 시간 설정을
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 // [추가] JWT 및 Security 의존성 Import
@@ -25,7 +28,8 @@ import com.google.cloud.storage.Storage;
 public class UserService {
 	
 	// [GCS 추가] Google Storage 객체 주입
-    private final Storage storage;
+    @Autowired
+    private Storage storage;
 
     // [GCS 추가] application.properties 등에서 설정된 버킷 이름을 주입받습니다.
     @Value("${gcs.bucket-name}")
@@ -70,7 +74,7 @@ public class UserService {
     // 4. 로그인 (변경 없음)
     public LoginResponseDTO login(LoginRequestDTO loginRequest) {
 
-        // 1. ID로만 사용자를 조회합니다.
+// 1. ID로만 사용자를 조회합니다.
         UserDTO user = userMapper.selectUserByLoginId(loginRequest.getLoginId());
 
         // 2. 사용자가 존재하고, 암호화된 비밀번호가 일치하는지 확인
@@ -79,25 +83,26 @@ public class UserService {
             return null;
         }
 
-        // 3. 실제 JWT 토큰 생성 (userId 사용)
-        String accessToken = jwtTokenProvider.createAccessToken(user.getUserId());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
+        // 3. 🟢 [추가] DTO를 반환하기 전, Signed URL로 변환합니다.
+        UserDTO userWithSignedUrl = convertToSignedUrl(user);
 
-        // (참고: Refresh Token은 DB에 저장(업데이트)하는 로직이 권장됩니다.)
-        // userMapper.updateRefreshToken(user.getUserId(), refreshToken);
+        // 4. 실제 JWT 토큰 생성 (userId 사용)
+        String accessToken = jwtTokenProvider.createAccessToken(userWithSignedUrl.getUserId());
+        String refreshToken = jwtTokenProvider.createRefreshToken(userWithSignedUrl.getUserId());
 
-        // 4. 수정된 LoginResponseDTO로 반환
+        // 5. 수정된 LoginResponseDTO로 반환
         return new LoginResponseDTO(
-                user.getUserId(),
-                user.getLoginId(),
-                user.getName(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getGender(),
-                user.getRegion(),
-                user.getChildGrade(),
-                accessToken,    // 👈 실제 Access Token
-                refreshToken    // 👈 실제 Refresh Token
+                userWithSignedUrl.getUserId(),
+                userWithSignedUrl.getLoginId(),
+                userWithSignedUrl.getName(),
+                userWithSignedUrl.getEmail(),
+                userWithSignedUrl.getPhoneNumber(),
+                userWithSignedUrl.getGender(),
+                userWithSignedUrl.getRegion(),
+                userWithSignedUrl.getChildGrade(),
+                userWithSignedUrl.getProfileImageUrl(), // 🟢 [추가] Signed URL
+                accessToken,
+                refreshToken
         );
     }
 
@@ -105,8 +110,9 @@ public class UserService {
      * 5. 🟢 [수정] 'Long' 타입의 userId로 사용자 정보를 조회합니다.
      */
     public UserDTO getUserInfoByUserId(Long userId) {
-        // 🟢 [수정] Mapper에 selectUserById(Long userId)가 정의되어 있어야 합니다.
-        return userMapper.selectUserById(userId);
+
+        UserDTO user = userMapper.selectUserById(userId);
+        return convertToSignedUrl(user);
     }
 
     /**
@@ -118,72 +124,76 @@ public class UserService {
         userMapper.deleteUserById(userId);
     }
 
-    /**
-     * 7. 🟢 [수정] 사용자 정보 업데이트
-     * (UserController가 DTO에 userId를 설정해서 넘겨줍니다)
-     */
-    public int updateUserInfo(UserDTO userDTO) {
-        // 🟢 [수정] Mapper의 updateUser가 DTO의 'userId'를 WHERE 조건으로 사용해야 합니다.
-        return userMapper.updateUser(userDTO);
+    // 🟢 [수정] 반환 타입을 int -> UserDTO로 변경, MultipartFile 파라미터 추가
+    @Transactional
+    public UserDTO updateUserInfo(UserDTO userDTO, MultipartFile profileImage) throws IOException {
+
+        // 1. 🟢 (선택 사항) GCS에서 기존 프로필 이미지 삭제 로직
+        // ... (UserMapper에서 기존 profileImageUrl(blobName)을 조회한 후 storage.delete() 호출) ...
+
+        // 2. 🟢 새 프로필 이미지 업로드 (파일이 있는 경우)
+        if (profileImage != null && !profileImage.isEmpty()) {
+            String blobName = "profiles/" + UUID.randomUUID().toString() + "-" + profileImage.getOriginalFilename();
+
+            BlobId blobId = BlobId.of(bucketName, blobName);
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType(profileImage.getContentType())
+                    .build();
+
+            storage.create(blobInfo, profileImage.getBytes());
+
+            // 🟢 [중요] DTO에 GCS 객체 이름(blobName)을 저장합니다.
+            // (DB에는 전체 URL이 아닌 blobName만 저장해야 ReviewService처럼 Signed URL을 쓸 수 있습니다)
+            userDTO.setProfileImageUrl(blobName);
+        }
+
+        // 3. 🟢 DB에 사용자 정보 업데이트
+        int updatedRows = userMapper.updateUserInfo(userDTO); // (이건 Mapper 호출)
+
+        if (updatedRows > 0) {
+            // 4. 🟢 DB에서 '최신' 정보를 다시 조회하여 반환
+            // (Signed URL 변환 로직이 필요하다면 여기서 추가)
+            UserDTO updatedUser = userMapper.selectUserById((long) userDTO.getUserId());
+            // (주의: DTO의 profileImageUrl을 Signed URL로 변환해주는 로직이 필요할 수 있습니다)
+
+            return convertToSignedUrl(updatedUser);
+        } else {
+            return null; // 업데이트 실패
+        }
     }
-    
- // ----------------------------------------------------------------------
-    // 8. 🟢 [추가] 사용자의 프로필 사진을 GCS에 저장하고, 경로를 DB에 업데이트하는 로직
-    // ----------------------------------------------------------------------
 
+    // 🟢 [추가] GCS 객체 이름을 Signed URL로 변환 (ReviewService에서 복사)
     /**
-     * 사용자의 프로필 사진을 GCS에 저장하고, 저장된 파일 경로(blobName)를 DB에 업데이트하는 메서드
-     * @param userId 사진을 업로드할 사용자 ID
-     * @param file 사용자가 업로드한 프로필 사진 파일 (MultipartFile)
-     * @return GCS에 저장된 객체 이름 (blobName)
+     * GCS 객체 이름(blobName)을 15분간 유효한 Signed URL로 변환합니다.
      */
-    public String uploadUserProfilePhoto(Long userId, MultipartFile file) {
-
-        // 1. 파일이 유효한지 확인합니다.
-        if (file == null || file.isEmpty()) {
-            // 파일이 없으면 null을 반환하거나 예외를 발생시킵니다.
+    private String generateSignedUrl(String objectName) {
+        if (objectName == null || objectName.isEmpty()) {
             return null;
         }
 
-        String originalName = file.getOriginalFilename();
-        String extension = ""; // 파일 확장자를 저장할 변수
-
-        // 2. 파일 이름에서 확장자를 추출합니다.
-        if (originalName != null && originalName.contains(".")) {
-            // 마지막 점(.) 이후의 문자열을 확장자로 가져옵니다.
-            extension = originalName.substring(originalName.lastIndexOf("."));
-        }
-
-        // 3. GCS에 저장할 고유한 객체 이름(Blob Name)을 생성합니다.
-        // "user/" 경로로 시작하고, UUID를 사용하여 파일 이름의 중복을 방지합니다.
-        String blobName = "user/" + UUID.randomUUID().toString() + extension;
-
         try {
-            // 4. GCS 업로드를 위한 BlobId와 BlobInfo 객체를 생성합니다.
-            // 어느 버킷(bucketName)에 어떤 이름(blobName)으로 저장할지 지정합니다.
-            BlobId blobId = BlobId.of(bucketName, blobName);
-            // Blob의 메타 정보(Content-Type)를 설정합니다.
-            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
-                    .setContentType(file.getContentType())
-                    .build();
-
-            // 5. GCS에 실제 파일을 업로드(생성)합니다.
-            // blobInfo에 정의된 정보와 파일의 바이트 배열을 사용하여 저장합니다.
-            storage.create(blobInfo, file.getBytes());
-
-            // 6. 🔴 DB에 GCS 객체 이름을 저장합니다.
-            // 생성된 GCS 객체 이름(blobName)을 해당 사용자 ID의 프로필 사진 경로로 DB에 업데이트합니다.
-            // userMapper에 updateUserProfilePhoto(Long userId, String blobName) 메서드가 필요합니다.
-//            userMapper.updateUserProfilePhoto(userId, blobName);
-
-            // 7. 성공적으로 저장된 GCS 객체 이름(경로)을 반환합니다.
-            return blobName;
-
-        } catch (IOException e) {
-            // 파일 처리 또는 GCS 업로드 중 IO 오류 발생 시 예외를 던집니다.
-            throw new RuntimeException("GCP Storage 프로필 파일 업로드 실패", e);
+            BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucketName, objectName)).build();
+            // 15분 제한 시간 설정 (V4 서명 방식)
+            URL signedUrl = storage.signUrl(blobInfo, 15, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
+            return signedUrl.toString();
+        } catch (Exception e) {
+            System.err.println("Signed URL 생성 실패 (Object: " + objectName + "): " + e.getMessage());
+            return null;
         }
     }
 
+    // 🟢 [추가] UserDTO의 profileImageUrl을 Signed URL로 변환하는 헬퍼
+    /**
+     * UserDTO를 받아 profileImageUrl 필드를 Signed URL로 변환합니다.
+     */
+    private UserDTO convertToSignedUrl(UserDTO user) {
+        if (user != null && user.getProfileImageUrl() != null) {
+            // DB에 저장된 blobName을 Signed URL로 변환
+            String signedUrl = generateSignedUrl(user.getProfileImageUrl());
+            // DTO의 필드를 Signed URL로 덮어쓰기
+            user.setProfileImageUrl(signedUrl);
+        }
+        return user;
+    }
 }
 

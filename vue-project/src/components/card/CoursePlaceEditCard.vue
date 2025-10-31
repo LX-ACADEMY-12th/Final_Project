@@ -185,7 +185,7 @@ export default {
         // 2. 첫 번째 요소 가져오기 (예: "초등 4학년")
         const firstGrade = this.item.grade[0];
         // 3. "초등 " 문자열 제거 (예: "4학년")
-        return firstGrade.replace('초등 ', '');
+        return (firstGrade || '').replace('초등 ', '');
       }
       // 4. 유효하지 않으면 null 반환 (태그 숨김)
       return null;

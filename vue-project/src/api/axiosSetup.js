@@ -8,9 +8,9 @@ const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080'
 // 2. 새로운 Axios 인스턴스 생성
 const axiosInstance = axios.create({
   baseURL: API_BASE,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // headers: {
+  //   'Content-Type': 'application/json',
+  // },
 })
 
 // 3. ⭐️ 요청 인터셉터 (Request Interceptor)
@@ -24,6 +24,16 @@ axiosInstance.interceptors.request.use(
       // 6. 헤더에 'Authorization' 토큰을 추가합니다.
       config.headers['Authorization'] = `Bearer ${authStore.accessToken}`
     }
+
+    // FormData 처리: FormData인 경우 Content-Type을 자동 설정하도록 함
+    if (config.data instanceof FormData) {
+      // FormData의 경우 Content-Type을 삭제 (axios가 자동으로 multipart/form-data 설정)
+      delete config.headers['Content-Type']
+    } else if (!config.headers['Content-Type']) {
+      // FormData가 아니고 Content-Type이 설정되지 않은 경우에만 application/json 설정
+      config.headers['Content-Type'] = 'application/json'
+    }
+
     return config
   },
   (error) => {

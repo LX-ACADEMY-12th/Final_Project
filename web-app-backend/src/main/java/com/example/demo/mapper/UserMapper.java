@@ -24,21 +24,21 @@ public interface UserMapper {
     //     @Param("password") String password
     // );
 
-    // 5. 🟢 [수정] 'userId' (Long)로 사용자 조회 (PK로 조회)
+    // 5. 🟢 'userId' (Long)로 사용자 조회 (PK로 조회)
     // (UserService의 getUserInfoByUserId에서 사용)
     UserDTO selectUserById(@Param("userId") Long userId);
 
-    // 6. 🟢 [추가] 'loginId' (String)로 사용자 조회 (로그인 시 사용)
+    // 6. 🟢 'loginId' (String)로 사용자 조회 (로그인 시 사용)
     // (UserService의 login 메서드에서 사용)
     UserDTO selectUserByLoginId(@Param("loginId") String loginId);
 
-    // 7. 🟢 [수정] 'userId' (Long)로 사용자 삭제
+    // 7. 🟢 'userId' (Long)로 사용자 삭제
     // (UserService의 withdrawUserById에서 사용)
     void deleteUserById(@Param("userId") Long userId);
 
-    // 8. 🟢 [수정] DTO의 'userId'를 Pk로 사용하여 정보 수정
+    // 8. 🟢 DTO의 'userId'를 Pk로 사용하여 정보 수정
     // (UserService의 updateUserInfo에서 사용)
-    int updateUser(UserDTO userDTO);
+    int updateUserInfo(UserDTO userDTO);
 
     // (참고: 리프레시 토큰 저장을 위한 메서드도 필요할 수 있습니다)
     // void updateRefreshToken(@Param("userId") Long userId, @Param("refreshToken") String refreshToken);

@@ -13,7 +13,7 @@
     <select id="countByEmail" resultType="int">
         SELECT COUNT(*)
         FROM "user"
-        WHERE email = #{email}
+        WHERE email = #{email}updateUserInfo
     </select>
 
     <!-- 회원가입 (변경 없음) -->
@@ -51,7 +51,7 @@
 
     <!-- 🟢 [수정] 'userId'(Long)로 사용자 정보 수정 -->
     <!-- (WHERE 조건 변경: login_id -> user_id) -->
-    <update id="updateUser">
+    <update id="updateUserInfo">
         UPDATE "user"
         SET
             "name" = #{name},
@@ -60,7 +60,8 @@
             "gender" = #{gender},
             "region" = #{region},
             "child_grade" = #{childGrade},
-            "updated_at" = NOW()
+            "updated_at" = NOW(),
+            "photo_url" = #{profileImageUrl}
         WHERE "user_id" = #{userId}
     </update>
 

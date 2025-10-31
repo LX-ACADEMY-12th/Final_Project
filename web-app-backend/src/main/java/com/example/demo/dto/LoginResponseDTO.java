@@ -17,12 +17,12 @@ public class LoginResponseDTO {
     private String gender;
     private String region;
     private String childGrade;
-    
-    // [기존] private String token; (삭제)
 
     // [변경] Access Token (API 접근용, 수명 짧음)
     private String accessToken;
 
     // [변경] Refresh Token (재발급용, 수명 긺)
     private String refreshToken;
+
+    private String getProfileImageUrl;
 }

@@ -6,21 +6,15 @@ import org.springframework.http.ResponseEntity;
 // 🟢 [추가] Spring Security의 Authentication
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 // 🔴 [삭제] @RequestHeader
 // import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.LoginRequestDTO;
 import com.example.demo.dto.LoginResponseDTO;
 import com.example.demo.dto.UserDTO;
 import com.example.demo.service.UserService;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/user")
@@ -116,7 +110,9 @@ public class UserController {
     @PutMapping("/update")
     public ResponseEntity<?> updateUserInfo(
             Authentication authentication, // 🟢 [추가]
-            @RequestBody UserDTO userDTO) {
+            @RequestPart("dto") UserDTO userDTO,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
+            ) {
 
         Long userId = getUserIdFromAuthentication(authentication); // 🟢 [수정]
         if (userId == null) {
@@ -127,15 +123,18 @@ public class UserController {
         userDTO.setUserId(userId.intValue());
 
         try {
-            int updatedRows = userService.updateUserInfo(userDTO); // (Mapper의 updateUser가 userId를 사용해야 함)
+            // 🟢 [수정] Service가 GCS 업로드 후 '업데이트된 DTO'를 반환하도록 수정
+            UserDTO updatedUser = userService.updateUserInfo(userDTO, profileImage);
 
-            if (updatedRows > 0) {
-                return ResponseEntity.ok("사용자 정보가 성공적으로 수정되었습니다.");
+            if (updatedUser != null) {
+                // 🟢 [수정] 성공 문자열 대신 '업데이트된 DTO'를 반환
+                return ResponseEntity.ok(updatedUser);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("수정할 사용자 정보를 찾을 수 없습니다.");
             }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("사용자 정보 수정 중 오류가 발생했습니다.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("사용자 정보 수정 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
