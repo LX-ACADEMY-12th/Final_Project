@@ -7,7 +7,7 @@
     </div>
 
     <div class="map-area">
-      <CourseMap :items="mapItems" />
+      <CourseMap :items="mapItems" :is-single-location="true" :default-zoom-level="8" />
     </div>
 
     <ul class="operation-info">
@@ -77,9 +77,6 @@ export default {
         return [{
           lat: info.lat,
           lng: info.lng,
-          // (선택) 핀 커스텀을 위한 정보 (CourseMap이 사용)
-          number: 1,      // 핀에 숫자 '1' 표시
-          color: '#e53e3e' // 핀 색상 (빨간색 예시)
         }];
       }
       // 좌표가 없거나 info가 비어있으면

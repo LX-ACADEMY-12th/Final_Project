@@ -17,6 +17,16 @@ const props = defineProps({
     type: String,
     default: '코스 지도',
   },
+  // 단일 위치 표시 모드인지 여부
+  isSingleLocation: {
+    type: Boolean,
+    default: false // 기본값 false (기존 코드에 영향 없음)
+  },
+  // 단일 위치 모드일 때 사용할 고정 줌 레벨
+  defaultZoomLevel: {
+    type: Number,
+    default: 5 // LocationSection에서 원하는 레벨
+  }
 });
 
 // --- 맵과 요소들을 참조할 ref ---
@@ -30,7 +40,8 @@ onMounted(() => {
   if (window.kakao && window.kakao.maps) {
     const options = {
       center: new window.kakao.maps.LatLng(36.3758, 127.3845), // 기본 중심 (예: 첫 아이템)
-      level: 5,
+      // 단일 모드일 때는 props의 defaultZoomLevel, 아니면 5
+      level: props.isSingleLocation ? props.defaultZoomLevel : 5,
     };
     map.value = new window.kakao.maps.Map(mapContainer.value, options);
 
@@ -101,8 +112,9 @@ const drawCourseOnMap = (items) => {
     console.log(`[CourseMap] 아이템 ${index} 위치(Position) 생성됨:`, position);
 
     // --- 마커 이미지 소스 생성 및 유효성 검사 ---
-    const itemNumber = item.number || (index + 1); // number 없으면 index+1 사용
-    const markerColor = getCourseItemColor(itemNumber);
+    const itemNumber = props.isSingleLocation ? '' : (item.number || (index + 1));
+    // isSingleLocation이 true면 빨간색, 아니면 기존 로직
+    const markerColor = props.isSingleLocation ? '#FF5A5A' : getCourseItemColor(itemNumber);
     const markerImageSrc = createMarkerImage(itemNumber, markerColor);
 
     console.log(`[CourseMap] 아이템 ${index} - 번호: ${itemNumber}, 색상: ${markerColor}, 이미지 소스(앞부분): ${markerImageSrc?.substring(0, 50)}...`);
@@ -169,11 +181,21 @@ const drawCourseOnMap = (items) => {
   // --- 마커 저장 및 지도 범위 설정 ---
   markers.value = newMarkers;
   if (!bounds.isEmpty()) {
-    try {
-      map.value.setBounds(bounds);
-      console.log('[CourseMap] 지도 범위 설정 완료.');
-    } catch (boundsError) {
-      console.error('[CourseMap] ❗️❗️❗️ 지도 범위 설정 중 오류 발생:', boundsError, bounds);
+    // 1. 단일 위치 모드인 경우 (숫자 없고, 줌 고정)
+    if (props.isSingleLocation) {
+      const centerPosition = new window.kakao.maps.LatLng(Number(items[0].lat), Number(items[0].lng));
+      map.value.setCenter(centerPosition); // 👈 수정된 부분
+      map.value.setLevel(props.defaultZoomLevel);
+      console.log(`[CourseMap] 단일 위치 모드: 줌 레벨 ${props.defaultZoomLevel}로 고정.`);
+
+      // 2. 기존 코스 모드인 경우 (여러 핀, setBounds 사용)
+    } else {
+      try {
+        map.value.setBounds(bounds);
+        console.log('[CourseMap] 지도 범위 설정 완료.');
+      } catch (boundsError) {
+        console.error('[CourseMap] ❗️❗️❗️ 지도 범위 설정 중 오류 발생:', boundsError, bounds);
+      }
     }
   } else {
     console.warn('[CourseMap] 유효한 범위가 없어 지도 범위를 설정할 수 없습니다.');
