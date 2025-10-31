@@ -28,7 +28,7 @@ public class UserService {
     private final Storage storage;
 
     // [GCS 추가] application.properties 등에서 설정된 버킷 이름을 주입받습니다.
-    @Value("${gcp.storage.bucket-name}")
+    @Value("${gcs.bucket-name}")
     private String bucketName;
 
     private final UserMapper userMapper;
@@ -174,7 +174,7 @@ public class UserService {
             // 6. 🔴 DB에 GCS 객체 이름을 저장합니다.
             // 생성된 GCS 객체 이름(blobName)을 해당 사용자 ID의 프로필 사진 경로로 DB에 업데이트합니다.
             // userMapper에 updateUserProfilePhoto(Long userId, String blobName) 메서드가 필요합니다.
-            userMapper.updateUserProfilePhoto(userId, blobName);
+//            userMapper.updateUserProfilePhoto(userId, blobName);
 
             // 7. 성공적으로 저장된 GCS 객체 이름(경로)을 반환합니다.
             return blobName;
