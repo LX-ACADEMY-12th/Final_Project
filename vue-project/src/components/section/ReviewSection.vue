@@ -14,15 +14,16 @@
       <button v-for="(p, i) in allPhotoThumbnails" :key="p.reviewId || i" class="photo-btn"
         :style="{ backgroundImage: `url(${p.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }"
         @click="openModalFromThumb(p, i)" :title="`리뷰 ${p.reviewId}`"></button>
-      
+
       <button class="photo-btn more-btn" v-if="morePhotoCountToShow > 0" @click="goToAllPhotosPage">
         <i class="bi bi-plus-circle"></i>
       </button>
-      
-      <button class="photo-btn more-btn" v-else-if="allPhotoThumbnails.length === 0 && photoReviewCount === 0">사진 없음</button>
+
+      <button class="photo-btn more-btn" v-else-if="allPhotoThumbnails.length === 0 && photoReviewCount === 0">사진
+        없음</button>
     </div>
 
-    <button class="write-review-btn" @click="$emit('show-modal')">
+    <button class="write-review-btn" @click="onClickWriteReview">
       <i class="bi bi-pencil-square"></i> 후기작성
     </button>
 
@@ -31,9 +32,8 @@
 
     <div class="review-list" v-else>
       <div class="review-item" v-for="review in reviews" :key="review.reviewId" :data-review-id="review.reviewId">
-
         <div class="reviewer-profile">
-          <img :src="review.authorProfileImageUrl || 'https://via.placeholder.com/40'" alt="프로필 이미지" class="avatar">
+          <img :src="review.authorProfileImageUrl || 'https://via.placeholder.com/40'" alt="프로필 이미지" class="avatar" />
           <span class="name">{{ review.authorName }}</span>
           <span class="stars" v-html="getFilledStars(review.rating)"></span>
         </div>
@@ -58,7 +58,7 @@
         </button>
 
         <div class="report-menu" v-if="openReportMenuId === review.reviewId">
-          <div v-if="review.authorId === currentUserId">
+          <div v-if="String(review.authorId) === String(currentUserId)">
             <button class="edit-btn" @click="$emit('edit-review', review)">
               <i class="bi bi-pencil"></i>
               수정하기
@@ -78,99 +78,75 @@
     </div>
 
     <div class="pagination" v-if="totalPages > 1 && !isLoading">
-      <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="page-btn">
-        &lt; 이전
-      </button>
+      <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="page-btn">&lt; 이전</button>
 
       <button v-for="page in totalPages" :key="page" @click="goToPage(page)" class="page-btn"
         :class="{ active: page === currentPage }">
         {{ page }}
       </button>
 
-      <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="page-btn">
-        다음 &gt;
-      </button>
+      <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="page-btn">다음
+        &gt;</button>
     </div>
 
     <PhotoModal :show="photoModal.visible" :images="photoModal.images" :startIndex="photoModal.startIndex"
       @close="photoModal.visible = false" />
+
+      <ReportModal :show="reportModal.visible"
+   @close="reportModal.visible = false"
+   @submit="handleReportSubmit" 
+  />
   </section>
 </template>
-
 <script>
-import axios from 'axios'
-import PhotoModal from '../modal/PhotoModal.vue';
-import router from '@/router';
-
-// API 베이스 (Vite 환경변수 우선)
-const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
+import axios from '@/api/axiosSetup' // ✅ axiosSetup 고정 사용
+import PhotoModal from '../modal/PhotoModal.vue'
+import ReportModal from '../modal/ReportModal.vue';
+import router from '@/router'
+import eventBus from '@/utils/eventBus'; // 💡 [추가] 글로벌 알림용
 
 export default {
   name: 'ReviewSection',
-  components: { PhotoModal },
+  components: { PhotoModal, ReportModal },
   props: {
-    targetId: {
-      type: [Number, String],
-      required: true
-    },
-    targetType: {
-      type: String,
-      required: true
-    },
-    currentUserId: {
-      type: [Number, String],
-      required: true
-    },
-    rating: {
-      type: Number,
-      required: true,
-      default: 0
-    },
-    reviewCount: {
-      type: Number,
-      required: true,
-      default: 0
-    },
-    photoReviewCount: {
-      type: Number,
-      default: 0
-    },
-    isPlace: {
-      type: Boolean,
-      required: false,
-      default: false
-    }
+    targetId: { type: [Number, String], required: true },
+    targetType: { type: String, required: true },
+    currentUserId: { type: [Number, String], required: true },
+    rating: { type: Number, required: true, default: 0 },
+    reviewCount: { type: Number, required: true, default: 0 },
+    photoReviewCount: { type: Number, default: 0 },
+    isPlace: { type: Boolean, required: false, default: false }
   },
   emits: ['show-modal', 'edit-review', 'request-delete'],
 
   computed: {
     sectionTitle() {
-      return this.isPlace ? '장소 후기' : '방문자 후기';
+      return this.isPlace ? '장소 후기' : '방문자 후기'
     },
+    // ... (다른 computed 속성들은 동일) ...
     allPhotoUrls() {
-      const allPhotos = [];
+      const allPhotos = []
       for (const r of this.reviews) {
         if (Array.isArray(r.photoUrls)) {
-          allPhotos.push(...r.photoUrls);
+          allPhotos.push(...r.photoUrls)
         }
       }
-      return allPhotos.filter(Boolean);
+      return allPhotos.filter(Boolean)
     },
     morePhotoCountToShow() {
-      const remaining = this.photoReviewCount - this.allPhotoThumbnails.length;
-      return Math.max(0, remaining);
-    },
+      const remaining = this.photoReviewCount - this.allPhotoThumbnails.length
+      return Math.max(0, remaining)
+    }
   },
 
   watch: {
     targetId: {
       handler(newId) {
         if (newId && this.targetType) {
-          console.log(`✅ [ReviewSection] ID 변경 감지, 1페이지 로드`);
-          this.currentPage = 1;
-          this.fetchReviews();
-          this.fetchPhotoThumbnails(); // ⭐️ [추가] 썸네일도 새로고침
-          this.allPhotoUrlsCache = null; // ⭐️ [추가] 캐시 비우기
+          this.currentPage = 1
+          this.fetchReviews()
+          this.fetchPhotoThumbnails()
+          this.allPhotoUrlsCache = null
         }
       },
       immediate: true
@@ -178,14 +154,25 @@ export default {
     targetType: {
       handler(newType) {
         if (newType && this.targetId) {
-          console.log(`✅ [ReviewSection] Type 변경 감지, 1페이지 로드`);
-          this.currentPage = 1;
-          this.fetchReviews();
-          this.fetchPhotoThumbnails(); // ⭐️ [추가] 썸네일도 새로고침
-          this.allPhotoUrlsCache = null; // ⭐️ [추가] 캐시 비우기
+          this.currentPage = 1
+          this.fetchReviews()
+          this.fetchPhotoThumbnails()
+          this.allPhotoUrlsCache = null
         }
       },
       immediate: true
+    },
+
+    // 💡 [추가] 
+    // currentUserId가 null/"" 에서 '28'과 같은 유효한 값으로 바뀔 때 감지
+    currentUserId(newUserId, oldUserId) {
+      // oldUserId가 null 또는 "" (falsy) 였다가
+      // newUserId가 '28' (truthy)이 된 경우 (즉, 최초 로그인 감지 시)
+      if (newUserId && !oldUserId) {
+        console.log('로그인 상태 감지, 좋아요 상태 새로고침');
+        // '좋아요' 상태만 다시 불러옵니다.
+        this.fetchLikedStatus();
+      }
     }
   },
 
@@ -206,279 +193,318 @@ export default {
       totalPages: 1,
       totalReviews: 0,
       allPhotoThumbnails: [],
-      allPhotoUrlsCache: null, // ⭐️ [추가] 이 선언이 빠졌습니다.
-    };
+      allPhotoUrlsCache: null,
+      // 💡 3. 신고 모달의 상태를 data에 추가합니다.
+   reportModal: {
+    visible: false,
+    reviewId: null // 어떤 리뷰를 신고할지 ID를 저장
+   }
+    }
   },
 
-  // ⭐️ [수정] methods 블록 시작
   methods: {
-    goToPage(pageNumber) {
-      if (pageNumber < 1 || pageNumber > this.totalPages || pageNumber === this.currentPage) {
-        return;
-      }
-      this.currentPage = pageNumber;
-      this.fetchReviews();
-    },
-    // ⭐️ [신규] 1~3번 썸네일 클릭 시 모달 여는 메서드
-    async openModalFromThumb(clickedThumbnail, index) {
-      let allPhotos = this.allPhotoUrlsCache;
-
-      // 1. 캐시가 없으면 API로 '모든' 사진 URL을 가져옵니다.
-      if (!allPhotos) {
-        console.log('[modal-thumb] 캐시 없음. 전체 사진 URL 로드 시도...');
-        try {
-          // ❗️ 이 API는 백엔드에 있어야 합니다.
-          // (지난 대화에서 확인한 '사진 전체 모아보기' API)
-          const { data } = await axios.get(`${API_BASE}/api/reviews/target/${this.targetType}/${this.targetId}/photos`);
-          
-          if (!Array.isArray(data) || data.length === 0) {
-              console.error('[modal-thumb] 사진이 없습니다.');
-              return;
-          }
-          
-          allPhotos = data;
-          this.allPhotoUrlsCache = allPhotos; // ⭐️ 캐시에 저장
-          console.log(`[modal-thumb] 전체 사진 ${allPhotos.length}개 로드 및 캐시 완료.`);
-
-        } catch (err) {
-          console.error('[modal-thumb] 전체 사진 URL 로드 실패:', err);
-          this.$alert('사진을 불러오는 데 실패했습니다.');
-          return;
-        }
-      } else {
-          console.log(`[modal-thumb] 캐시된 사진 ${allPhotos.length}개 사용.`);
-      }
-
-      // 2. 모달을 엽니다.
-      // 썸네일(limit 3)과 전체 사진이 같은 순서(예: 최신순)라고 가정합니다.
-      // 만약 순서가 다르면, clickedThumbnail.url로 findIndex를 수행해야 합니다.
-      let startIndex = allPhotos.indexOf(clickedThumbnail.url);
-      
-      if (startIndex === -1) {
-          console.warn(`[modal-thumb] 썸네일 URL(${clickedThumbnail.url})을 전체 목록에서 찾지 못했습니다. 썸네일 순서(${index})를 사용합니다.`);
-          // 썸네일 순서(0, 1, 2)를 시작 인덱스로 사용
-          startIndex = index; 
-      }
-
-      this.photoModal.images = allPhotos;
-      this.photoModal.startIndex = startIndex;
-      this.photoModal.visible = true;
-    },
-
-    openPhotoViewer(review, startIndex = 0) {
-      const imgs = Array.isArray(review.photoUrls) ? review.photoUrls.filter(Boolean) : [];
-      if (!imgs.length) return;
-      this.photoModal.images = imgs;
-      this.photoModal.startIndex = startIndex;
-      this.photoModal.visible = true;
-    },
-
-    onClickDelete(reviewId) {
-      this.$emit('request-delete', { reviewId });
-      this.openReportMenuId = null;
-    },
-
-    // ⭐️ [신규] 썸네일 전용 API 호출 메서드
-    async fetchPhotoThumbnails() {
-      if (!this.targetId || !this.targetType) return;
-
-      try {
-        const params = {
-          targetId: this.targetId,
-          targetType: this.targetType,
-          limit: 3 // ⭐️ UI에 표시할 썸네일 개수
-        };
-
-        // targetId/Type에 해당하는 "모든" 사진 리뷰 중 
-        // 최신순 4개의 썸네일(reviewId, url)을 반환하는 API입니다.
-        const { data: thumbs } = await axios.get(`${API_BASE}/api/reviews/photos-summary`, { params });
-        this.allPhotoThumbnails = Array.isArray(thumbs) ? thumbs : [];
-        console.log('[photo-thumbs] 썸네일 로드 성공:', this.allPhotoThumbnails);
-
-      } catch (err) {
-        console.error('[photo-thumbs] 썸네일 로드 실패:', err?.response?.data || err.message);
-        this.allPhotoThumbnails = []; // 실패시 비움
-      }
-    },
-
-    // ⭐️ [수정] fetchReviews 메서드 구조 수정
+    // 💡 [수정] fetchReviews에서는 '좋아요' 관련 로직 제거
     async fetchReviews() {
-      if (!this.targetId || !this.targetType) return;
+      if (!this.targetId || !this.targetType) return
+      this.isLoading = true
+      this.error = null
 
-      this.isLoading = true;
-      this.error = null;
-
-      // ⭐️ [수정] 불필요한 바깥쪽 try 제거
       try {
-        // 1) 목록 API 호출
         const params1 = {
           targetId: this.targetId,
           targetType: this.targetType,
           page: this.currentPage,
           size: this.pageSize
-        };
-        console.log('[reviews] params =', params1, 'API_BASE=', API_BASE);
-
-        const { data: reviewPage } = await axios.get(`${API_BASE}/api/reviews`, { params: params1 });
-        console.log('[reviews] data =', reviewPage);
-
-        this.reviews = Array.isArray(reviewPage.content) ? reviewPage.content : [];
-        this.totalPages = reviewPage.totalPages || 1;
-        this.totalReviews = reviewPage.totalElements || 0;
-
-        // ⭐️ [복원] 좋아요 상태 API 호출 로직 (이전 버전 기준)
-        const seed = {};
-        for (const r of this.reviews) {
-          if (typeof r.likedByCurrentUser === 'boolean') seed[r.reviewId] = r.likedByCurrentUser;
         }
+        const { data: reviewPage } = await axios.get(`/api/reviews`, { params: params1 })
 
-        let likedSet = new Set();
-        if (this.currentUserId != null && this.currentUserId !== '') {
-          const params2 = {
-            targetId: this.targetId,
-            targetType: this.targetType,
-            viewerUserId: this.currentUserId
-          };
-          console.log('[liked-status] params =', params2);
-          try {
-            const { data: liked } = await axios.get(`${API_BASE}/api/reviews/liked-status`, { params: params2 });
-            console.log('[liked-status] data =', liked);
-            const ids = Array.isArray(liked?.likedReviewIds) ? liked.likedReviewIds : [];
-            likedSet = new Set(ids.map(x => Number(x)));
-          } catch (e) {
-            console.error('[liked-status] FAIL:', e?.response?.status, e?.response?.data || e.message);
-          }
-        }
+        this.reviews = Array.isArray(reviewPage.content) ? reviewPage.content : []
+        this.totalPages = reviewPage.totalPages || 1
+        this.totalReviews = reviewPage.totalElements || 0
 
-        const newLikedStatus = {};
-        for (const r of this.reviews) {
-          const idNum = Number(r.reviewId);
-          if (typeof seed[r.reviewId] === 'boolean') {
-            newLikedStatus[r.reviewId] = seed[r.reviewId];
-          } else {
-            newLikedStatus[r.reviewId] = likedSet.has(idNum);
-          }
-        }
-        this.likedStatus = newLikedStatus;
+        // 💡 분리된 '좋아요' 상태 함수 호출
+        await this.fetchLikedStatus();
 
       } catch (err) {
-        console.error('[reviews] FAIL:', err?.response?.status, err?.response?.data || err.message);
-        this.error = err;
+        console.error('[reviews] FAIL:', err?.response?.status, err?.response?.data || err.message)
+        this.error = err
       } finally {
-        this.isLoading = false;
-      }
-    }, // ⭐️ [수정] fetchReviews 메서드 닫기
-
-    // (날짜 포맷팅)
-    formatReviewDate(dateString) {
-      if (!dateString) return '';
-      try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ko-KR', {
-          year: 'numeric', month: '2-digit', day: '2-digit'
-        }).replace(/\. /g, '.').replace(/\.$/, '');
-      } catch (error) {
-        console.log(`날짜 포맷팅 실패 -> ${error}`);
-        return dateString;
+        this.isLoading = false
       }
     },
-
-    // (별점 그리기)
-    getFilledStars(score) {
-      if (typeof score !== 'number') score = 0;
-      const fullStars = Math.floor(score);
-      const halfStar = score % 1 >= 0.5 ? 1 : 0;
-      const emptyStars = 5 - fullStars - halfStar;
-
-      let starsHtml = '';
-      starsHtml += '<i class="bi bi-star-fill"></i>'.repeat(fullStars);
-      starsHtml += '<i class="bi bi-star-half"></i>'.repeat(halfStar);
-      starsHtml += '<i class="bi bi-star"></i>'.repeat(emptyStars);
-      return starsHtml;
-    },
-
-    // (신고 메뉴)
-    toggleReportMenu(reviewId) {
-      if (this.openReportMenuId === reviewId) {
-        this.openReportMenuId = null;
+    onClickWriteReview() {
+      if (!this.currentUserId) {
+      // 💡 [수정] 로그인 체크
+      eventBus.emit('show-global-alert', {
+          message: '로그인이 필요한 기능입니다.',
+          type: 'error'
+        });
+      setTimeout(() => {
+      // ⭐️ 5초 뒤 /login 페이지로 이동
+      router.push('/login'); 
+      }, 1000); 
       } else {
-        this.openReportMenuId = reviewId;
+      // 로그인이 됐으면 기존 '리뷰 작성 모달' 요청
+      this.$emit('show-modal');
       }
     },
 
-    // (신고)
-    async reportReview(reviewId) {
+    // 💡 [추가] '좋아요' 상태만 불러오는 함수
+    async fetchLikedStatus() {
+      // (seed 로직은 로그인 상태를 보정하는 것이므로 굳이 필요 없습니다. 삭제함.)
+
+      // 로그인 시 서버 liked-status로 보정
+      let likedSet = new Set()
+
+      // ⭐️ currentUserId가 유효할 때만 API 호출
+      if (this.currentUserId != null && this.currentUserId !== '') {
+
+        // ⭐️ [매우 중요] params2 객체에서 'userId'는 반드시 제거해야 합니다.
+        // (백엔드가 토큰에서 userId를 읽기 때문)
+        const params2 = {
+          targetId: this.targetId,
+          targetType: this.targetType
+        }
+
+        try {
+          // ⭐️ GET /api/reviews/liked-status?targetId=...&targetType=...
+          const { data: liked } = await axios.get(`/api/reviews/liked-status`, { params: params2 })
+
+          // ⭐️ API 응답(liked)은 객체가 아닌 순수 배열 [101, 105] 입니다.
+          const ids = Array.isArray(liked) ? liked : []
+          likedSet = new Set(ids.map((x) => Number(x)))
+
+        } catch (e) {
+          console.error('[liked-status] FAIL:', e?.response?.status, e?.response?.data || e.message)
+        }
+      }
+
+      // likedStatus 객체 (화면 색칠용) 업데이트
+      const newLikedStatus = {}
+      for (const r of this.reviews) {
+        const idNum = Number(r.reviewId)
+        newLikedStatus[r.reviewId] = likedSet.has(idNum)
+      }
+      this.likedStatus = newLikedStatus
+    },
+
+    goToPage(pageNumber) {
+      if (pageNumber < 1 || pageNumber > this.totalPages || pageNumber === this.currentPage) return
+      this.currentPage = pageNumber
+      this.fetchReviews()
+    },
+
+    async openModalFromThumb(clickedThumbnail, index) {
+      let allPhotos = this.allPhotoUrlsCache
+      if (!allPhotos) {
+        try {
+          const { data } = await axios.get(`/api/reviews/target/${this.targetType}/${this.targetId}/photos`)
+          if (!Array.isArray(data) || data.length === 0) return
+          allPhotos = data
+          this.allPhotoUrlsCache = allPhotos
+        } catch (err) {
+          console.error('[modal-thumb] 전체 사진 URL 로드 실패:', err)
+          eventBus.emit('show-global-alert', {
+          message: '사진을 불러오는 데 실패했습니다.',
+          type: 'error'
+        });
+          return
+        }
+      }
+      let startIndex = allPhotos.indexOf(clickedThumbnail.url)
+      if (startIndex === -1) startIndex = index
+      this.photoModal.images = allPhotos
+      this.photoModal.startIndex = startIndex
+      this.photoModal.visible = true
+    },
+
+    openPhotoViewer(review, startIndex = 0) {
+      const imgs = Array.isArray(review.photoUrls) ? review.photoUrls.filter(Boolean) : []
+      if (!imgs.length) return
+      this.photoModal.images = imgs
+      this.photoModal.startIndex = startIndex
+      this.photoModal.visible = true
+    },
+
+    onClickDelete(reviewId) {
+      this.$emit('request-delete', { reviewId })
+      this.openReportMenuId = null
+    },
+
+    async fetchPhotoThumbnails() {
+      if (!this.targetId || !this.targetType) return
       try {
-        const review = this.reviews.find(r => r.reviewId === reviewId);
-        if (review && String(review.authorId) === String(this.currentUserId)) {
-          this.$alert('본인 리뷰는 신고할 수 없습니다.');
+        const params = { targetId: this.targetId, targetType: this.targetType, limit: 3 }
+        const { data: thumbs } = await axios.get(`/api/reviews/photos-summary`, { params })
+        this.allPhotoThumbnails = Array.isArray(thumbs) ? thumbs : []
+      } catch (err) {
+        console.error('[photo-thumbs] 로드 실패:', err?.response?.data || err.message)
+        this.allPhotoThumbnails = []
+      }
+    },
+
+    formatReviewDate(dateString) {
+      if (!dateString) return ''
+      try {
+        const date = new Date(dateString)
+        return date
+          .toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+          .replace(/\. /g, '.')
+          .replace(/\.$/, '')
+      } catch (error) {
+        console.log(`에러->${error}`);
+        return dateString
+      }
+    },
+
+    getFilledStars(score) {
+      if (typeof score !== 'number') score = 0
+      const fullStars = Math.floor(score)
+      const halfStar = score % 1 >= 0.5 ? 1 : 0
+      const emptyStars = 5 - fullStars - halfStar
+      let starsHtml = ''
+      starsHtml += '<i class="bi bi-star-fill"></i>'.repeat(fullStars)
+      starsHtml += '<i class="bi bi-star-half"></i>'.repeat(halfStar)
+      starsHtml += '<i class="bi bi-star"></i>'.repeat(emptyStars)
+      return starsHtml
+    },
+
+    toggleReportMenu(reviewId) {
+      this.openReportMenuId = this.openReportMenuId === reviewId ? null : reviewId
+    },
+
+    // 사용자 리뷰 신고 함수
+    async reportReview(reviewId) {
+      // 💡 [추가] 로그인 체크
+      if (!this.currentUserId) {
+        eventBus.emit('show-global-alert', {
+          message: '로그인이 필요한 기능입니다.',
+          type: 'error'
+        });
+        setTimeout(() => {
+          router.push('/login');
+        },1000);
+        return; // 함수 즉시 종료
+      }
+
+      // 본인 리뷰 체크 로직
+      const review = this.reviews.find((r) => r.reviewId === reviewId)
+      if (review && String(review.authorId) === String(this.currentUserId)) {
+          eventBus.emit('show-global-alert', {
+          message: '사용자 본인 리뷰는 신고할 수 없습니다.',
+          type: 'error'
+        });
+          this.openReportMenuId = null;
           return;
         }
 
-        const reason = window.prompt('신고 사유를 입력하세요 (예: 욕설/모욕, 스팸 등)');
-        if (!reason || !reason.trim()) return;
+        // [수정] 
+   // window.prompt(...) 대신 모달 상태를 변경합니다.
+   this.reportModal.reviewId = reviewId; // 신고할 ID 저장
+   this.reportModal.visible = true;    // 모달 띄우기
+   this.openReportMenuId = null;         // ...메뉴 닫기
+      
+    },
 
-        await axios.post(`${API_BASE}/api/reviews/${reviewId}/report`, {
-          reason: reason.trim(),
-          reporterUserId: this.currentUserId
+    async handleReportSubmit(reason) {
+      const reviewId = this.reportModal.reviewId;
+      
+      // 사유를 입력했는지 체크
+      if (!reason || !reason.trim()) {
+        eventBus.emit('show-global-alert', {
+        message: '신고 사유를 입력해야 합니다.',
+        type: 'error'
         });
-
-        this.$alert('신고가 접수되었습니다.');
-      } catch (e) {
-        console.error('신고 실패:', e);
-        this.$alert(`신고에 실패했습니다: ${e.response?.data || e.message}`);
-      } finally {
-        this.openReportMenuId = null;
+        return;
       }
-    },
-
-    // (좋아요 아이콘)
-    getLikeIcon(reviewId) {
-      return this.likedStatus[reviewId] ? 'bi bi-hand-thumbs-up-fill' : 'bi bi-hand-thumbs-up';
-    },
-
-    // (좋아요 토글)
-    async toggleLike(reviewId) {
-      const isLiked = this.likedStatus[reviewId];
 
       try {
-        if (isLiked) {
-          await axios.delete(`${API_BASE}/api/reviews/${reviewId}/like`);
+        await axios.post(`/api/reviews/${reviewId}/report`)
+
+        eventBus.emit('show-global-alert', {
+          message: '신고가 접수되었습니다.',
+          type: 'success' // 👈 타입을 'success'로 지정
+        });
+      } catch(e) {
+        console.error('신고 실패:', e);
+
+        // 💡 4. [수정] 에러 메시지 분기 처리
+        // 백엔드 응답(e.response.data)에 "이미 신고함"이 포함되어 있는지 확인
+        if (e.response && e.response.data && e.response.data.includes("이미 신고함")) {
+        
+        // [분기 1] 중복 신고일 경우
+        eventBus.emit('show-global-alert', {
+          message: '이미 접수된 신고입니다.', // 👈 요청하신 메시지
+          type: 'error'
+        });
+
         } else {
-          await axios.post(`${API_BASE}/api/reviews/${reviewId}/like`);
+        
+        // [분기 2] 그 외 모든 실패일 경우 (서버 다운, 500 에러 등)
+        eventBus.emit('show-global-alert', {
+          message: '신고가 실패되었습니다.', // 👈 기존 메시지
+          type: 'error'
+        });
+    }
+      } finally {
+        // 모달 닫기
+        this.reportModal.visible = false;
+        this.reportModal.reviewId = null;
+      }
+    },
+    getLikeIcon(reviewId) {
+      return this.likedStatus[reviewId] ? 'bi bi-hand-thumbs-up-fill' : 'bi bi-hand-thumbs-up'
+    },
+
+    // ⭐️ toggleLike 로직은 완벽하므로 수정할 필요 없습니다.
+    async toggleLike(reviewId) {
+
+      // 💡 [추가] 로그인 체크
+      if (!this.currentUserId) {
+        eventBus.emit('show-global-alert', {
+          message: '로그인이 필요한 기능입니다.',
+          type: 'error'
+        });
+        setTimeout(() => {
+          router.push('/login');
+        },1000);
+        return; // 함수 즉시 종료
+      }
+
+      const isLiked = this.likedStatus[reviewId]
+      try {
+        if (isLiked) {
+          await axios.delete(`/api/reviews/${reviewId}/unlike`)
+        } else {
+          await axios.post(`/api/reviews/${reviewId}/like`)
         }
-        this.likedStatus[reviewId] = !isLiked;
-        const review = this.reviews.find(r => r.reviewId === reviewId);
-        if (review) {
-          review.likeCount += (isLiked ? -1 : 1);
-        }
-        console.log(`리뷰 ID: ${reviewId}, API 성공 후 상태: ${!isLiked ? '좋아요' : '취소'}`);
+        this.likedStatus[reviewId] = !isLiked
+        const review = this.reviews.find((r) => r.reviewId === reviewId)
+        if (review) review.likeCount += isLiked ? -1 : 1
       } catch (error) {
-        console.error('좋아요 처리 실패:', error);
-        this.$alert(`좋아요 처리에 실패했습니다: ${error.response?.data || error.message}`);
+        console.error('좋아요 처리 실패:', error)
+        eventBus.emit('show-global-alert', {
+          message: `좋아요 처리에 실패했습니다 : ${error.response?.data || error.message}`,
+          type: 'error'
+        });
       }
     },
 
     goToAllPhotosPage() {
-      const path = `/photos/${this.targetType}/${this.targetId}`;
-      console.log('전체 사진 페이지로 이동:', path);
-      router.push(path);
-    },
-
-  }, // ⭐️ [수정] methods 블록 닫기
-
-  created() {
-    // (created 훅은 watch의 immediate: true로 대체되었으므로 비워둡니다)
+      const path = `/photos/${this.targetType}/${this.targetId}`
+      router.push(path)
+    }
   }
-};
+}
 </script>
 <style scoped>
-/* (스타일 태그는 변경 사항 없음) */
+/* (스타일은 네 원본 그대로) */
 .review-section {
   padding: 15px;
   background-color: white;
 }
 
+/* ... 아래 스타일 전체 동일 ... (생략 안 하고 그대로 유지해도 됨) */
 .section-title {
   font-size: 20px;
   font-weight: bold;
@@ -492,7 +518,7 @@ export default {
 }
 
 .review-stars {
-  color: #FFC107;
+  color: #ffc107;
   margin-right: 8px;
   font-size: 24px;
 }
@@ -546,7 +572,7 @@ export default {
 
 .write-review-btn {
   width: 100%;
-  background-color: #4A89F3;
+  background-color: #4a89f3;
   color: white;
   border: none;
   padding: 12px 0;
@@ -584,7 +610,7 @@ export default {
 }
 
 .review-item .stars {
-  color: #FFC107;
+  color: #ffc107;
   font-size: 14px;
 }
 
@@ -602,7 +628,6 @@ export default {
   color: #333;
   line-height: 1.4;
   margin: 5px 0 10px 50px;
-
   background-color: #202020;
   color: #666;
   border: none;
@@ -634,7 +659,7 @@ export default {
   cursor: pointer;
 }
 
-.review-meta .likes .active {
+.review-meta .likes.active {
   color: #4A89F3;
   font-weight: 600;
 }
@@ -681,7 +706,7 @@ export default {
   border: none;
   text-align: left;
   font-size: 14px;
-  color: #EB3223;
+  color: #eb3223;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -694,7 +719,7 @@ export default {
   border: none;
   text-align: left;
   font-size: 14px;
-  color: #EB3223;
+  color: #eb3223;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -703,7 +728,6 @@ export default {
   background-color: #f0f0f0;
 }
 
-/* ⭐️ [추가] 로딩/에러 메시지 스타일 */
 .loading-message,
 .error-message {
   padding: 40px 20px;
@@ -713,21 +737,16 @@ export default {
 }
 
 .error-message {
-  color: #EB3223;
-  /* 에러 색상 */
+  color: #eb3223;
 }
 
-/* 리뷰 본문 아래 사진 그리드 */
 .review-photos-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  /* 4칸 */
   gap: 8px;
   margin: 8px 0 10px 50px;
-  /* 본문 들여쓰기와 정렬 */
 }
 
-/* 정사각형 셀 */
 .photo-cell {
   aspect-ratio: 1 / 1;
   border: none;
@@ -740,13 +759,11 @@ export default {
   box-shadow: 0 0 0 1px #eee inset;
 }
 
-/* ⭐️ [추가] 페이지네이션 스타일 예시 */
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px 0 10px 0;
-  /* 위쪽 여백 */
 }
 
 .page-btn {
@@ -768,10 +785,9 @@ export default {
 }
 
 .page-btn.active {
-  background-color: #4A7CEC;
-  /* (기존 .write-review-btn 색상과 통일) */
+  background-color: #4a7cec;
   color: white;
-  border-color: #4A7CEC;
+  border-color: #4a7cec;
   font-weight: bold;
 }
 

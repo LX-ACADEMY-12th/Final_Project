@@ -51,6 +51,7 @@
 import PlaceCard2 from '@/components/card/PlaceCard2.vue';
 import FilterModal from '@/components/modal/FilterModal.vue';
 import axios from 'axios';
+import eventBus from '@/utils/eventBus';
 
 // API 베이스 (일관성을 위해 정의)
 const API_BASE = 'http://localhost:8080';
@@ -201,7 +202,10 @@ export default {
     }
    } catch (error) {
     console.error("찜 목록 조회 중 오류 발생", error.response ? error.response.data : error.message);
-    this.$alert("찜 목록을 불러오는 중 오류가 발생했습니다.");
+    eventBus.emit('show-global-alert', {
+          message: '찜 목록을 불러오는 중 오류가 발생했습니다.',
+          type: 'error'
+        });
     this.allWishlistItems = [];
     this.displayedItems = [];
    } finally {

@@ -103,6 +103,7 @@
 
 <script>
 import axios from 'axios';
+import eventBus from '@/utils/eventBus';
 
 // API 기본 경로 설정 (MyPageView와 동일하게 설정)
 const API_BASE_URL = 'http://localhost:8080/api/user'; 
@@ -137,7 +138,10 @@ export default {
       const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
 
       if (!token) {
-        this.$alert('로그인이 필요합니다.');
+        eventBus.emit('show-global-alert', {
+          message: '로그인이 필요한 기능입니다.',
+          type: 'error'
+        });
         this.$router.replace({ name: 'Login' }); // 로그인 페이지로 리다이렉션
         return;
       }
@@ -165,7 +169,10 @@ export default {
 
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
-        this.$alert('사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.');
+        eventBus.emit('show-global-alert', {
+          message: '사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.',
+          type: 'error'
+        });
         // 인증 실패 시 로그인 페이지로 이동
         // // this.$router.replace({ name: 'Login' }); 
       }
@@ -176,7 +183,10 @@ export default {
       const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
 
       if (!token) {
-        this.$alert('인증 토큰이 없습니다. 다시 로그인해주세요.');
+        eventBus.emit('show-global-alert', {
+          message: '인증 토큰이 없습니다. 다시 로그인해주세요.',
+          type: 'error'
+        });
         return;
       }
       
@@ -203,16 +213,25 @@ export default {
 
         // 수정 성공
         if (response.status === 200) {
-          this.$alert(response.data); // "사용자 정보가 성공적으로 수정되었습니다."
+          eventBus.emit('show-global-alert', {
+          message: response.data,
+          type: 'success'
+        });
           // 마이페이지로 복귀하거나 현재 페이지 새로고침
           this.goBack();  
         }
       } catch (error) {
         console.error('정보 수정 실패:', error);
         if (error.response && error.response.data) {
-          this.$alert('정보 수정 실패: ' + error.response.data);
+          eventBus.emit('show-global-alert', {
+          message: `정보 수정 실패: ` + error.response.data,
+          type: 'error'
+        });
         } else {
-           this.$alert('정보 수정 중 알 수 없는 오류가 발생했습니다.');
+          eventBus.emit('show-global-alert', {
+          message: '정보 수정 중 알 수 없는 오류가 발생했습니다.',
+          type: 'error'
+        });
         }
       }   
     },

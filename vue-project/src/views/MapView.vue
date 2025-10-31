@@ -98,6 +98,8 @@ import axios from '@/api/axiosSetup';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import FilterModal from '@/components/modal/FilterModal.vue';
 import PlaceCard from '@/components/card/PlaceCard.vue';
+import eventBus
+ from '@/utils/eventBus';
 // Haversine 거리 계산 함수 import
 // import { calculateDistance } from '@/utils/distance'; // (경로는 실제 파일 위치에 맞게 수정!)
 // 🟢 Pinia 스토어 관련 import 추가
@@ -249,7 +251,10 @@ const goToCurrentLocation = async () => {
     }
   } catch (error) {
     console.error("현위치 이동 실패:", error);
-    this.$alert("현위치를 가져올 수 없습니다. GPS가 켜져 있는지 확인해주세요.");
+    eventBus.emit('show-global-alert', {
+          message: '현위치를 가져올 수 없습니다. GPS가 켜져 있는지 확인해주세요..',
+          type: 'error'
+        });
   }
 };
 
@@ -350,7 +355,10 @@ const performSearch = async () => {
 
   } catch (error) {
     console.error("API 검색 중 오류 발생:", error.response ? error.response.data : error.message);
-    this.$alert("장소를 검색하는 중 오류가 발생했습니다. " + (error.message.includes("위치") ? "위치 정보를 확인해주세요." : ""));
+    eventBus.emit('show-global-alert', {
+          message: '장소를 검색하는 중 오류가 발생했습니다.' + (error.message.includes("위치") ? "위치 정보를 확인해주세요." : ""),
+          type: 'error'
+        });
     displayedItems.value = [];
   } finally {
     isSearching.value = false;
