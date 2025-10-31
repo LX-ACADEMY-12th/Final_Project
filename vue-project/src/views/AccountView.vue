@@ -1,7 +1,7 @@
 <template>
   <div id="account-settings" class="container px-4 py-4">
 
-     <div class="d-flex align-items-center justify-content-between pb-4 border-bottom">
+    <div class="d-flex align-items-center justify-content-between pb-4 border-bottom">
       <button class="btn p-0 me-3 border-0" @click="goBack">
         <i class="bi bi-arrow-left fs-4"></i>
       </button>
@@ -23,44 +23,42 @@
         </button>
       </div>
     </div>
-
-    <!-- @submit.prevent를 사용하여 폼 제출 시 페이지 새로고침 방지 -->
+    
     <form @submit.prevent="handleUpdate">
       <div class="form-group mb-3">
         <label for="login-id" class="form-label">로그인 아이디</label>
-        <!-- 아이디는 수정 불가능하게 설정 -->
-        <input type="text" class="form-control" id="login-id" v-model="user.loginId" disabled>
+        <input type="text" class="form-control" id="login-id" v-model="localUser.loginId" disabled>
       </div>
       <div class="form-group mb-3">
         <label for="username" class="form-label">사용자 이름</label>
-        <input type="text" class="form-control" id="username" placeholder="사용자 이름 입력" v-model="user.name">
+        <input type="text" class="form-control" id="username" placeholder="사용자 이름 입력" v-model="localUser.name">
       </div>
       <div class="form-group mb-3">
         <label for="email" class="form-label">이메일</label>
-        <input type="email" class="form-control" id="email" placeholder="이메일 입력" v-model="user.email">
+        <input type="email" class="form-control" id="email" placeholder="이메일 입력" v-model="localUser.email">
       </div>
       <div class="form-group mb-3">
         <label for="phone" class="form-label">휴대폰 번호</label>
-        <input type="tel" class="form-control" id="phone" placeholder="휴대폰 번호 입력" v-model="user.phoneNumber">
+        <input type="tel" class="form-control" id="phone" placeholder="휴대폰 번호 입력" v-model="localUser.phoneNumber">
       </div>
       <div class="form-group mb-3">
         <label class="form-label">성별</label>
         <div class="d-flex gap-3">
           <button type="button" class="btn w-100"
-            :class="user.gender === '남성' ? 'btn-gender-fill' : 'btn-gender-outline'" @click="selectGender('male')">
+            :class="localUser.gender === '남성' ? 'btn-gender-fill' : 'btn-gender-outline'" @click="selectGender('male')">
             남성
           </button>
           <button type="button" class="btn w-100"
-            :class="user.gender === '여성' ? 'btn-gender-fill' : 'btn-gender-outline'" @click="selectGender('female')">
+            :class="localUser.gender === '여성' ? 'btn-gender-fill' : 'btn-gender-outline'" @click="selectGender('female')">
             여성
           </button>
         </div>
       </div>
       <div class="form-group mb-3">
         <label for="region" class="form-label">지역</label> 
-        <input type="text" class="form-control" id="region" placeholder="지역 입력" v-model="user.region">
+        <input type="text" class="form-control" id="region" placeholder="지역 입력" v-model="localUser.region">
       </div>
-     
+      
       <div class="form-group mb-3">
         <label for="child-grade" class="form-label d-flex justify-content-between align-items-center">
           <span class="fw-medium">자녀정보 (학년)</span>
@@ -72,9 +70,9 @@
             class="btn dropdown-toggle w-100 dropup-btn" 
             data-bs-toggle="dropdown" 
             aria-expanded="false"
-            :class="{ 'btn-selected': user.childGrade }"
+            :class="{ 'btn-selected': localUser.childGrade }"
           >
-          {{ user.childGrade || '자녀 학년 선택' }}
+          {{ localUser.childGrade || '자녀 학년 선택' }}
           </button>
         
           <ul class="dropdown-menu w-100 custom-dropdown-menu">
@@ -83,7 +81,7 @@
                 class="dropdown-item" 
                 href="#" 
                 @click.prevent="selectChildGrade(grade)"
-                :class="{ 'active': user.childGrade === grade }"
+                :class="{ 'active': localUser.childGrade === grade }"
               >
                 {{ grade }}
               </a>
@@ -92,7 +90,6 @@
         </div>
       </div>
 
-      <!-- 폼 제출 버튼 -->
       <div class="mt-4 mb-4">
         <button type="submit" class="btn btn-primary w-100 py-3 fw-bold submit-btn">수정하기</button>
       </div>
@@ -102,157 +99,123 @@
 </template>
 
 <script>
-import axios from 'axios';
-import eventBus from '@/utils/eventBus';
-
-// API 기본 경로 설정 (MyPageView와 동일하게 설정)
-const API_BASE_URL = 'http://localhost:8080/api/user'; 
+// ❌ axios import 제거 (Pinia 액션 내에서 사용되도록 위임)
+// 🟢 Pinia 스토어 import는 유지
+import { useAuthStore } from '@/stores/authStore';
+import { storeToRefs } from 'pinia';
+// ❌ useRouter import 제거 (this.$router 사용)
 
 export default {
   name: 'AccountSettingsView',
+
+  // setup()은 그대로 유지
+  setup() {
+    const authStore = useAuthStore();
+    const { user, isLoggedIn } = storeToRefs(authStore);
+
+    return {
+      authStore,
+      user, 
+      isLoggedIn, 
+    };
+  },
+
+  // data()는 그대로 유지
   data() {
     return {
-      // ⭐ 사용자 정보를 저장할 객체 ⭐
-      user: {
+      localUser: {
         loginId: '',
         name: '',
         email: '',
         phoneNumber: '',
-        gender: '남성', // 기본값 설정
+        gender: '남성',
         region: '',
         childGrade: '',
-        // password는 보안상 여기서는 관리하지 않습니다.
       },
-
-    // ⭐ 드롭다운 항목 정의 ⭐
-    childGrades: ['초등 3학년', '초등 4학년', '초등 5학년', '초등 6학년']
+      childGrades: ['초등 3학년', '초등 4학년', '초등 5학년', '초등 6학년']
     };
   },
-  created() {
-    // 페이지가 생성될 때 사용자 정보를 불러와 폼을 채웁니다.
-    this.fetchUserInfo();
-  },
-  methods: {
-    // ⭐ 1. 사용자 정보 조회 및 폼 채우기 ⭐
-    async fetchUserInfo() {
-      const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
 
-      if (!token) {
-        eventBus.emit('show-global-alert', {
-          message: '로그인이 필요한 기능입니다.',
-          type: 'error'
-        });
-        this.$router.replace({ name: 'Login' }); // 로그인 페이지로 리다이렉션
+  created() {
+    this.initializeFormFromPinia();
+  },
+
+  methods: {
+
+    goBack() {
+      this.$router.back();
+    },
+
+    // ⭐ 1. Pinia의 user 정보를 localUser로 복사 및 로그인 확인 ⭐
+    initializeFormFromPinia() {
+      if (!this.isLoggedIn) {
+        alert('로그인이 필요합니다.');
+        this.$router.replace({ name: 'login' }); 
         return;
       }
 
-      try {
-        // GET /api/user/info API 호출
-        const response = await axios.get(`${API_BASE_URL}/info`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        // 응답받은 데이터를 user 객체에 바인딩
-        const userInfo = response.data;
-        this.user.loginId = userInfo.loginId || '';
-        this.user.name = userInfo.name || '';
-        this.user.email = userInfo.email || '';
-        this.user.phoneNumber = userInfo.phoneNumber || '';
-        // DB에 gender 값이 '남성' 또는 '여성'로 저장된다고 가정
-        this.user.gender = userInfo.gender || '남성'; 
-        this.user.region = userInfo.region || '';
-        this.user.childGrade = userInfo.childGrade || '';
-
-      console.log('사용자 정보 로드 성공:', userInfo);
-
-      } catch (error) {
-        console.error('사용자 정보 로드 실패:', error);
-        eventBus.emit('show-global-alert', {
-          message: '사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.',
-          type: 'error'
-        });
-        // 인증 실패 시 로그인 페이지로 이동
-        // // this.$router.replace({ name: 'Login' }); 
+      if (this.user) {
+        // Pinia user 데이터를 localUser로 복사 (이 부분이 중요)
+        this.localUser.loginId = this.user.loginId || '';
+        this.localUser.name = this.user.name || '';
+        this.localUser.email = this.user.email || '';
+        this.localUser.phoneNumber = this.user.phoneNumber || '';
+        this.localUser.gender = this.user.gender || '남성';
+        this.localUser.region = this.user.region || '';
+        this.localUser.childGrade = this.user.childGrade || '';
+      } else {
+        alert('사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.');
+        this.$router.replace({ name: 'login' });
       }
     },
 
     // ⭐ 2. 사용자 정보 업데이트 (수정하기 버튼 클릭 시) ⭐
     async handleUpdate() {
-      const token = localStorage.getItem('user-auth-token') || sessionStorage.getItem('user-auth-token');
-
-      if (!token) {
-        eventBus.emit('show-global-alert', {
-          message: '인증 토큰이 없습니다. 다시 로그인해주세요.',
-          type: 'error'
-        });
+      if (!this.isLoggedIn) {
+        alert('인증 토큰이 없습니다. 다시 로그인해주세요.');
+        this.$router.push({ name: 'login' });
         return;
       }
-      
-      // 백엔드에 보낼 데이터 (user 객체 전체)
+
+      // 🟢 [수정] 백엔드에 보낼 데이터는 localUser의 현재 값을 사용
       const updateData = {
-        name: this.user.name,
-        email: this.user.email,
-        phoneNumber: this.user.phoneNumber,
-        gender: this.user.gender,
-        region: this.user.region,
-        childGrade: this.user.childGrade,
-        // loginId는 헤더 토큰에서 추출되지만, 만약을 위해 포함 (백엔드에서 무시해도 됨)
-        loginId: this.user.loginId, 
+        name: this.localUser.name,
+        email: this.localUser.email,
+        phoneNumber: this.localUser.phoneNumber,
+        gender: this.localUser.gender,
+        region: this.localUser.region,
+        childGrade: this.localUser.childGrade,
+        loginId: this.localUser.loginId,
       };
 
       try {
-        // PUT /api/user/update API 호출
-        const response = await axios.put(`${API_BASE_URL}/update`, updateData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        // 🟢 Pinia 액션 호출 및 localUser 데이터를 전달
+        await this.authStore.updateUser(updateData);
 
-        // 수정 성공
-        if (response.status === 200) {
-          eventBus.emit('show-global-alert', {
-          message: response.data,
-          type: 'success'
-        });
-          // 마이페이지로 복귀하거나 현재 페이지 새로고침
-          this.goBack();  
-        }
+        alert('사용자 정보가 성공적으로 수정되었습니다.');
+        this.goBack();
+ 
       } catch (error) {
         console.error('정보 수정 실패:', error);
-        if (error.response && error.response.data) {
-          eventBus.emit('show-global-alert', {
-          message: `정보 수정 실패: ` + error.response.data,
-          type: 'error'
-        });
-        } else {
-          eventBus.emit('show-global-alert', {
-          message: '정보 수정 중 알 수 없는 오류가 발생했습니다.',
-          type: 'error'
-        });
-        }
-      }   
+        const errorMessage = error.response?.data?.message || error.response?.data || '정보 수정 중 알 수 없는 오류가 발생했습니다.';
+        alert(`정보 수정 실패: ${errorMessage}`);
+      } 
     },
 
     // ⭐ 1. 성별 선택 메서드 수정: 'male'/'female' 대신 '남성'/'여성' 저장 ⭐
     selectGender(gender) {
-      // 기존: this.user.gender = gender;
+      // 🟢 [수정] this.user 대신 this.localUser를 사용
       if (gender === 'male') {
-          this.user.gender = '남성'; // 'male' 대신 '남성' 저장
+        this.localUser.gender = '남성'; 
       } else if (gender === 'female') {
-          this.user.gender = '여성'; // 'female' 대신 '여성' 저장
+        this.localUser.gender = '여성'; 
       }
     },
 
     // ⭐ 자녀 학년 선택 메서드 추가 ⭐
     selectChildGrade(grade) {
-      this.user.childGrade = grade;
-    },
-
-    goBack() {
-      this.$router.back();
+      // 🟢 [수정] this.user 대신 this.localUser를 사용
+      this.localUser.childGrade = grade;
     },
   }
 }
