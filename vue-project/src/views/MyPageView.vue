@@ -118,14 +118,19 @@ export default {
     },
 
     // ⭐ 계정설정화면으로 이동하는 함수 (로그인 확인 로직 추가) ⭐
+    // ⭐️ [수정] 계정설정화면 (CustomConfirm 사용)
     goToAccountView() {
-      // this.user.loginId가 비어있다면, 로그인이 되지 않은 상태로 간주합니다.
       if (!this.isLoggedIn) {
-        // 1. 알림 메시지 띄우기
-        this.$alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
-        // 2. 로그인 페이지로 이동
-        this.$router.push({ name: 'login' });
-        return;
+        // 1. App.vue에 '확인창' 띄우기 요청
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          // 2. '확인' 눌렀을 때 실행할 함수 전달
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+          // '취소'를 누르면 onCancel이 null이므로 그냥 창만 닫힘
+        });
+        return; // 페이지 이동 방지
       }
       // 로그인이 되어 있다면, 계정설정 페이지로 이동
       this.$router.push({ name: 'AccountView' })
@@ -144,11 +149,29 @@ export default {
 
     // 관심 목록 페이지로 이동
     goToLikePlace() {
+      if (!this.isLoggedIn) {
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
+        return;
+      }
       this.$router.push({ name: 'LikePlace' })
     },
 
     // 저장된 추천 코스로 이동하는 함수
     goToUserLikeCouseList() {
+      if (!this.isLoggedIn) {
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
+        return;
+      }
       this.$router.push({ name: 'UserLikeCourseList' })
     },
 
@@ -176,9 +199,11 @@ export default {
 
       // 2. 🟢 로그인 상태 확인 (Pinia 스토어 사용)
       if (!this.isLoggedIn) {
-        eventBus.emit('show-global-alert', {
+        eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
-          type: 'error'
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
         });
         this.isSettingsModalOpen = false;
         this.$router.push({ name: 'login' });
@@ -191,9 +216,9 @@ export default {
         // 4. 응답 처리: HTTP 204 No Content (삭제 성공)
         if (response.status === 204) {
           eventBus.emit('show-global-alert', {
-          message: '회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다',
-          type: 'error'
-        });
+            message: '회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다',
+            type: 'error'
+          });
 
           // 🟢 5. 탈퇴 성공 후 로그아웃 처리 (Pinia 스토어)
           this.handleLogout();
@@ -203,14 +228,14 @@ export default {
         console.error('회원 탈퇴 실패:', error);
         if (error.response && error.response.data) {
           eventBus.emit('show-global-alert', {
-          message: '회원 탈퇴 실패: ' + error.response.data,
-          type: 'error'
-        });
+            message: '회원 탈퇴 실패: ' + error.response.data,
+            type: 'error'
+          });
         } else {
           eventBus.emit('show-global-alert', {
-          message: '회원 탈퇴 중 알 수 없는 오류가 발생했습니다.: ',
-          type: 'error'
-        });
+            message: '회원 탈퇴 중 알 수 없는 오류가 발생했습니다.: ',
+            type: 'error'
+          });
         }
         this.isSettingsModalOpen = false;
       }

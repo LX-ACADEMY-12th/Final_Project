@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -105,6 +107,25 @@ public class WishListController {
         List<WishListResponseDTO> myList = wishlistService.findMyWishlistByUserId(userId); // ⬅️ 헬퍼 메서드가 반환한 ID 사용
 
         return ResponseEntity.ok(myList);
+    }
+    
+    /**
+     * 4. 내가 찜한 여부 확인 api
+     */
+    @GetMapping("/{targetType}/{targetId}/status")
+    public ResponseEntity<?> checkWishlistStatus(@PathVariable String targetType, 
+    									@PathVariable Long targetId, Authentication authentication) {
+    	log.info("[API GET] /api/wishlist/my-list - 찜 목록 조회 요청 진입.");
+
+        // ⬅️ 헬퍼 메서드 호출
+        Long userId = getUserIdFromAuthentication(authentication);
+        if (userId == null) {
+        	return ResponseEntity.ok(Map.of("isWished", false));
+        }
+        boolean isWished = wishlistService.existsInWishlist(userId, targetType, targetId);
+        
+        // 4. 프론트엔드가 쓰기 편하게 JSON ({"isWished": true}) 으로 반환
+        return ResponseEntity.ok(Map.of("isWished", isWished));
     }
 
     /**

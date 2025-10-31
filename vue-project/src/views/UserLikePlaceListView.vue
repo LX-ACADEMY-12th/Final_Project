@@ -179,9 +179,13 @@ export default {
       // 로그인 상태 확인 (setup에서 반환된 isLoggedIn 사용)
       if (!this.isLoggedIn) {
         console.warn('로그인 상태가 아니므로 찜 목록을 로드하지 않습니다.');
-        this.$alert('로그인이 필요한 서비스입니다.');
-        this.$router.push({ name: 'login' }); // 로그인 페이지로 이동
-        return; // API 호출 중단
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
+        return;
       }
 
       this.isSearching = true;
