@@ -237,6 +237,7 @@ export default {
       }
     },
   },
+
   created() {
     // URL에서 탭 상태 로드 (기존 로직 유지)
     const tabFromQuery = this.$route.query.tab;
@@ -245,28 +246,6 @@ export default {
     } else {
       this.selectedTab = '전시';
     }
-   } catch (error) {
-    console.error("찜 목록 조회 중 오류 발생", error.response ? error.response.data : error.message);
-    eventBus.emit('show-global-alert', {
-          message: '찜 목록을 불러오는 중 오류가 발생했습니다.',
-          type: 'error'
-        });
-    this.allWishlistItems = [];
-    this.displayedItems = [];
-   } finally {
-    this.isSearching = false;
-   }
-  },
- },
- created() {
-  // URL에서 탭 상태 로드 (기존 로직 유지)
-  const tabFromQuery = this.$route.query.tab;
-  if (tabFromQuery === '답사') {
-   this.selectedTab = '답사';
-  } else {
-   this.selectedTab = '전시';
-  }
-
     // 컴포넌트 생성 시 (최초 로드 시) API 호출
     this.performSearch();
   }
