@@ -19,9 +19,12 @@
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :exhibitionInformation="exhibitionInformation" :exhibition="exhibition" :isPlace="false"
-            :target-id="currentId" :target-type="pageType" :current-user-id="currentUserId"
-            @review-posted="handleReviewPosted" @review-deleted="handleReviewDeleted"
+          <ContentDetailView :exhibitionInformation="exhibitionInformation" 
+            :exhibition="exhibition" :isPlace="false"
+            :target-id="currentId" 
+            :target-type="pageType"
+            @review-posted="handleReviewPosted" 
+            @review-deleted="handleReviewDeleted"
             :photo-review-count="exhibition.photoReviewCount" />
         </div>
         <!--코스추천-->
@@ -43,10 +46,13 @@
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :exhibitionInformation="placeInformation" :exhibition="place" :target-id="currentId"
-            :target-type="pageType" :current-user-id="tempCurrentUserId" :isPlace="true"
-            @review-posted="handleReviewPosted" @review-deleted="handleReviewDeleted"
-            :photo-review-count="place.photoReviewCount" />
+          <ContentDetailView :exhibitionInformation="placeInformation" 
+          :exhibition="place" :target-id="currentId"
+          :target-type="pageType"
+          :isPlace="true"
+          @review-posted="handleReviewPosted" 
+          @review-deleted="handleReviewDeleted"
+          :photo-review-count="place.photoReviewCount" />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -79,6 +85,8 @@ import CourseRecommend from './CourseRecommend.vue';
 // 🟢 [추가] Pinia 스토어 (로그인 상태 확인용)
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
+
+import eventBus from '@/utils/eventBus'; // 💡 [추가] 글로벌 알림용
 
 
 // API 베이스
@@ -352,13 +360,18 @@ export default {
         console.log('✅ [PlaceDetailsView] API 원본 응답 (exhibition dto):', dto);
 
         if (!dto || Object.keys(dto).length === 0) {
-          console.warn('전 데이터가 비어 있습니다.');
+          console.warn('전시 데이터가 비어 있습니다.');
           return;
         }
         this.mapExhibitionDTO(dto);
       } catch (error) {
-        console.error('전 상세 조회 실패:', error);
-        this.$alert('전 정보를 불러오지 못했습니다.');
+        console.error('전시 상세 조회 실패:', error);
+
+        
+        eventBus.emit('show-global-alert', {
+          message: '전시 정보를 불러오지 못했습니다.',
+          type: 'error'
+        });
       }
     },
     // 찜 기능 함수
@@ -402,7 +415,10 @@ export default {
             data: deleteRequestData
           });
           currentState = false;
-          this.$alert('찜 목록에서 삭제되었습니다.');
+          eventBus.emit('show-global-alert', {
+          message: '찜 목록에서 삭제되었습니다.',
+          type: 'success'
+        });
 
         } else {
           // 2. 찜 추가 (POST)
@@ -411,7 +427,10 @@ export default {
           // 요청 아이템
           JSON.stringify(console.log(postRequestData), null, 2);
           currentState = true;
-          this.$alert('찜 목록에 추가되었습니다.');
+          eventBus.emit('show-global-alert', {
+          message: '찜 목록에 추가되었습니다.',
+          type: 'success'
+        });
         }
         // 최종 상태 반영
         if (isExhibition) {
@@ -426,19 +445,49 @@ export default {
 
         // 409 Conflict 에러 처리 (자동 취소)
         if (status === 409) {
-          this.$alert('중복된 찜 항목입니다. 자동으로 취소합니다.');
-          // 찜 버튼을 누른 의도를 존중하여, UI를 '찜한 상태'로 강제 동기화합니다.
-          if (isExhibition) {
-            this.exhibition.isFavorite = true;
-          } else {
-            this.place.isFavorite = true;
+          eventBus.emit('show-global-alert', {
+          message: '중복된 찜 항목입니다. 자동으로 취소합니다.',
+          type: 'error'
+        });
+          try {
+            // DELETE 요청 재시도 (취소) - 🌟 [수정] data 속성 사용 🌟
+            await axios.delete(`${API_BASE}/api/wishlist`, {
+              data: requestData // 요청 본문에 데이터 포함
+            });
+            // 취소 성공: 상태를 false로 업데이트
+            if (isExhibition) {
+              this.exhibition.isFavorite = false;
+            } else {
+              this.place.isFavorite = false;
+            }
+            eventBus.emit('show-global-alert', {
+            message: '찜이 취소되었습니다.',
+            type: 'success'
+          });
+
+          } catch (deleteError) {
+            // DELETE 재시도 실패 시
+            console.error('409 후 찜 취소 실패:', deleteError);
+            eventBus.emit('show-global-alert', {
+            message: '찜 상태 동기화에 실패했습니다. (다음 클릭 시 취소됩니다.)',
+            type: 'error'
+          });
           }
-        } else if (status === 403 || status === 401) { // 401/403 (권한 없음)
-          this.$alert('찜하기 권한이 없습니다. 다시 로그인해 주세요.');
-          // (axiosSetup에서 401을 처리하겠지만, 403을 대비)
-        } else {
+        }
+        // 403 Forbidden 에러 처리 (권한 문제)
+        else if (status === 403) {
+          eventBus.emit('show-global-alert', {
+            message: '로그인이 필요하거나 권한이 없습니다.',
+            type: 'error'
+          });
+        }
+        // 그 외 에러 처리
+        else {
           console.error('찜 처리 중 에러 발생:', error);
-          this.$alert('찜 처리에 실패했습니다. 다시 시도해 주세요.');
+          eventBus.emit('show-global-alert', {
+            message: '찜 처리에 실패했습니다. 다시 시도해 주세요.',
+            type: 'error'
+          });
         }
       } finally {
         this.isLoading = false;
@@ -450,7 +499,10 @@ export default {
       console.log('💾 [PlaceDetailsView] 추천 코스 저장 시작...', items);
       // 🟢 로그인 상태 확인
       if (!this.isLoggedIn) {
-        alert('로그인이 필요한 기능입니다.');
+        eventBus.emit('show-global-alert', {
+          message: '로그인이 필요한 기능입니다.',
+          type: 'error'
+        });
         this.$router.push('/login'); // 로그인 페이지로 이동
         return;
       }
@@ -458,7 +510,10 @@ export default {
       if (!items || items.length === 0) {
         console.warn('저장할 추천 코스 아이템이 없습니다.');
         // this.primaryLoading = false;
-        this.$alert('저장할 코스 정보가 없습니다.'); // 사용자 알림
+        eventBus.emit('show-global-alert', {
+          message: '저장할 코스 정보가 없습니다.',
+          type: 'error'
+        });
         return;
       }
 
@@ -496,24 +551,39 @@ export default {
         // 3. 성공 처리
         if (response.status === 200) {
           console.log('✅ [PlaceDetailsView] 추천 코스 저장 성공!');
-          this.$alert('추천 코스가 "관심 코스"에 성공적으로 저장되었습니다.'); // 성공 메지
+          eventBus.emit('show-global-alert', {
+          message: '추천 코스가 "관심 코스"에 성공적으로 저장되었습니다.',
+          type: 'success'
+        }); // 성공 메지
           // TODO: (선택) 저장 후 사용자를 마이페이지나 다른 곳으로 이동킬 수 있습니다.
           // 예: this.$router.push('/mypage/likes');
         } else {
           // 200 외의 응답 처리 (필요)
           console.error('⚠️ [PlaceDetailsView] 추천 코스 저장 응답 오류:', response);
-          this.$alert(`코스 저장 중 문제가 발생했습니다: ${response.data?.message || response.statusText}`);
+          eventBus.emit('show-global-alert', {
+          message: `코스 저장 중 문제가 발생했습니다: ${response.data?.message || response.statusText}`,
+          type: 'error'
+        });
         }
 
       } catch (error) {
         // 4. 실패 처리
         // (401 오류는 axiosSetup.js가 자동으로 처리하므로, 여기서는 403, 500 등 다른 오류를 처리)
         console.error('💥 [PlaceDetailsView] 추천 코스 저장 API 호출 실패:', error);
-        this.$alert(`코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`);
+        eventBus.emit('show-global-alert', {
+          message: `코스 저장 중 문제가 발생했습니다: ${error.response?.data || error.message}`,
+          type: 'error'
+        });
         if (error.response?.status === 403) {
-          alert('접근 권한이 없습니다.');
+          eventBus.emit('show-global-alert', {
+          message: `접근 권한이 없습니다.`,
+          type: 'error'
+        });
         } else {
-          alert(`코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`);
+          eventBus.emit('show-global-alert', {
+          message: `코스 저장 중 문제가 발생했습니다: ${error.response?.data || error.message}`,
+          type: 'error'
+        });
         }
       } finally {
         // 5. 로딩 상태 해제
@@ -545,7 +615,10 @@ export default {
 
       } catch (error) {
         console.error('장소 상세 조회 실패:', error);
-        this.$alert('장소 정보를 불러오지 못했습니다.');
+        eventBus.emit('show-global-alert', {
+          message: '장소 정보를 불러오지 못했습니다.',
+          type: 'error'
+        });
       }
 
       // ★ 수정: API 호출 후 Mock 데이터를 덮어쓰면 안되므로 삭제

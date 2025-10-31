@@ -2,6 +2,9 @@ package com.example.demo.config;
 
 import com.example.demo.config.JwtAuthenticationFilter;
 import com.example.demo.config.JwtTokenProvider;
+
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -41,6 +44,22 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+                
+                // 💡 [추가] 인증/인가 예외 처리 핸들러 추가
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                    // 인증되지 않은 사용자가 보호된 리소스에 접근할 때 (401 Unauthorized)
+                    .authenticationEntryPoint((request, response, authException) -> {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+                        response.getWriter().write("Unauthenticated: 유효한 토큰이 필요합니다.");
+                    })
+                    // 인증되었으나 권한이 없는 사용자가 접근할 때 (403 Forbidden)
+                    .accessDeniedHandler((request, response, accessDeniedException) -> {
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403
+                        response.getWriter().write("Forbidden: 해당 리소스에 접근할 권한이 없습니다.");
+                    })
+                )
+
+                // 3. 🟢 요청별 접근 권한 설정
                 .authorizeHttpRequests(authz -> authz
                         // 1. User 컨트롤러 공개 API
                         .requestMatchers(

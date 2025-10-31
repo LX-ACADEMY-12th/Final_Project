@@ -26,6 +26,7 @@
 import axios from 'axios';
 import PhotoReviewHeader from '@/components/header/PhotoReviewHeader.vue';
 import PhotoModal from '@/components/modal/PhotoModal.vue';
+import eventBus from '@/utils/eventBus';
 
 const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
 
@@ -69,7 +70,10 @@ export default {
       this.fetchReviewPhotos();
     } else {
       console.error('targetId 또는 targetType이 props로 전달되지 않았습니다.');
-      this.$alert('잘못된 접근입니다.');
+      eventBus.emit('show-global-alert', {
+          message: '잘못된 접근입니다.',
+          type: 'error'
+        });
       this.isLoading = false;
     }
   },
@@ -97,7 +101,10 @@ export default {
 
       } catch (error) {
         console.error('후기 사진 전체 목록 조회 실패:', error);
-        this.$alert('사진을 불러오지 못했습니다.');
+        eventBus.emit('show-global-alert', {
+          message: '사진을 불러오지 못했습니다.',
+          type: 'error'
+        });
         this.photos = [];
       } finally {
         this.isLoading = false;
