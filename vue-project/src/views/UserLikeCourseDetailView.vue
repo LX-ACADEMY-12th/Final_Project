@@ -247,6 +247,7 @@ export default {
 
     // 변경사항 확인 메서드
     checkForChanges() {
+
       // 각 아이템의 고유 식별자 생성 (id 또는 커스텀 아이템의 경우 대체 식별자)
       const createItemIdentifier = (item) => {
         if (item.id) return item.id;
@@ -254,30 +255,14 @@ export default {
         return `custom_${item.title}_${item.place}_${item.lat}_${item.lng}`;
       };
 
-      // 현재 순서와 원본 순서 비교
-      const currentOrder = this.courseItems.map((item, index) => ({
-        identifier: createItemIdentifier(item),
-        position: index
-      }));
+      // ID의 순서만 비교하도록 단순화
+      const currentItemIds = this.courseItems.map(createItemIdentifier);
+      const originalItemIds = this.originalCourseItems.map(createItemIdentifier);
 
-      const originalOrder = this.originalCourseItems.map((item, index) => ({
-        identifier: createItemIdentifier(item),
-        position: index
-      }));
+      // 개수와 순서가 모두 일치하는지 한 번에 비교
+      const isDifferent = JSON.stringify(currentItemIds) !== JSON.stringify(originalItemIds);
 
-      // 순서 변경 확인
-      const orderChanged = JSON.stringify(currentOrder) !== JSON.stringify(originalOrder);
-
-      // 아이템 개수 변경 확인
-      const countChanged = this.courseItems.length !== this.originalCourseItems.length;
-
-      // 새로운 아이템 추가 확인
-      const currentIdentifiers = new Set(currentOrder.map(item => item.identifier));
-      const originalIdentifiers = new Set(originalOrder.map(item => item.identifier));
-      const hasNewItems = currentIdentifiers.size !== originalIdentifiers.size ||
-        ![...currentIdentifiers].every(id => originalIdentifiers.has(id));
-
-      this.hasChanges = orderChanged || countChanged || hasNewItems;
+      this.hasChanges = isDifferent;
 
       if (this.hasChanges) {
         this.reorderCourseItems();
@@ -408,9 +393,11 @@ export default {
     // 드래그 종료시 변경
     onDragChange() {
       console.log('드래그로 인해 v-model 변경됨. 번호 및 지도 갱신 시작.');
-      // 1. 변경사항 감지 및 번호 재정렬
+      // 1. [순서 변경] 번호를 무조건 다시 매깁니다.
+      this.reorderCourseItems();
+      // 2. [상태 변경] 원본과 비교하여 '저장' 버튼 활성화 여부 결정
       this.checkForChanges();
-      // 2. 지도 강제 리렌더링
+      // 3. [지도 변경] 지도 강제 리렌더링
       this.updateMapKey();
     },
 
@@ -418,8 +405,13 @@ export default {
     confirmDeleteItem() {
       console.log('삭제 확정, ID:', this.itemToDeleteId);
       this.courseItems = this.courseItems.filter(item => item.id !== this.itemToDeleteId);
+
+      // [순서 변경] 번호를 다시 매깁니다.
+      this.reorderCourseItems();
+      // [상태 변경] 원본과 비교
       this.checkForChanges();
-      this.updateMapKey(); // 추가
+
+      this.updateMapKey();
       this.closeDeleteModal();
     },
 
@@ -429,7 +421,6 @@ export default {
 
       const newItem = {
         id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 고유 ID 생성
-        number: this.courseItems.length + 1,
         color: '#3B82F6',
         imageUrl: place.imageUrl || 'https://placehold.co/600x400/AACCFF/000000',
         subject: place.subject || '미지정',
@@ -449,8 +440,12 @@ export default {
       };
 
       this.courseItems.push(newItem);
+      // [순서 변경] 번호를 다시 매깁니다.
+      this.reorderCourseItems();
+      // [상태 변경] 원본과 비교
       this.checkForChanges();
-      this.updateMapKey(); // 추가
+
+      this.updateMapKey();
       this.closeAddModal();
     }
   }
