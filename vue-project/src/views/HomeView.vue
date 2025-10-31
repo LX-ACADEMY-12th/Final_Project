@@ -6,7 +6,7 @@
       <div style="width: 24px; height: 24px;"></div>
       <h2 class="h5 mb-0 fw-bold">홈</h2>
       <button class="btn p-0 border-0 d-flex flex-column align-items-center"
-        style="font-size: 0.75rem; color: #4A7CEC;">
+        style="font-size: 0.75rem; color: #4A7CEC;" @click="goToAiTutor">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-robot"
           viewBox="0 0 16 16">
           <path
@@ -31,8 +31,8 @@
             </svg>
           </div>
           <div class="flex-grow-1">
-            <div class="fw-bold fs-5">안녕하세요</div>
-            <div class="fw-bold fs-5">{{ user?.name || '방문자' }}님!</div>
+            <div class="fw-bold fs-6">안녕하세요</div>
+            <div class="fw-bold fs-5">{{ user?.name || '방문자' }} 학부모님!</div>
           </div>
         </div>
       </div>
@@ -63,7 +63,18 @@
 
       <div class="p-3">
         <div class="rounded-3 shadow-sm" style="background-color: #8B5A2B; padding: 10px; border-radius: 12px;">
-          <div style="background-color: #2E4F2F; height: 180px; border-radius: 8px; position: relative;">
+          <div
+            style="background-color: #2E4F2F; min-height: 180px; border-radius: 8px; position: relative;"
+            class="p-3 chalkboard-text">
+
+            <div v-for="(semesterData, index) in chalkboardContent" :key="semesterData.semester" :class="{ 'mt-3': index > 0 }">
+              <h6 class="fw-bold chalkboard-heading">{{ semesterData.semester }}</h6>
+              <ul v-if="semesterData.units.length > 0" class="chalkboard-list">
+                <li v-for="unit in semesterData.units" :key="unit">{{ unit }}</li>
+              </ul>
+              <p v-else class="chalkboard-no-data">해당 학기에 연관된 단원이 없습니다.</p>
+            </div>
+
             <div class="position-absolute w-100"
               style="background-color: #D2B48C; height: 20px; bottom: -20px; left: 0; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
               <div class="position-absolute"
@@ -87,65 +98,9 @@
 
       <div class="mt-3" style="height: 450px;">
         <div style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; height: 100%;">
-          <div class="d-flex flex-row align-items-start" style="gap: 16px; height: 100%; padding: 0 16px;">
+          <div class="d-flex flex-row align-items-start px-3" style="gap: 16px; height: 100%;">
 
-            <div v-for="item in carouselItems" :key="item.id" class="border rounded-4 shadow-sm p-3"
-              style="flex-shrink: 0; width: 340px;">
-
-              <PlaceCard :item="item" @add="goToDetail(item)" />
-
-              <div class="mt-3">
-                <h6 class="fw-bold small ps-1 mb-2">방문자 후기</h6>
-                <div class="d-flex gap-3 px-1">
-                  <div class="flex-shrink: 0">
-                    <img src="https://placehold.co/48x48/e0e0e0/333?text=김" class="rounded-circle"
-                      style="width: 48px; height: 48px;">
-                  </div>
-                  <div class="flex-grow-1 min-w-0">
-                    <div class="fw-bold">김OO 학부모</div>
-                    <div class="text-secondary small mb-1">체험명</div>
-                    <div class="d-flex align-items-center mb-2" style="color: #FFC107;">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-star-fill" viewBox="0 0 16 16">
-                        <path
-                          d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-star-fill" viewBox="0 0 16 16">
-                        <path
-                          d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-star-fill" viewBox="0 0 16 16">
-                        <path
-                          d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#e0e0e0"
-                        class="bi bi-star-fill" viewBox="0 0 16 16">
-                        <path
-                          d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#e0e0e0"
-                        class="bi bi-star-fill" viewBox="0 0 16 16">
-                        <path
-                          d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-                      </svg>
-                    </div>
-                    <p class="text-truncate">"아이가 정말 좋아했어요!"</p>
-                  </div>
-                </div>
-                <div class="d-flex gap-2 mt-2 px-1">
-                  <div class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
-                    style="background-color: #e0e0e0; height: 80px; flex-basis: 0; flex-grow: 1;">사진1</div>
-                  <div class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
-                    style="background-color: #e0e0e0; height: 80px; flex-basis: 0; flex-grow: 1;">사진2</div>
-                  <div class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
-                    style="background-color: #e0e0e0; height: 80px; flex-basis: 0; flex-grow: 1;">사진3</div>
-                  <div class="rounded-3 d-flex align-items-center justify-content-center text-secondary fw-bold"
-                    style="background-color: #e0e0e0; height: 80px; flex-basis: 0; flex-grow: 1;">+24</div>
-                </div>
-              </div>
-            </div>
+            <PlaceReviewCard v-for="item in carouselItems" :key="item.id" :item="item" @add="goToDetail(item)" />
 
           </div>
         </div>
@@ -182,78 +137,139 @@
     <BottomNavbar :selectedNavItem="selectedNavItem" @navigate="handleNavigation" style="flex-shrink: 0;" />
 
     <FilterModal v-if="isModalOpen" :initialSubject="selectedSubject" :initialGrade="selectedGrade"
-      @close="isModalOpen = false" @complete="handleFilterComplete" />
+      @close="isModalOpen = false" @complete="handleFilterComplete" 
+      :showLocationOptions="false" />
 
   </div>
 </template>
 
 <script>
-//  1. 모든 import를 script 태그 최상단으로 이동합니다.
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-//  2. Pinia 스토어 관련 import 추가 (UserLikeCourse.vue와 동일)
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
 // 컴포넌트 임포트
 import FilterModal from '@/components/modal/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
-import PlaceCard from '@/components/card/PlaceCard.vue';
+import PlaceReviewCard from '@/components/card/PlaceReviewCard.vue'; 
 
-//  3. export default { ... } 구조를 사용합니다.
+
 export default {
-  //  4. 사용할 컴포넌트들을 등록합니다.
   components: {
     FilterModal,
     BottomNavbar,
-    PlaceCard
+    PlaceReviewCard 
   },
 
-  //  5. setup() 함수를 정의하여 변수/함수를 설정합니다. (UserLikeCourse.vue 방식)
   setup() {
-    // --- 1. Pinia 스토어 설정 ---
     const authStore = useAuthStore();
-    // 'user' 객체를 반응형으로 가져옵니다. (이름 표시에 필요)
     const { user } = storeToRefs(authStore);
 
-    // --- 2. 기존 <script setup>에 있던 변수/함수들을 모두 setup() 안으로 이동 ---
     const router = useRouter(); 
     const selectedTab = ref('전시'); 
     const isModalOpen = ref(false); 
     const selectedSubject = ref('물리'); 
-    const selectedGrade = ref('초등학생'); 
+    const selectedGrade = ref('초등 3학년'); // [수정] '초등학생' -> '초등 3학년'
     const selectedNavItem = ref('홈'); 
 
-    const carouselItems = ref([
-      {
-        id: 1,
-        subject: '지구',
-        grade: '초등 3학년',
-        place: '장소명',
-        type: '전시',
-        title: '전시명',
+    const curriculumData = {
+      '초등 3학년': {
+        '1학기': {
+          '물리': ['힘과 우리 생활'],
+          '화학': [],
+          '생명': ['동물의 생활', '식물의 생활', '생물의 한살이'],
+          '지구': []
+        },
+        '2학기': {
+          '물리': ['소리의 성질'],
+          '화학': ['물질의 성질'],
+          '생명': [],
+          '지구': ['지구와 바다']
+        }
       },
-      {
-        id: 2,
-        subject: '물리',
-        grade: '초등 5학년',
-        place: '서울천문대',
-        type: '탐험',
-        title: '천문대탐험'
+      '초등 4학년': {
+        '1학기': {
+          '물리': ['자석의 이용'],
+          '화학': ['물의 상태 변화'],
+          '생명': ['다양한 생물과 우리 생활'],
+          '지구': ['땅의 변화']
+        },
+        '2학기': {
+          '물리': [],
+          '화학': ['기체의 성질'],
+          '생명': ['생물과 환경'],
+          '지구': ['밤하늘 관찰', '기후변화와 우리 생활'] 
+        }
       },
-      {
-        id: 3,
-        subject: '화학',
-        grade: '초등 4학년',
-        place: '한천강지질공원',
-        type: '탐험',
-        title: '지질탐험'
+      '초등 5학년': {
+        '1학기': {
+          '물리': ['빛의 성질'],
+          '화학': ['용해와 용액'],
+          '생명': ['우리 몸의 구조의 기능'],
+          '지구': ['지층과 화석']
+        },
+        '2학기': {
+          '물리': ['열과 우리 생활', '자원과 에너지'], 
+          '화학': ['혼합물의 분리'],
+          '생명': [],
+          '지구': ['날씨와 우리 생활']
+        }
+      },
+      '초등 6학년': {
+        '1학기': {
+          '물리': ['물체의 운동'],
+          '화학': ['산과 염기'],
+          '생명': ['식물의 구조와 기능'],
+          '지구': ['지구의 운동']
+        },
+        '2학기': {
+          '물리': ['전기의 이용'],
+          '화학': ['물질의 변화'],
+          '생명': [],
+          '지구': ['계절의 변화']
+        }
       }
+    };
+
+    const carouselItems = ref([
+      { id: 1, subject: '지구', grade: '초등 3학년', place: '장소명', type: '전시', title: '전시명', },
+      { id: 2, subject: '물리', grade: '초등 5학년', place: '서울천문대', type: '탐험', title: '천문대탐험' },
+      { id: 3, subject: '화학', grade: '초등 4학년', place: '한천강지질공원', type: '탐험', title: '지질탐험' }
     ]);
+
+    const chalkboardContent = computed(() => {
+      let gradeKey = selectedGrade.value;
+      // [수정] '초등학생'일 경우 '초등 3학년'으로 처리하는 로직 유지
+      if (!['초등 3학년', '초등 4학년', '초등 5학년', '초등 6학년'].includes(gradeKey)) {
+        gradeKey = '초등 3학년'; 
+      }
+
+      const subjectKey = selectedSubject.value; 
+
+      const gradeData = curriculumData[gradeKey];
+      if (!gradeData) {
+        return [ { semester: '데이터 없음', units: [] } ];
+      }
+
+      const semester1Units = gradeData['1학기'][subjectKey] || [];
+      const semester2Units = gradeData['2학기'][subjectKey] || [];
+
+      return [
+        {
+          semester: `${gradeKey} 1학기 - ${subjectKey}`,
+          units: semester1Units
+        },
+        {
+          semester: `${gradeKey} 2학기 - ${subjectKey}`,
+          units: semester2Units
+        }
+      ];
+    });
 
     const goToDetail = (item) => {
       console.log(`상세 페이지로 이동:`, item.title);
-      router.push('/placedetail')
+      router.push('/place/:id')
     }
 
     const handleFilterComplete = (filterData) => {
@@ -280,9 +296,12 @@ export default {
       }
     }
 
-    //  6. 템플릿(HTML)에서 사용할 모든 변수와 함수를 return 합니다.
+    const goToAiTutor = () => {
+      router.push('/aitutor');
+    }
+
     return {
-      user, // Pinia 스토어에서 가져온 user 정보
+      user,
       selectedTab,
       isModalOpen,
       selectedSubject,
@@ -291,21 +310,19 @@ export default {
       carouselItems,
       goToDetail,
       handleFilterComplete,
-      handleNavigation
+      handleNavigation,
+      goToAiTutor,
+      chalkboardContent 
     };
   }
 }
 </script>
 
 <style scoped>
-/* (style 태그 내용은 원본과 동일합니다) */
-
-/* 폰트 스타일 */
+/* (기존 스타일 ... ) */
 [style*="font-family: 'SUIT'"] {
   font-family: 'SUIT', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
-
-/* 전시/탐험 버튼 스타일 */
 .spec-button {
   display: flex;
   flex-direction: row;
@@ -323,27 +340,53 @@ export default {
   font-family: 'SUIT', sans-serif;
   font-weight: 500;
 }
-
-/* 활성화된 버튼 스타일 */
 .spec-button.active {
   background: #4A7CEC;
   color: white;
   border: none;
   font-weight: 700;
 }
-
-/* 가로 스크롤바 숨기기 */
-[style*="overflow-x: auto"]::-webkit-scrollbar {
-  display: none;
-}
-
-[style*="overflow-x: auto"] {
-  -ms-overflow-style: none;
+.flex-grow-1[style*="overflow-y: auto"] {
   scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+[style*="overflow-x: auto"] {
+  box-sizing: border-box;
 }
 
-/* 카드 + 후기 묶음 배경색 */
-.border.rounded-4.shadow-sm.p-3 {
-  background-color: var(--bs-body-bg, #fff);
+/* --- [수정] 칠판 텍스트 스타일 --- */
+.chalkboard-text {
+  color: #f0f0f0; 
+}
+.chalkboard-heading {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700; 
+}
+.chalkboard-list {
+  list-style-type: none;
+  padding-left: 1.25rem; 
+  font-size: 0.9rem;
+}
+.chalkboard-list li {
+  position: relative;
+  margin-bottom: 0.35rem; 
+  color: #ffffff; 
+}
+.chalkboard-list li::before {
+  content: '';
+  position: absolute;
+  left: -1.25rem; 
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  background-color: #ffffff; 
+  border-radius: 50%;
+}
+.chalkboard-no-data {
+  font-size: 0.9rem;
+  color: #888;
+  padding-left: 1.25rem;
 }
 </style>
