@@ -1,10 +1,10 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click.self="close">
+  <div v-if="show" class="modal-overlay" @click.self="close" style="font-family: 'SUIT', sans-serif">
     <div class="modal-content">
-      <p>정말 삭제하시겠습니까?</p>
+      <p>리뷰를 삭제하시겠습니까?</p>
       <div class="button-group">
-        <button class="btn btn-confirm" @click="confirm">예</button>
-        <button class="btn btn-cancel" @click="close">아니요</button>
+        <button class="btn btn-cancel" @click="close">취소</button>
+        <button class="btn btn-confirm" @click="confirm">리뷰 삭제</button>
       </div>
     </div>
   </div>
@@ -48,6 +48,7 @@ export default {
 
 /* 모달 본문 (흰색 박스) */
 .modal-content {
+  
   background: white;
   padding: 24px;
   border-radius: 16px;
@@ -60,11 +61,13 @@ export default {
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 20px 0;
+  padding-bottom: 16px;
+  border-bottom: 0.2px solid rgba(0, 0, 0, 0.15);
 }
 
 .button-group {
   display: flex;
-  flex-direction: column;
+  /*flex-direction: column;*/
   gap: 10px;
 }
 
@@ -76,21 +79,35 @@ export default {
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
+  /*부드러운 색상 전환 효과*/
+  transition: background-color 0.2s, color 0.2s; 
 }
 
-/* '예' 버튼 (이미지 참고) */
+/* '리뷰 삭제' 버튼 (이미지 참고) */
 .btn-confirm {
-  background-color: #5887FF;
+  background-color: white;
+  /* (조정 필요) */
+  color: #cc0000;
+  border: 1px solid;
+}
+
+/** '예' 버튼 호버 시 (아웃라인) */
+.btn-confirm:hover {
   /* (조정 필요) */
   color: white;
+  background-color: #cc0000;
 }
 
-/* '아니요' 버튼 (이미지 참고) */
+/* '아니요' 버튼 */
 .btn-cancel {
-  background-color: white;
   color: #5887FF;
-  /* (조정 필요) */
+  background-color: white;
   border: 1px solid #5887FF;
-  /* (조정 필요) */
+}
+
+/* '아니요' 버튼 호버 시 */
+.btn-cancel:hover {
+  background-color: #5887FF;
+  color: white;
 }
 </style>
