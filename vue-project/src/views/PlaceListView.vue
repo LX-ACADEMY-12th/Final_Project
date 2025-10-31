@@ -51,6 +51,7 @@
 import PlaceCard2 from '@/components/card/PlaceCard2.vue';
 import FilterModal from '@/components/modal/FilterModal.vue';
 import axios from 'axios';
+import eventBus from '@/utils/eventBus';
 
 export default {
   name: 'PlaceList',
@@ -170,7 +171,10 @@ export default {
         }
       } catch (error) {
         console.error("API 검색 중 오류 발생", error.response ? error.response.data : error.message);
-        this.$alert("장소를 검색하는 중 오류가 발생했습니다.");
+        eventBus.emit('show-global-alert', {
+          message: '장소를 검색하는 중 오류가 발생했습니다.',
+          type: 'error'
+        });
         this.displayedItems = [];
       } finally {
         this.isSearching = false;

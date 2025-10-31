@@ -77,6 +77,7 @@ public class JwtTokenProvider {
 
     // 5. 토큰에서 userId 추출
     public String getUserIdFromToken(String token) {
+
         return Jwts.parser()
                 .verifyWith(key)
                 .build()
@@ -89,7 +90,7 @@ public class JwtTokenProvider {
     // Spring Security가 이 객체를 사용하여 사용자를 인증합니다.
     public Authentication getAuthentication(String token) {
         String userId = getUserIdFromToken(token);
-
+        System.out.println("[JwtTokenProvider] getAuthentication: 토큰에서 추출한 subject(userId): " + userId);
         // (간단한 구현) UserDetails 객체를 임시로 생성 (DB 연동 X)
         // 실제로는 userId로 UserService에서 UserDetails를 조회해야 합니다.
         // 여기서는 userId를 principal로, 빈 권한 목록을 사용합니다.

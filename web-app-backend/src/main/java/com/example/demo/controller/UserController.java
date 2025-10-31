@@ -139,9 +139,6 @@ public class UserController {
         }
     }
 
-    // 🔴 [삭제] 모의 토큰 파서 삭제
-    // private String parseLoginIdFromToken(String token) { ... }
-
     // 🟢 [추가] Authentication 객체에서 'Long userId'를 추출하는 헬퍼 메서드
     private Long getUserIdFromAuthentication(Authentication authentication) {
         if (authentication == null) {

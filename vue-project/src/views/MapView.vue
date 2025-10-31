@@ -98,10 +98,10 @@ import axios from '@/api/axiosSetup';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import FilterModal from '@/components/modal/FilterModal.vue';
 import PlaceCard from '@/components/card/PlaceCard.vue';
-// Haversine 거리 계산 함수 import
-// import { calculateDistance } from '@/utils/distance'; // (경로는 실제 파일 위치에 맞게 수정!)
+import eventBus
+  from '@/utils/eventBus';
 // 🟢 Pinia 스토어 관련 import 추가
-import { useAuthStore } from '@/stores/authStore'; 
+import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
 const router = useRouter();
@@ -121,12 +121,12 @@ const currentLocationMarker = ref(null);
 
 // 🟢 [추가] user 상태에 따라 화면에 표시할 이름을 계산하는 computed 속성
 const userName = computed(() => {
-    // user.value에 정보가 있고 name이 있다면 'OOO 학부모님' 형식으로 반환
-    if (user.value?.name) {
-        return `${user.value.name} 학부모님`;
-    }
-    // user 정보가 없으면 기본 메시지 반환
-    return '로그인 필요';
+  // user.value에 정보가 있고 name이 있다면 'OOO 학부모님' 형식으로 반환
+  if (user.value?.name) {
+    return `${user.value.name} 학부모님`;
+  }
+  // user 정보가 없으면 기본 메시지 반환
+  return '로그인 필요';
 });
 
 // --- 필터 및 검색 상태 ---
@@ -249,7 +249,10 @@ const goToCurrentLocation = async () => {
     }
   } catch (error) {
     console.error("현위치 이동 실패:", error);
-    this.$alert("현위치를 가져올 수 없습니다. GPS가 켜져 있는지 확인해주세요.");
+    eventBus.emit('show-global-alert', {
+      message: '현위치를 가져올 수 없습니다. GPS가 켜져 있는지 확인해주세요..',
+      type: 'error'
+    });
   }
 };
 
@@ -336,7 +339,7 @@ const performSearch = async () => {
 
     // 2. API 호출 (axios 사용)
     //    (URL은 실제 백엔드 엔드포인트로 변경해야 함)
-    const response = await axios.get('http://localhost:8080/api/places/search', { params });
+    const response = await axios.get('/api/places/search', { params });
 
     // 3. 결과 처리
     if (response.data && Array.isArray(response.data)) {
@@ -350,7 +353,10 @@ const performSearch = async () => {
 
   } catch (error) {
     console.error("API 검색 중 오류 발생:", error.response ? error.response.data : error.message);
-    this.$alert("장소를 검색하는 중 오류가 발생했습니다. " + (error.message.includes("위치") ? "위치 정보를 확인해주세요." : ""));
+    eventBus.emit('show-global-alert', {
+      message: '장소를 검색하는 중 오류가 발생했습니다.' + (error.message.includes("위치") ? "위치 정보를 확인해주세요." : ""),
+      type: 'error'
+    });
     displayedItems.value = [];
   } finally {
     isSearching.value = false;
@@ -360,7 +366,7 @@ const performSearch = async () => {
 
 // --- 맵 초기화 시 첫 검색 실행 ---
 onMounted(async () => {
-   
+
   if (window.kakao && window.kakao.maps) {
     const options = {
       center: new window.kakao.maps.LatLng(37.566826, 126.9786567),

@@ -20,13 +20,21 @@ import org.springframework.web.multipart.MultipartFile;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import com.example.demo.dto.PageResponseDTO;
 import com.example.demo.dto.PhotoThumbDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
 import com.example.demo.dto.ReviewResponseDTO;
+import com.example.demo.mapper.AiCourseMapper;
+import com.example.demo.mapper.FinalScheduleMapper;
 import com.example.demo.mapper.ReviewMapper;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ReviewService {
 
     @Autowired
@@ -39,12 +47,10 @@ public class ReviewService {
     @Value("${gcs.bucket-name}") // (application-dev.properties에 gcs.bucket-name=science_book 설정 필요)
     private String bucketName;
 
-    /**
-     * 리뷰 생성
-     */
+    // 리뷰 추가
     @Transactional
     public void createReview(ReviewCreatedDTO dto, Long userId, List<MultipartFile> files) {
-
+    	log.info("[TX] 리뷰 추가 트랜잭션 시작 - userId: {}", userId);
         reviewMapper.insertReview(dto, userId);
 
         Long generatedReviewId = dto.getReviewId();
@@ -87,105 +93,7 @@ public class ReviewService {
         reviewMapper.recomputeTargetStats(dto.getTargetId(), dto.getTargetType());
     }
 
-
-    /**
-     * 리뷰 목록 조회
-     */
-    public PageResponseDTO<ReviewResponseDTO> getfindTargetReview(
-            Long targetId, String targetType, int page, int size) {
-
-        long totalElements = reviewMapper.countReviewsByTarget(targetId, targetType);
-        int totalPages = (totalElements == 0) ? 1 : (int) Math.ceil((double) totalElements / size);
-        int offset = (page - 1) * size;
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("targetId", targetId);
-        params.put("targetType", targetType);
-        params.put("size", size);
-        params.put("offset", offset);
-
-        List<ReviewResponseDTO> reviews = reviewMapper.findReviewsByTarget(params);
-
-        if (!reviews.isEmpty()) {
-            List<Long> ids = reviews.stream().map(ReviewResponseDTO::getReviewId).toList();
-            List<Map<String, Object>> rows = reviewMapper.findPhotosByReviewIds(ids);
-
-            Map<Long, List<String>> photosByReview = new HashMap<>();
-            for (Map<String, Object> r : rows) {
-                Long rid = ((Number) r.get("review_id")).longValue();
-
-                // 🔴 [수정] DB에서 가져온 값은 이제 GCS 객체 이름(objectName)입니다.
-                String objectName = (String) r.get("photo_url");
-
-                // 🟢 [추가] 객체 이름을 Signed URL로 변환합니다.
-                String signedUrl = generateSignedUrl(objectName);
-
-                if (signedUrl != null) {
-                    photosByReview.computeIfAbsent(rid, k -> new ArrayList<>()).add(signedUrl);
-                }
-            }
-
-            for (ReviewResponseDTO dto : reviews) {
-                dto.setPhotoUrls(photosByReview.getOrDefault(dto.getReviewId(), List.of()));
-            }
-        }
-
-        return new PageResponseDTO<>(
-                reviews, totalPages, totalElements, page, size
-        );
-	}
-	
-	// 리뷰 후기 아래 사진들
- 	public List<PhotoThumbDTO> findPhotoThumbnailsByTarget(String targetType, Long targetId, int limit) {
- 	    // 1. ⭐️ 매퍼에서 DTO 목록 (url 필드에 blobName이 담겨 있음)을 가져옵니다.
- 	    List<PhotoThumbDTO> thumbs = reviewMapper.findPhotoThumbnailsByTarget(targetType, targetId, limit);
- 	
- 	    // 2. ⭐️ 각 DTO의 blobName을 Signed URL로 변환합니다.
-         //    (findAllPhotosByTarget 메서드에서 하던 것과 동일한 작업입니다)
- 	    for (PhotoThumbDTO thumb : thumbs) {
- 	        String blobName = thumb.getUrl(); // (예: "reviews/ba8cd8ae-...")
- 	        String signedUrl = generateSignedUrl(blobName); // (예: "https://storage.googleapis.com/...")
- 	        
-             // ⭐️ DTO의 URL을 Signed URL로 덮어씁니다.
-             thumb.setUrl(signedUrl); 
- 	    }
- 	
- 	    // 3. ⭐️ Signed URL이 적용된 목록을 반환합니다.
- 	    return thumbs;
- 	}
-	
-	
-	// 리뷰에 좋아요 누른 아이디..
-	public List<Long> findLikedReviewIds(Long targetId, String targetType, Long viewerUserId) {
-        java.util.Map<String, Object> params = new java.util.HashMap<>();
-        params.put("targetId", targetId);
-        params.put("targetType", targetType);
-        params.put("viewerUserId", viewerUserId);
-        return reviewMapper.findLikedReviewIdsByTargetAndUser(params);
-    }
-
-    // 리뷰 좋아요 추가
-    @Transactional
-    public void addLike(Long reviewId, Long userId) {
-        int likeCount = reviewMapper.existsReviewLike(reviewId, userId);
-        if(likeCount == 0) {
-            reviewMapper.insertReviewLike(reviewId, userId);
-            reviewMapper.updateReviewLikeCount(reviewId, 1);
-        }
-    }
-
-    // 리뷰 좋아요 삭제
-    @Transactional
-    public void deleteLike(Long reviewId, Long userId) {
-        int affectedRows = reviewMapper.deleteReviewLike(reviewId, userId);
-        if (affectedRows > 0) {
-            reviewMapper.updateReviewLikeCount(reviewId, -1);
-        }
-    }
-
-    /**
-     * 리뷰 수정
-     */
+    // 리뷰 수정
     @Transactional
     public void updateReview(Long reviewId, Long userId, ReviewCreatedDTO dto, List<MultipartFile> files) {
 
@@ -283,6 +191,99 @@ public class ReviewService {
         reviewMapper.recomputeTargetStats(targetId, type);
     }
 
+    // 리뷰 목록 조회
+    public PageResponseDTO<ReviewResponseDTO> getfindTargetReview(
+            Long targetId, String targetType, int page, int size) {
+
+        long totalElements = reviewMapper.countReviewsByTarget(targetId, targetType);
+        int totalPages = (totalElements == 0) ? 1 : (int) Math.ceil((double) totalElements / size);
+        int offset = (page - 1) * size;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("targetId", targetId);
+        params.put("targetType", targetType);
+        params.put("size", size);
+        params.put("offset", offset);
+
+        List<ReviewResponseDTO> reviews = reviewMapper.findReviewsByTarget(params);
+
+        if (!reviews.isEmpty()) {
+            List<Long> ids = reviews.stream().map(ReviewResponseDTO::getReviewId).toList();
+            List<Map<String, Object>> rows = reviewMapper.findPhotosByReviewIds(ids);
+
+            Map<Long, List<String>> photosByReview = new HashMap<>();
+            for (Map<String, Object> r : rows) {
+                Long rid = ((Number) r.get("review_id")).longValue();
+
+                // 🔴 [수정] DB에서 가져온 값은 이제 GCS 객체 이름(objectName)입니다.
+                String objectName = (String) r.get("photo_url");
+
+                // 🟢 [추가] 객체 이름을 Signed URL로 변환합니다.
+                String signedUrl = generateSignedUrl(objectName);
+
+                if (signedUrl != null) {
+                    photosByReview.computeIfAbsent(rid, k -> new ArrayList<>()).add(signedUrl);
+                }
+            }
+
+            for (ReviewResponseDTO dto : reviews) {
+                dto.setPhotoUrls(photosByReview.getOrDefault(dto.getReviewId(), List.of()));
+            }
+        }
+
+        return new PageResponseDTO<>(
+                reviews, totalPages, totalElements, page, size
+        );
+	}
+	
+	// 리뷰 후기 아래 사진들 조회
+ 	public List<PhotoThumbDTO> findPhotoThumbnailsByTarget(String targetType, Long targetId, int limit) {
+ 	    // 1. ⭐️ 매퍼에서 DTO 목록 (url 필드에 blobName이 담겨 있음)을 가져옵니다.
+ 	    List<PhotoThumbDTO> thumbs = reviewMapper.findPhotoThumbnailsByTarget(targetType, targetId, limit);
+ 	
+ 	    // 2. ⭐️ 각 DTO의 blobName을 Signed URL로 변환합니다.
+         //    (findAllPhotosByTarget 메서드에서 하던 것과 동일한 작업입니다)
+ 	    for (PhotoThumbDTO thumb : thumbs) {
+ 	        String blobName = thumb.getUrl(); // (예: "reviews/ba8cd8ae-...")
+ 	        String signedUrl = generateSignedUrl(blobName); // (예: "https://storage.googleapis.com/...")
+ 	        
+             // ⭐️ DTO의 URL을 Signed URL로 덮어씁니다.
+             thumb.setUrl(signedUrl); 
+ 	    }
+ 	
+ 	    // 3. ⭐️ Signed URL이 적용된 목록을 반환합니다.
+ 	    return thumbs;
+ 	}
+	
+ 	
+ 	
+ 	//
+ 	public List<Long> findLikedReviewIdsByTargetAndUser(String targetType, Long targetId, Long userId) {
+ 	    return reviewMapper.findLikedReviewIdsByTargetAndUser(targetType, targetId, userId);
+ 	}
+
+
+    // 리뷰 좋아요 추가
+    @Transactional
+    public void addLike(Long reviewId, Long userId) {
+        int likeCount = reviewMapper.existsReviewLike(reviewId, userId);
+        
+        if(likeCount == 0) {
+            reviewMapper.insertReviewLike(reviewId, userId);
+            reviewMapper.updateReviewLikeCount(reviewId, 1);
+        }
+    }
+
+    // 리뷰 좋아요 삭제
+    @Transactional
+    public void deleteLike(Long reviewId, Long userId) {
+        int affectedRows = reviewMapper.deleteReviewLike(reviewId, userId);
+        if (affectedRows > 0) {
+            reviewMapper.updateReviewLikeCount(reviewId, -1);
+        }
+    }
+
+   
     // 신고 추가 + 임계치 도달 시에만 조건부 삭제
     @Transactional(rollbackFor = Exception.class)
     public void insertReviewReport(Long reviewId, Long userId) {

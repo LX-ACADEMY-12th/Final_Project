@@ -116,11 +116,11 @@ export default {
 
           console.log('로그인 성공. Pinia authStore 상태:', authStore.$state);
 
-          // 메인 페이지('/home' 또는 '/')로 이동
-          this.$router.replace('/');
+          // 메인 페이지('/home' )로 이동
+          this.$router.replace('/home');
         }
       } catch (error) {
-        // 5. 에러 처리 (실패: HTTP 401 Unauthorized 등)
+        // 에러 처리 (실패: HTTP 401 Unauthorized 등)
         console.error('로그인 요청 실패:', error);
 
         // 백엔드에서 보낸 에러 메시지(401)를 출력합니다.
