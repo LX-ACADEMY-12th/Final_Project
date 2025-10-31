@@ -13,7 +13,8 @@
       <div class="card-body">
         <!-- 장소 이미지 -->
         <div class="card-image">
-          <img :src="item.imageUrl" alt="장소 이미지" />
+          <!-- 🔴 추가: 이미지 로딩 상태 확인 -->
+          <img :src="item.imageUrl" alt="장소 이미지" @load="onImageLoaded" @error="onImageError" />
         </div>
         <!-- 카드 텍스트 -->
         <div class="card-text">
@@ -26,7 +27,7 @@
             <!-- 과학영역 태그 -->
             <PillTag :text="item.subject" type="subject" />
             <!-- 학년 태그 -->
-            <PillTag :text="item.grade.replace('초등 ', '')" type="grade" />
+            <PillTag :text="(item.grade || '').replace('초등 ', '')" type="grade" />
           </div>
           <!-- 중분류 태그 영역-->
           <div class="d-flex gap-1">
@@ -78,7 +79,15 @@ export default {
     onDelete() {
       this.$emit('delete', this.item.id);
     },
-    // [추가] 마커 SVG 이미지 생성 함수
+    // 🔴 추가: 이미지 로드 완료
+    onImageLoaded() {
+      console.log(`✅ 이미지 로드 완료 (${this.item.number}번 - ${this.item.title})`);
+    },
+    // 🔴 추가: 이미지 로드 실패
+    onImageError() {
+      console.error(`❌ 이미지 로드 실패 (${this.item.number}번 - ${this.item.title}): ${this.item.imageUrl}`);
+    },
+
     createMarkerSvg(number, color) {
       const svg = `
         <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
