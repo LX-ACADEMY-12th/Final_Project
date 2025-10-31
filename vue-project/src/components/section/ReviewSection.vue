@@ -235,14 +235,16 @@ export default {
     onClickWriteReview() {
       if (!this.currentUserId) {
       // 💡 [수정] 로그인 체크
-      eventBus.emit('show-global-alert', {
-          message: '로그인이 필요한 기능입니다.',
-          type: 'error'
-        });
-      setTimeout(() => {
-      // ⭐️ 5초 뒤 /login 페이지로 이동
-      router.push('/login'); 
-      }, 1000); 
+
+      eventBus.emit('show-global-confirm', {
+        message: '로그인이 필요한 서비스입니다',
+        // 2. '확인' 눌렀을 때 실행할 함수 전달
+        onConfirm: () => {
+          this.$router.push({ name: 'login' });
+        }
+        // '취소'를 누르면 onCancel이 null이므로 그냥 창만 닫힘
+      });
+          return; // 페이지 이동 방지
       } else {
       // 로그인이 됐으면 기존 '리뷰 작성 모달' 요청
       this.$emit('show-modal');
@@ -377,13 +379,20 @@ export default {
     async reportReview(reviewId) {
       // 💡 [추가] 로그인 체크
       if (!this.currentUserId) {
-        eventBus.emit('show-global-alert', {
+        eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
-          type: 'error'
+          // '확인' 눌렀을 때 실행할 함수 전달
+          onConfirm: () => {
+            // ⭐️ router.push('/login');
+            //    만약 router 객체를 setup에서 가져오지 않았다면,
+            //    this.$router.push({ name: 'login' }); 를 사용해야 합니다.
+            //    (Vue 3 <script setup> 에서는 useRouter()를, 
+            //     Options API에서는 this.$router를 사용합니다.)
+            
+            //    우선 this.$router로 가정하겠습니다.
+            this.$router.push({ name: 'login' });
+          }
         });
-        setTimeout(() => {
-          router.push('/login');
-        },1000);
         return; // 함수 즉시 종료
       }
 
@@ -461,14 +470,13 @@ export default {
 
       // 💡 [추가] 로그인 체크
       if (!this.currentUserId) {
-        eventBus.emit('show-global-alert', {
+        eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
-          type: 'error'
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
         });
-        setTimeout(() => {
-          router.push('/login');
-        },1000);
-        return; // 함수 즉시 종료
+        return;
       }
 
       const isLiked = this.likedStatus[reviewId]

@@ -198,8 +198,6 @@ export default {
     const isPlace = this.$route.path.startsWith('/place/'); // 1. URL 경로를 분석해서 'targetType'으로 사용
     this.pageType = isPlace ? 'science_place' : 'exhibition'
 
-    // 로그인 상태가 이미 true일때만 즉시 데이터를 로드한다.
-    if (this.currentUserId) {
       console.log(`created: 이미 User ID (${this.currentUserId}) 있음. 즉시 데이터 로드`);
       // 장소인 경우
       if (isPlace) {
@@ -208,16 +206,12 @@ export default {
       } else {
         this.fetchExhibitionData(id);
       }
-    } else {
-      console.log('로그인 대기중..');
-    }
-
+    
     // (디버깅) setup에서 가져온 currentUserId가 잘 찍히는지 확인
-    console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
+     console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
   },
 
   watch: {
-
     // currentId 대신, $route.params.id 감시
     '$route.params.id'(newId) {
       if (newId) {
@@ -225,13 +219,13 @@ export default {
         const isPlace = this.$route.path.startsWith('/place/');
         this.pageType = isPlace ? 'science_place' : 'exhibition';
 
-        if (this.currentUserId) { // 로그인 상태일 때만 로드
+        // 🟢 [수정] 로그인 여부와 관계없이 무조건 데이터를 로드합니다.
+        console.log(`watch($route.params.id): 데이터 로드 (User ID: ${this.currentUserId ?? '로그아웃'})`);
           if (isPlace) {
             this.fetchPlaceData(newId);
           } else {
             this.fetchExhibitionData(newId);
           }
-        }
       }
     },
     currentUserId(newUserId, oldUserId) {
@@ -440,8 +434,12 @@ export default {
     async handleToggleFavorite() {
       // 🟢 로그인 상태 확인 (Pinia 스토어)
       if (!this.isLoggedIn) {
-        this.$alert('로그인이 필요한 서비스입니다.');
-        this.$router.push({ name: 'login' }); // (라우터 이름이 'login'이라고 가정)
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
         return;
       }
 

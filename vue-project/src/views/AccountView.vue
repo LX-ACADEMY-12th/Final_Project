@@ -104,6 +104,7 @@
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 // ❌ useRouter import 제거 (this.$router 사용)
+import eventBus from '@/utils/eventBus';
 
 export default {
   name: 'AccountSettingsView',
@@ -149,8 +150,12 @@ export default {
     // ⭐ 1. Pinia의 user 정보를 localUser로 복사 및 로그인 확인 ⭐
     initializeFormFromPinia() {
       if (!this.isLoggedIn) {
-        alert('로그인이 필요합니다.');
-        this.$router.replace({ name: 'login' }); 
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
         return;
       }
 
@@ -164,16 +169,25 @@ export default {
         this.localUser.region = this.user.region || '';
         this.localUser.childGrade = this.user.childGrade || '';
       } else {
-        alert('사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.');
-        this.$router.replace({ name: 'login' });
+        eventBus.emit('show-global-confirm', {
+          message: '사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
+        return;
       }
     },
 
     // ⭐ 2. 사용자 정보 업데이트 (수정하기 버튼 클릭 시) ⭐
     async handleUpdate() {
       if (!this.isLoggedIn) {
-        alert('인증 토큰이 없습니다. 다시 로그인해주세요.');
-        this.$router.push({ name: 'login' });
+        eventBus.emit('show-global-confirm', {
+          message: '인증 토큰이 없습니다. 다시 로그인 해주세요.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
         return;
       }
 
