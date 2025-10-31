@@ -2,9 +2,9 @@
   <div class="exhibition-detail-page">
 
     <div class="header">
-      <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시 상세" :isFavorite="exhibition.isFavorite"
+      <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시 상세" :isFavorite="computedIsFavorite"
         @toggle-favorite="handleToggleFavorite" />
-      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="장소 상세" :isFavorite="place.isFavorite"
+      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="장소 상세" :isFavorite="computedIsFavorite"
         @toggle-favorite="handleToggleFavorite" />
       <ExhibitionHeader v-else pageTitle="로딩 중..." />
     </div>
@@ -108,6 +108,15 @@ export default {
       currentUserId // (authStore.js의 'currentUserId' getter)
     };
   },
+  // 🟢 1. [추가] 이 computed 섹션을 setup() 함수 뒤, data() 앞 등에 추가하세요.
+  computed: {
+    // 💡 :isFavorite prop에 전달할 최종 찜 상태
+    computedIsFavorite() {
+      // 💡 data()에 있는 isWished 변수를 사용
+      return this.isWished;
+    }
+  },
+
   data() {
     return {
       // 현재 ID를 저장할 변수
@@ -115,6 +124,7 @@ export default {
       // 화면 상태
       pageType: null,     // 'exhibition' | 'place' <-- 여기에 targetType을 저장
       currentTab: 'detail',
+      isWished: false, // 찜 상태를 별도로 관리할 '신뢰할 수 있는' 변수
 
       // 전 상세
       exhibition: {
@@ -128,7 +138,6 @@ export default {
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
-        isFavorite: false, // 찜 상태 (DB에서 불러온 초기값)
       },
       isLoading: false, // 중복 클릭 방지용
 
@@ -154,7 +163,6 @@ export default {
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
-        isFavorite: false, // 찜 상태 (DB에서 불러온 초기값)
       },
       // (LocationSection이 'placeAddress'를 사용)
       placeInformation: {
@@ -188,21 +196,51 @@ export default {
     this.currentId = id;
     // URL 경로가 place 작인지 판별
     const isPlace = this.$route.path.startsWith('/place/'); // 1. URL 경로를 분석해서 'targetType'으로 사용
-    // 장소인 경우
-    if (isPlace) {
-      this.pageType = 'science_place';
-      this.fetchPlaceData(id);
-      // 전인 경우
-    } else {
-      this.pageType = 'exhibition';
-      this.fetchExhibitionData(id);
-    }
+    this.pageType = isPlace ? 'science_place' : 'exhibition'
+
+      console.log(`created: 이미 User ID (${this.currentUserId}) 있음. 즉시 데이터 로드`);
+      // 장소인 경우
+      if (isPlace) {
+        this.fetchPlaceData(id);
+        // 전시인 경우
+      } else {
+        this.fetchExhibitionData(id);
+      }
+    
     // (디버깅) setup에서 가져온 currentUserId가 잘 찍히는지 확인
-    console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
+     console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
   },
 
-  computed: {
-    // isFormValid() { ... } // (ContentDetailView가 관리)
+  watch: {
+    // currentId 대신, $route.params.id 감시
+    '$route.params.id'(newId) {
+      if (newId) {
+        this.currentId = newId;
+        const isPlace = this.$route.path.startsWith('/place/');
+        this.pageType = isPlace ? 'science_place' : 'exhibition';
+
+        // 🟢 [수정] 로그인 여부와 관계없이 무조건 데이터를 로드합니다.
+        console.log(`watch($route.params.id): 데이터 로드 (User ID: ${this.currentUserId ?? '로그아웃'})`);
+          if (isPlace) {
+            this.fetchPlaceData(newId);
+          } else {
+            this.fetchExhibitionData(newId);
+          }
+      }
+    },
+    currentUserId(newUserId, oldUserId) {
+      // (falsey(null/undefined) -> truthy('28'))가 되고, ID가 이미 있다면
+      if (newUserId && !oldUserId && this.currentId) {
+        console.log(`User ID 감지 (${newUserId}), '찜 상태만' 새로고침`);
+
+        // 🟢 4. [수정] 전체 데이터를 다시 불러오는 대신, '찜 상태'만 새로고침
+        this.fetchWishStatus();
+
+      } else if (!newUserId && oldUserId) {
+        // 🟢 5. [신규] 로그아웃 감지 시 찜 상태 false로 초기화
+        this.isWished = false;
+      }
+    }
   },
 
   methods: {
@@ -241,7 +279,6 @@ export default {
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
-        isFavorite: dto.isLiked ?? false
       };
 
       // LocationSection이 사용할 데이터
@@ -296,7 +333,6 @@ export default {
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
-        isFavorite: dto.isLiked ?? false
       };
 
       // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
@@ -335,14 +371,41 @@ export default {
       return `${fee.toLocaleString('ko-KR')}원`; // 4000 -> "4,000원"
     },
 
-    /** 전 상세 - 백엔드 연동 */
+
+    // 🟢 6. [신규] 찜 상태만 별도로 조회하는 함수
+    async fetchWishStatus() {
+      // targetId, targetType이 아직 없거나, 로그아웃 상태면(currentUserId가 없으면) 실행 안함
+      if (!this.currentId || !this.pageType || !this.currentUserId) {
+        this.isWished = false;
+        return;
+      }
+
+      try {
+        // 백엔드에 새로 만든 API 호출
+        // ⭐️ GET /api/wishlist/exhibition/123/status
+        const res = await axios.get(
+          `/api/wishlist/${this.pageType}/${this.currentId}/status`
+        );
+
+        // ⭐️ 응답 {"isWished": true} 에서 값을 꺼내 data의 isWished에 저장
+        this.isWished = res.data.isWished;
+        console.log(`✅ [fetchWishStatus] 찜 상태 갱신: ${this.isWished}`);
+
+      } catch (error) {
+        console.error('찜 상태 조회 실패:', error);
+        // ⭐️ 실패 시에도 false로 초기화 (중요)
+        this.isWished = false;
+      }
+    },
+
+    /** 전시 상세 - 백엔드 연동 */
     async fetchExhibitionData(id) {
       try {
 
         const res = await axios.get(`/api/exhibitions`, {
           params: {
             exhibitionId: id,
-            userId: this.tempCurrentUserId // 로그인 연결 전 임시로
+            userId: this.currentUserId // pinia 스토어의 Id를 파라미터로 추가
           },
         });
 
@@ -354,9 +417,12 @@ export default {
           return;
         }
         this.mapExhibitionDTO(dto);
+
+        // 🟢 8. [추가] 찜 상태를 별도로 갱신
+        await this.fetchWishStatus();
+
       } catch (error) {
         console.error('전시 상세 조회 실패:', error);
-
 
         eventBus.emit('show-global-alert', {
           message: '전시 정보를 불러오지 못했습니다.',
@@ -368,31 +434,25 @@ export default {
     async handleToggleFavorite() {
       // 🟢 로그인 상태 확인 (Pinia 스토어)
       if (!this.isLoggedIn) {
-        this.$alert('로그인이 필요한 서비스입니다.');
-        this.$router.push({ name: 'login' }); // (라우터 이름이 'login'이라고 가정)
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
         return;
       }
 
       if (this.isLoading) return;
 
       const isExhibition = (this.pageType === 'exhibition');
-      // 찜 상태와 현재 아이템 데이터 가져오기
-      let currentState = isExhibition ? this.exhibition.isFavorite : this.place.isFavorite;
+      // 🟢 9. [수정] 신뢰할 수 있는 'isWished' data를 기준으로 삼음
+      let currentState = this.isWished;
       const currentItem = isExhibition ? this.exhibition : this.place;
-      const userId = this.tempCurrentUserId;
 
-      // 1. 찜 취소 (DELETE) 요청 데이터 (기존과 동일)
-      // 찜 취소는 해당 아이템의 모든 '찜'을 삭제하는 것으로 통일 (이것이 UX상 가장 간단합니다)
-      const deleteRequestData = {
-        targetId: this.currentId,
-      };
-
-      // 2. 찜 추가 (POST) 요청 데이터 (🌟 맥락 정보 추가 🌟)
-      const postRequestData = {
+      const requestData = {
         targetId: this.currentId,
         targetType: this.pageType,
-
-        // 🌟 현재 페이지의 맥락(과학영역, 학년)을 함께 전송
         mainCategory: currentItem.mainCategory,
         gradeTag: currentItem.gradeTag
       };
@@ -402,9 +462,9 @@ export default {
           // 1. 찜 취소 (DELETE)
           // 🌟 [수정] data: deleteRequestData
           await axios.delete(`/api/wishlist`, {
-            data: deleteRequestData
+            data: requestData
           });
-          currentState = false;
+          this.isWished = false;
           eventBus.emit('show-global-alert', {
             message: '찜 목록에서 삭제되었습니다.',
             type: 'success'
@@ -413,22 +473,15 @@ export default {
         } else {
           // 2. 찜 추가 (POST)
           // 🌟 postRequestData (맥락 정보가 포함된 DTO 전송)
-          await axios.post(`/api/wishlist`, postRequestData);
+          await axios.post(`/api/wishlist`, requestData);
           // 요청 아이템
-          JSON.stringify(console.log(postRequestData), null, 2);
-          currentState = true;
+          JSON.stringify(console.log(requestData), null, 2);
+          this.isWished = true;
           eventBus.emit('show-global-alert', {
             message: '찜 목록에 추가되었습니다.',
             type: 'success'
           });
         }
-        // 최종 상태 반영
-        if (isExhibition) {
-          this.exhibition.isFavorite = currentState;
-        } else {
-          this.place.isFavorite = currentState;
-        }
-
       } catch (error) {
         // 3. 에러 처리
         const status = error.response?.status;
@@ -442,14 +495,10 @@ export default {
           try {
             // DELETE 요청 재시도 (취소) - 🌟 [수정] data 속성 사용 🌟
             await axios.delete(`/api/wishlist`, {
-              data: requestData // 요청 본문에 데이터 포함
+              data: requestData
             });
-            // 취소 성공: 상태를 false로 업데이트
-            if (isExhibition) {
-              this.exhibition.isFavorite = false;
-            } else {
-              this.place.isFavorite = false;
-            }
+            // 🟢 11. [수정] 409 롤백 시에도 isWished 사용
+            this.isWished = false;
             eventBus.emit('show-global-alert', {
               message: '찜이 취소되었습니다.',
               type: 'success'
@@ -559,27 +608,23 @@ export default {
         }
 
       } catch (error) {
-        // 4. 실패 처리
-        // (401 오류는 axiosSetup.js가 자동으로 처리하므로, 여기서는 403, 500 등 다른 오류를 처리)
         console.error('💥 [PlaceDetailsView] 추천 코스 저장 API 호출 실패:', error);
-        eventBus.emit('show-global-alert', {
-          message: `코스 저장 중 문제가 발생했습니다: ${error.response?.data || error.message}`,
-          type: 'error'
-        });
+
         if (error.response?.status === 403) {
           eventBus.emit('show-global-alert', {
-            message: `접근 권한이 없습니다.`,
+            message: '접근 권한이 없습니다.',
             type: 'error'
           });
         } else {
           eventBus.emit('show-global-alert', {
-            message: `코스 저장 중 문제가 발생했습니다: ${error.response?.data || error.message}`,
+            message: `코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`,
             type: 'error'
           });
         }
       } finally {
         // 5. 로딩 상태 해제
       }
+
     },
 
     /** 장소 상세 - 백엔드 연동 ★★★ 버그 수정 ★★★ */
@@ -589,7 +634,7 @@ export default {
         const res = await axios.get(`api/place`, {
           params: {
             placeId: id,
-            userId: this.tempCurrentUserId
+            userId: this.currentUserId // pinia 스토어의 Id를 파라미터로 추가
           },
         });
 
@@ -604,6 +649,9 @@ export default {
 
         // 지도 정보
         this.mapPlaceDTO(dto);
+
+        // 🟢 8. [추가] 찜 상태를 별도로 갱신
+        await this.fetchWishStatus();
 
       } catch (error) {
         console.error('장소 상세 조회 실패:', error);
@@ -669,24 +717,27 @@ export default {
 
         // 2. "1번 항목" (현재 페이지 장소) 데이터 준비
         // (created()에서 이미 불러온 this.place 또는 this.exhibition 객체 활용)
-        const currentItemData = (this.pageType === 'place') ? this.place : this.exhibition;
-        const currentItemInfo = (this.pageType === 'place') ? this.placeInformation : this.exhibitionInformation;
+        const currentItemData = (this.pageType === 'science_place') ? this.place : this.exhibition;
+        const currentItemInfo = (this.pageType === 'science_place') ? this.placeInformation : this.exhibitionInformation;
+
 
         // 3. "1번 항목"을 카드 형식으로 포맷
         const currentItemFormatted = {
-          id: this.currentId, // 고유 ID
-          number: 1,            // 1번으로 고정
+          id: this.currentId,
+          number: 1,
           imageUrl: currentItemData.mainImage || 'https://via.placeholder.com/60x60',
-          title: currentItemData.title,
-          subject: currentItemData.mainCategory,
-          grade: currentItemData.gradeTag,
-          hashtags: Array.isArray(currentItemData.subCategories) ? currentItemData.subCategories : [currentItemData.subCategories].filter(Boolean),
-          type: currentItemData.type,
-          place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation,
-          // 지도(CourseMap)를 위한 1번 항목의 좌표
-          lat: currentItemInfo.lat,
-          lng: currentItemInfo.lng,
+          title: currentItemData.title || '제목 없음',  // ← null 체크 추가
+          subject: currentItemData.mainCategory || '분류 없음',  // ← null 체크 추가
+          grade: currentItemData.gradeTag || '학년 정보 없음',  // ← null 체크 추가
+          hashtags: Array.isArray(currentItemData.subCategories)
+            ? currentItemData.subCategories
+            : (currentItemData.subCategories ? [currentItemData.subCategories] : []),  // ← 예외 처리
+          type: this.pageType === 'science_place' ? 'science_place' : 'exhibition',
+          place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation || '주소 정보 없음',  // ← null 체크 추가
+          lat: currentItemInfo.lat || 0,
+          lng: currentItemInfo.lng || 0,
         };
+
 
         // 4. "2번, 3번..." (AI 추천 목록)을 카드 형식으로 포맷
         const aiItemsFormatted = aiRecommendedDtos.map((item, index) => {
