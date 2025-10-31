@@ -515,8 +515,8 @@ export default {
 
         // 프론트엔드 items 배열 -> 백엔드 DTO 형식으로 변환
         const backendItems = items.map(item => ({
-          exhibitionId: this.pageType !== 'place' ? item.id : null,      // 프론트엔드 id -> exhibitionId
-          placeId: this.pageType === 'place' ? item.id : null,
+          exhibitionId: this.pageType !== 'science_place' ? item.id : null,      // 프론트엔드 id -> exhibitionId
+          placeId: this.pageType === 'science_place' ? item.id : null,
           sequence: item.number,  // 프론트엔드 number -> sequence
           itemType: item.type === 'exhibition' ? 'exhibition' : 'science_place' // 아이템 타입 설정 (백엔드와 일치 필요)
           // ❗️ 중요: item.type이 백엔드 Enum/String과 일치하는지 확인 필요
