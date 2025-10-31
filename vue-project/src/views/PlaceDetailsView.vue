@@ -19,13 +19,9 @@
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :exhibitionInformation="exhibitionInformation" 
-            :exhibition="exhibition" :isPlace="false"
-            :target-id="currentId" 
-            :target-type="pageType"
-            @review-posted="handleReviewPosted" 
-            @review-deleted="handleReviewDeleted"
-            :photo-review-count="exhibition.photoReviewCount" />
+          <ContentDetailView :exhibitionInformation="exhibitionInformation" :exhibition="exhibition" :isPlace="false"
+            :target-id="currentId" :target-type="pageType" @review-posted="handleReviewPosted"
+            @review-deleted="handleReviewDeleted" :photo-review-count="exhibition.photoReviewCount" />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -46,13 +42,9 @@
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :exhibitionInformation="placeInformation" 
-          :exhibition="place" :target-id="currentId"
-          :target-type="pageType"
-          :isPlace="true"
-          @review-posted="handleReviewPosted" 
-          @review-deleted="handleReviewDeleted"
-          :photo-review-count="place.photoReviewCount" />
+          <ContentDetailView :exhibitionInformation="placeInformation" :exhibition="place" :target-id="currentId"
+            :target-type="pageType" :isPlace="true" @review-posted="handleReviewPosted"
+            @review-deleted="handleReviewDeleted" :photo-review-count="place.photoReviewCount" />
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
@@ -90,8 +82,6 @@ import eventBus from '@/utils/eventBus'; // 💡 [추가] 글로벌 알림용
 
 
 // API 베이스
-const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
-
 export default {
   name: 'PlaceDetailsView',
 
@@ -349,7 +339,7 @@ export default {
     async fetchExhibitionData(id) {
       try {
 
-        const res = await axios.get(`${API_BASE}/api/exhibitions`, {
+        const res = await axios.get(`/api/exhibitions`, {
           params: {
             exhibitionId: id,
             userId: this.tempCurrentUserId // 로그인 연결 전 임시로
@@ -367,7 +357,7 @@ export default {
       } catch (error) {
         console.error('전시 상세 조회 실패:', error);
 
-        
+
         eventBus.emit('show-global-alert', {
           message: '전시 정보를 불러오지 못했습니다.',
           type: 'error'
@@ -411,26 +401,26 @@ export default {
         if (currentState) {
           // 1. 찜 취소 (DELETE)
           // 🌟 [수정] data: deleteRequestData
-          await axios.delete(`${API_BASE}/api/wishlist`, {
+          await axios.delete(`/api/wishlist`, {
             data: deleteRequestData
           });
           currentState = false;
           eventBus.emit('show-global-alert', {
-          message: '찜 목록에서 삭제되었습니다.',
-          type: 'success'
-        });
+            message: '찜 목록에서 삭제되었습니다.',
+            type: 'success'
+          });
 
         } else {
           // 2. 찜 추가 (POST)
           // 🌟 postRequestData (맥락 정보가 포함된 DTO 전송)
-          await axios.post(`${API_BASE}/api/wishlist`, postRequestData);
+          await axios.post(`/api/wishlist`, postRequestData);
           // 요청 아이템
           JSON.stringify(console.log(postRequestData), null, 2);
           currentState = true;
           eventBus.emit('show-global-alert', {
-          message: '찜 목록에 추가되었습니다.',
-          type: 'success'
-        });
+            message: '찜 목록에 추가되었습니다.',
+            type: 'success'
+          });
         }
         // 최종 상태 반영
         if (isExhibition) {
@@ -446,12 +436,12 @@ export default {
         // 409 Conflict 에러 처리 (자동 취소)
         if (status === 409) {
           eventBus.emit('show-global-alert', {
-          message: '중복된 찜 항목입니다. 자동으로 취소합니다.',
-          type: 'error'
-        });
+            message: '중복된 찜 항목입니다. 자동으로 취소합니다.',
+            type: 'error'
+          });
           try {
             // DELETE 요청 재시도 (취소) - 🌟 [수정] data 속성 사용 🌟
-            await axios.delete(`${API_BASE}/api/wishlist`, {
+            await axios.delete(`/api/wishlist`, {
               data: requestData // 요청 본문에 데이터 포함
             });
             // 취소 성공: 상태를 false로 업데이트
@@ -461,17 +451,17 @@ export default {
               this.place.isFavorite = false;
             }
             eventBus.emit('show-global-alert', {
-            message: '찜이 취소되었습니다.',
-            type: 'success'
-          });
+              message: '찜이 취소되었습니다.',
+              type: 'success'
+            });
 
           } catch (deleteError) {
             // DELETE 재시도 실패 시
             console.error('409 후 찜 취소 실패:', deleteError);
             eventBus.emit('show-global-alert', {
-            message: '찜 상태 동기화에 실패했습니다. (다음 클릭 시 취소됩니다.)',
-            type: 'error'
-          });
+              message: '찜 상태 동기화에 실패했습니다. (다음 클릭 시 취소됩니다.)',
+              type: 'error'
+            });
           }
         }
         // 403 Forbidden 에러 처리 (권한 문제)
@@ -519,7 +509,7 @@ export default {
 
       try {
         // 1. 백엔드로 보낼 데이터 준비
-        const currentItemData = (this.pageType === 'place') ? this.place : this.exhibition;
+        const currentItemData = (this.pageType === 'science_place') ? this.place : this.exhibition;
         const scheduleName = `AI 추천: ${currentItemData.title || '코스'}`; // 스케줄 이름 생성
         const sourceId = this.currentId; // 현재 보고 있는 상세 페이지의 ID
 
@@ -537,7 +527,7 @@ export default {
         const requestDto = {
           scheduleName: scheduleName,
           sourceId: sourceId,
-          sourceCourseType: this.pageType === 'place' ? 'ai_course' : 'inner_course',
+          sourceCourseType: this.pageType === 'science_place' ? 'ai_course' : 'inner_course',
           items: backendItems,
           userId: this.currentUserId // 여기에 userId를 추가하세요
         };
@@ -546,24 +536,24 @@ export default {
         console.log('💾 [PlaceDetailsView] API 요청 데이터:', JSON.stringify(requestDto, null, 2));
 
         // 2. API 호출 (axios 사용)
-        const response = await axios.post(`${API_BASE}/api/schedules/save-recommended`, requestDto);
+        const response = await axios.post(`/api/schedules/save-recommended`, requestDto);
 
         // 3. 성공 처리
         if (response.status === 200) {
           console.log('✅ [PlaceDetailsView] 추천 코스 저장 성공!');
           eventBus.emit('show-global-alert', {
-          message: '추천 코스가 "관심 코스"에 성공적으로 저장되었습니다.',
-          type: 'success'
-        }); // 성공 메지
+            message: '추천 코스가 "관심 코스"에 성공적으로 저장되었습니다.',
+            type: 'success'
+          }); // 성공 메지
           // TODO: (선택) 저장 후 사용자를 마이페이지나 다른 곳으로 이동킬 수 있습니다.
           // 예: this.$router.push('/mypage/likes');
         } else {
           // 200 외의 응답 처리 (필요)
           console.error('⚠️ [PlaceDetailsView] 추천 코스 저장 응답 오류:', response);
           eventBus.emit('show-global-alert', {
-          message: `코스 저장 중 문제가 발생했습니다: ${response.data?.message || response.statusText}`,
-          type: 'error'
-        });
+            message: `코스 저장 중 문제가 발생했습니다: ${response.data?.message || response.statusText}`,
+            type: 'error'
+          });
         }
 
       } catch (error) {
@@ -576,14 +566,14 @@ export default {
         });
         if (error.response?.status === 403) {
           eventBus.emit('show-global-alert', {
-          message: `접근 권한이 없습니다.`,
-          type: 'error'
-        });
+            message: `접근 권한이 없습니다.`,
+            type: 'error'
+          });
         } else {
           eventBus.emit('show-global-alert', {
-          message: `코스 저장 중 문제가 발생했습니다: ${error.response?.data || error.message}`,
-          type: 'error'
-        });
+            message: `코스 저장 중 문제가 발생했습니다: ${error.response?.data || error.message}`,
+            type: 'error'
+          });
         }
       } finally {
         // 5. 로딩 상태 해제
@@ -594,7 +584,7 @@ export default {
     async fetchPlaceData(id) {
       try {
         // API 호출
-        const res = await axios.get(`${API_BASE}/api/place`, {
+        const res = await axios.get(`/api/place`, {
           params: {
             placeId: id,
             userId: this.tempCurrentUserId
@@ -664,7 +654,7 @@ export default {
 
       try {
         // 1. AI 추천 API 호출 (2번, 3번... 항목들)
-        const apiUrl = `${API_BASE}/api/recommend/course`;
+        const apiUrl = `/api/recommend/course`;
         const params = {
           type: this.pageType,
           currentId: this.currentId,
