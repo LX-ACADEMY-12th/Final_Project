@@ -11,9 +11,9 @@
 
     <div class="scroll-content">
 
-      <!--전일때-->
+      <!--전시일때-->
       <div v-if="pageType === 'exhibition'">
-        <InfoSection :exhibition="exhibition" imageTag="전 태그" :mainCategory="exhibition.mainCategory"
+        <InfoSection :exhibition="exhibition" imageTag="전시 태그" :mainCategory="exhibition.mainCategory"
           :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag" />
         <hr class="divider" />
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
@@ -25,11 +25,62 @@
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
-          <div v-if="isRecommending" class="recommend-loading">
-            <p>🤖 AI가 코스를 생성 중입니다.</p>
-            <p>잠만 기다려 주세요...</p>
+          <!-- 개선된 AI 추천 로딩 -->
+          <div v-if="isRecommending" class="recommend-loading-container">
+            <div class="loading-content">
+              <!-- AI 아이콘 섹션 -->
+              <div class="ai-icon-section">
+                <div class="ai-icon-wrapper">
+                  <span class="ai-icon">🤖</span>
+                  <div class="pulse-effect"></div>
+                </div>
+              </div>
+
+              <!-- 메시지 섹션 -->
+              <div class="loading-message">
+                <h3>AI가 맞춤 코스를 생성 중입니다</h3>
+                <p class="sub-message">{{ loadingMessages[currentMessageIndex] }}</p>
+              </div>
+
+              <!-- 진행 단계 -->
+              <div class="progress-steps">
+                <div class="step-item" v-for="(step, index) in progressSteps" :key="index"
+                  :class="{ active: currentStepIndex >= index, completed: currentStepIndex > index }">
+                  <div class="step-dot">
+                    <span v-if="currentStepIndex > index">✓</span>
+                  </div>
+                  <span class="step-label">{{ step }}</span>
+                </div>
+              </div>
+
+              <!-- 스켈레톤 카드 -->
+              <div class="skeleton-cards">
+                <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.1}s` }">
+                  <div class="card-number">{{ n + 1 }}</div>
+                  <div class="card-content">
+                    <div class="skeleton-image"></div>
+                    <div class="skeleton-info">
+                      <div class="skeleton-title"></div>
+                      <div class="skeleton-location"></div>
+                      <div class="skeleton-tags">
+                        <span class="skeleton-tag"></span>
+                        <span class="skeleton-tag"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 팁 메시지 -->
+              <div class="loading-tip">
+                <span class="tip-emoji">💡</span>
+                <span class="tip-text">{{ tips[currentTipIndex] }}</span>
+              </div>
+            </div>
           </div>
-          <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
+
+          <!-- 실제 추천 결과 -->
+          <CourseRecommend v-else :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
             @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
@@ -48,11 +99,62 @@
         </div>
         <!--코스추천-->
         <div v-else-if="currentTab === 'recommend'">
-          <div v-if="isRecommending" class="recommend-loading">
-            <p>🤖 AI가 코스를 생성 중입니다.</p>
-            <p>잠만 기다려 주세요...</p>
+          <!-- 개선된 AI 추천 로딩 (장소도 동일) -->
+          <div v-if="isRecommending" class="recommend-loading-container">
+            <div class="loading-content">
+              <!-- AI 아이콘 섹션 -->
+              <div class="ai-icon-section">
+                <div class="ai-icon-wrapper">
+                  <span class="ai-icon">🤖</span>
+                  <div class="pulse-effect"></div>
+                </div>
+              </div>
+
+              <!-- 메시지 섹션 -->
+              <div class="loading-message">
+                <h3>AI가 맞춤 코스를 생성 중입니다</h3>
+                <p class="sub-message">{{ loadingMessages[currentMessageIndex] }}</p>
+              </div>
+
+              <!-- 진행 단계 -->
+              <div class="progress-steps">
+                <div class="step-item" v-for="(step, index) in progressSteps" :key="index"
+                  :class="{ active: currentStepIndex >= index, completed: currentStepIndex > index }">
+                  <div class="step-dot">
+                    <span v-if="currentStepIndex > index">✓</span>
+                  </div>
+                  <span class="step-label">{{ step }}</span>
+                </div>
+              </div>
+
+              <!-- 스켈레톤 카드 -->
+              <div class="skeleton-cards">
+                <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.1}s` }">
+                  <div class="card-number">{{ n + 1 }}</div>
+                  <div class="card-content">
+                    <div class="skeleton-image"></div>
+                    <div class="skeleton-info">
+                      <div class="skeleton-title"></div>
+                      <div class="skeleton-location"></div>
+                      <div class="skeleton-tags">
+                        <span class="skeleton-tag"></span>
+                        <span class="skeleton-tag"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 팁 메시지 -->
+              <div class="loading-tip">
+                <span class="tip-emoji">💡</span>
+                <span class="tip-text">{{ tips[currentTipIndex] }}</span>
+              </div>
+            </div>
           </div>
-          <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
+
+          <!-- 실제 추천 결과 -->
+          <CourseRecommend v-else :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
             @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
@@ -126,7 +228,7 @@ export default {
       currentTab: 'detail',
       isWished: false, // 찜 상태를 별도로 관리할 '신뢰할 수 있는' 변수
 
-      // 전 상세
+      // 전시 상세
       exhibition: {
         title: '데이터 로딩 중...',
         rating: 0,
@@ -185,6 +287,28 @@ export default {
 
       // AI 추천 API 로딩 상태를 추적할 변수 추가
       isRecommending: false,
+
+      // AI 로딩 애니메이션 관련
+      progressSteps: ['데이터 분석', '유사 장소 탐색', '경로 최적화', '코스 완성'],
+      currentStepIndex: 0,
+      stepInterval: null,
+
+      loadingMessages: [
+        '현재 전시/장소의 특징을 분석하고 있어요',
+        '비슷한 테마의 장소들을 찾고 있어요',
+        '최적의 이동 경로를 계산하고 있어요',
+        '추천 코스를 마무리하고 있어요'
+      ],
+      currentMessageIndex: 0,
+
+      tips: [
+        'AI는 평점과 리뷰를 기반으로 추천해드려요',
+        '추천 코스는 도보 20분 이내로 구성됩니다',
+        '생성된 코스는 관심 코스에 저장할 수 있어요',
+        '날씨와 시간대를 고려한 추천을 제공합니다'
+      ],
+      currentTipIndex: 0,
+      tipInterval: null,
     };
   },
 
@@ -241,6 +365,10 @@ export default {
         this.isWished = false;
       }
     }
+  },
+
+  beforeUnmount() {
+    this.clearLoadingIntervals();
   },
 
   methods: {
@@ -358,7 +486,7 @@ export default {
 
     // ✨ (Helper) 날짜 포맷 함수 추가
     formatPeriod(start, end) {
-      if (!start && !end) return '상 운영';
+      if (!start && !end) return '상시 운영';
       if (start && !end) return `${start} ~ 별도 안내까지`;
       if (!start && end) return `~ ${end}`;
       return `${start} ~ ${end}`;
@@ -693,12 +821,46 @@ export default {
         this.fetchRecommendedCourse();
       }
     },
+
+    // 로딩 애니메이션 시작
+    startLoadingAnimation() {
+      // 진행 단계 애니메이션
+      this.currentStepIndex = 0;
+      this.currentMessageIndex = 0;
+
+      this.stepInterval = setInterval(() => {
+        if (this.currentStepIndex < this.progressSteps.length - 1) {
+          this.currentStepIndex++;
+          this.currentMessageIndex++;
+        }
+      }, 1200);
+
+      // 팁 로테이션
+      this.currentTipIndex = 0;
+      this.tipInterval = setInterval(() => {
+        this.currentTipIndex = (this.currentTipIndex + 1) % this.tips.length;
+      }, 2500);
+    },
+
+    // 로딩 애니메이션 정리
+    clearLoadingIntervals() {
+      if (this.stepInterval) {
+        clearInterval(this.stepInterval);
+        this.stepInterval = null;
+      }
+      if (this.tipInterval) {
+        clearInterval(this.tipInterval);
+        this.tipInterval = null;
+      }
+    },
+
     // '새로운 추천 받기 버튼'이 이 함수를 직접 호출
     async fetchRecommendedCourse() {
       console.log('🤖 AI 추천 코스를 검색합니다...');
 
-      // 로딩 상태를 true로 변경
+      // 로딩 상태를 true로 변경하고 애니메이션 시작
       this.isRecommending = true;
+      this.startLoadingAnimation();
 
       await this.$nextTick();
 
@@ -712,7 +874,13 @@ export default {
           subCategoryTags: this.$route.query.subCategoryTags,
           gradeTags: this.$route.query.gradeTags,
         };
-        const res = await axios.get(apiUrl, { params });
+
+        // 최소 로딩 시간 보장 (UX 개선)
+        const [res] = await Promise.all([
+          axios.get(apiUrl, { params }),
+          new Promise(resolve => setTimeout(resolve, 3500)) // 최소 3.5초
+        ]);
+
         const aiRecommendedDtos = res.data; // (백엔드가 보낸 DTO 리스트)
 
         // 2. "1번 항목" (현재 페이지 장소) 데이터 준비
@@ -767,9 +935,20 @@ export default {
         console.error("AI 추천 코스 로딩 실패:", error);
         // 에러가 나도 로드는 되었다고 처리해야, 탭 이동 후 다 눌렀을 때 재도 가능
         this.hasLoadedRecommendations = true;
+
+        eventBus.emit('show-global-alert', {
+          message: 'AI 추천 코스를 불러오는데 실패했습니다. 다시 시도해주세요.',
+          type: 'error'
+        });
       } finally {
-        this.isRecommending = false;
-        console.log('🏁 fetchRecommendedCourse 완료. isRecommending:', this.isRecommending);
+        // 애니메이션 정리 및 로딩 종료
+        setTimeout(() => {
+          this.clearLoadingIntervals();
+          this.isRecommending = false;
+          this.currentStepIndex = 0;
+          this.currentMessageIndex = 0;
+          console.log('🏁 fetchRecommendedCourse 완료. isRecommending:', this.isRecommending);
+        }, 300);
       }
     }
   }
@@ -827,20 +1006,343 @@ export default {
   font-size: 16px;
 }
 
-/* [!!] 5. AI 추천 로딩 스타일 추가 */
-.recommend-loading {
-  padding: 60px 20px;
-  text-align: center;
-  color: #555;
-  font-size: 1.1rem;
-  font-weight: 500;
-  background-color: #fff;
-  /* 또는 f7f7f7 */
+/* === 개선된 AI 추천 로딩 스타일 === */
+.recommend-loading-container {
+  background-color: #ffffff;
+  min-height: 500px;
+  padding: 40px 20px;
 }
 
-.recommend-loading p:last-child {
-  font-size: 0.9rem;
-  color: #888;
-  margin-top: 8px;
+.loading-content {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* AI 아이콘 섹션 */
+.ai-icon-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.ai-icon-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.ai-icon {
+  font-size: 48px;
+  display: inline-block;
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+@keyframes gentle-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.pulse-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
+  border: 2px solid rgba(103, 58, 183, 0.3);
+  border-radius: 50%;
+  animation: pulse 2s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    width: 70px;
+    height: 70px;
+    opacity: 0.8;
+  }
+
+  100% {
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+  }
+}
+
+/* 메시지 섹션 */
+.loading-message {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.loading-message h3 {
+  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.sub-message {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+  min-height: 20px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* 진행 단계 */
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  padding: 0 10px;
+  position: relative;
+}
+
+.progress-steps::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #e0e0e0;
+  z-index: 0;
+}
+
+.step-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.step-item.active {
+  opacity: 1;
+}
+
+.step-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+  font-size: 12px;
+  color: #673ab7;
+  font-weight: bold;
+}
+
+.step-item.active .step-dot {
+  background: #fff;
+  border-color: #673ab7;
+  animation: scaleIn 0.3s ease;
+}
+
+.step-item.completed .step-dot {
+  background: #673ab7;
+  border-color: #673ab7;
+  color: white;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+.step-label {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.step-item.active .step-label {
+  color: #666;
+  font-weight: 500;
+}
+
+/* 스켈레톤 카드 */
+.skeleton-cards {
+  margin-bottom: 30px;
+}
+
+.skeleton-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  opacity: 0;
+  animation: slideUp 0.4s ease forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.card-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #673ab7;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.card-content {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+}
+
+.skeleton-image {
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-info {
+  flex: 1;
+}
+
+.skeleton-title {
+  height: 18px;
+  width: 70%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-location {
+  height: 14px;
+  width: 50%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.skeleton-tags {
+  display: flex;
+  gap: 6px;
+}
+
+.skeleton-tag {
+  height: 20px;
+  width: 45px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 10px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* 팁 메시지 */
+.loading-tip {
+  background: #f8f5ff;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e8dfff;
+}
+
+.tip-emoji {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.tip-text {
+  color: #666;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 반응형 */
+@media (max-width: 480px) {
+  .loading-message h3 {
+    font-size: 18px;
+  }
+
+  .sub-message {
+    font-size: 13px;
+  }
+
+  .step-label {
+    font-size: 10px;
+  }
+
+  .skeleton-card {
+    padding: 12px;
+  }
+
+  .loading-tip {
+    padding: 12px;
+  }
+
+  .tip-text {
+    font-size: 12px;
+  }
 }
 </style>
