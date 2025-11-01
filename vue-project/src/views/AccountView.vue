@@ -301,14 +301,11 @@ export default {
   flex: 1;
   overflow-y: auto;
 
-  /* 스크롤바 숨기기 */
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  /* 스크롤바 숨기기 (일반 CSS) */
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE, Edge */
 }
+
 
 .profile-pic {
   width: 80px;

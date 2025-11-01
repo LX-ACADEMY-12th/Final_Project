@@ -47,21 +47,35 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import axios from '@/api/axiosSetup';
+import { useAuthStore } from '@/stores/authStore'; // 👈 [추가] 1. 스토어 import
+import { storeToRefs } from 'pinia'; // 👈 [추가] 2. storeToRefs import
+
+const authStore = useAuthStore(); // 👈 [추가] 3. 스토어 인스턴스 생성
+const { user } = storeToRefs(authStore); // 👈 [추가] 4. 'user' 변수 선언 (반응성 유지
+
+const userName = computed(() => {
+ if(user.value?.name) {
+  return user.value.name;
+ }
+ return '로그인 필요';
+});
 
 const router = useRouter();
 const chatBody = ref(null); // 채팅 본문 DOM을 참조할 ref
 
 // 채팅 메시지 목록 (ref로 관리)
 const messages = ref([
-  {
-    id: 1,
-    sender: 'ai',
-    text: '김아무개님, 안녕하세요. 무엇을 도와드릴까요?',
-    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-  },
+ {
+  id: 1,
+  sender: 'ai',
+    // 👈 [수정] text 속성 자체를 computed로 감싸서
+    //      userName.value의 변경을 실시간으로 반영합니다.
+  text: computed(() => `${userName.value}님, 안녕하세요. 무엇을 도와드릴까요?`),
+  time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+ },
 ]);
 
 // 하단 입력창에 바인딩될 ref

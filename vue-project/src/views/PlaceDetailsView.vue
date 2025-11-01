@@ -303,7 +303,6 @@ export default {
 
       tips: [
         'AI는 평점과 리뷰를 기반으로 추천해드려요',
-        '추천 코스는 도보 20분 이내로 구성됩니다',
         '생성된 코스는 관심 코스에 저장할 수 있어요',
         '날씨와 시간대를 고려한 추천을 제공합니다'
       ],
@@ -666,11 +665,12 @@ export default {
       console.log('💾 [PlaceDetailsView] 추천 코스 저장 시작...', items);
       // 🟢 로그인 상태 확인
       if (!this.isLoggedIn) {
-        eventBus.emit('show-global-alert', {
+        eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
-          type: 'error'
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
         });
-        this.$router.push('/login'); // 로그인 페이지로 이동
         return;
       }
 
