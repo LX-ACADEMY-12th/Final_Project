@@ -18,6 +18,10 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/',
+      redirect: '/home',
+    },
+    {
       path: '/home',
       name: 'Home',
       component: HomeView,
@@ -88,15 +92,15 @@ const router = createRouter({
     {
       path: '/photos/:targetType/:targetId',
       name: 'AllPhotos',
-      component: ReviewPhotoGridView, 
-      props: true
+      component: ReviewPhotoGridView,
+      props: true,
     },
     // 사용자 관심 목록(전시, 장소)
     {
       path: '/likePlace',
       name: 'LikePlace',
-      component: UserLikePlaceListView, 
-      props: true
+      component: UserLikePlaceListView,
+      props: true,
     },
   ],
 })

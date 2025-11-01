@@ -92,10 +92,7 @@
     <PhotoModal :show="photoModal.visible" :images="photoModal.images" :startIndex="photoModal.startIndex"
       @close="photoModal.visible = false" />
 
-      <ReportModal :show="reportModal.visible"
-   @close="reportModal.visible = false"
-   @submit="handleReportSubmit" 
-  />
+    <ReportModal :show="reportModal.visible" @close="reportModal.visible = false" @submit="handleReportSubmit" />
   </section>
 </template>
 <script>
@@ -163,7 +160,7 @@ export default {
       immediate: true
     },
 
-    // 💡 [추가] 
+    // 💡 [추가]
     // currentUserId가 null/"" 에서 '28'과 같은 유효한 값으로 바뀔 때 감지
     currentUserId(newUserId, oldUserId) {
       // oldUserId가 null 또는 "" (falsy) 였다가
@@ -195,15 +192,15 @@ export default {
       allPhotoThumbnails: [],
       allPhotoUrlsCache: null,
       // 💡 3. 신고 모달의 상태를 data에 추가합니다.
-   reportModal: {
-    visible: false,
-    reviewId: null // 어떤 리뷰를 신고할지 ID를 저장
-   }
+      reportModal: {
+        visible: false,
+        reviewId: null // 어떤 리뷰를 신고할지 ID를 저장
+      }
     }
   },
 
   methods: {
-    // 💡 [수정] fetchReviews에서는 '좋아요' 관련 로직 제거
+    // 💡 fetchReviews에서는 '좋아요' 관련 로직 제거
     async fetchReviews() {
       if (!this.targetId || !this.targetType) return
       this.isLoading = true
@@ -234,20 +231,20 @@ export default {
     },
     onClickWriteReview() {
       if (!this.currentUserId) {
-      // 💡 [수정] 로그인 체크
+        // 💡 로그인 체크
 
-      eventBus.emit('show-global-confirm', {
-        message: '로그인이 필요한 서비스입니다',
-        // 2. '확인' 눌렀을 때 실행할 함수 전달
-        onConfirm: () => {
-          this.$router.push({ name: 'login' });
-        }
-        // '취소'를 누르면 onCancel이 null이므로 그냥 창만 닫힘
-      });
-          return; // 페이지 이동 방지
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 서비스입니다',
+          // 2. '확인' 눌렀을 때 실행할 함수 전달
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+          // '취소'를 누르면 onCancel이 null이므로 그냥 창만 닫힘
+        });
+        return; // 페이지 이동 방지
       } else {
-      // 로그인이 됐으면 기존 '리뷰 작성 모달' 요청
-      this.$emit('show-modal');
+        // 로그인이 됐으면 기존 '리뷰 작성 모달' 요청
+        this.$emit('show-modal');
       }
     },
 
@@ -307,9 +304,9 @@ export default {
         } catch (err) {
           console.error('[modal-thumb] 전체 사진 URL 로드 실패:', err)
           eventBus.emit('show-global-alert', {
-          message: '사진을 불러오는 데 실패했습니다.',
-          type: 'error'
-        });
+            message: '사진을 불러오는 데 실패했습니다.',
+            type: 'error'
+          });
           return
         }
       }
@@ -386,9 +383,9 @@ export default {
             // ⭐️ router.push('/login');
             //    만약 router 객체를 setup에서 가져오지 않았다면,
             //    this.$router.push({ name: 'login' }); 를 사용해야 합니다.
-            //    (Vue 3 <script setup> 에서는 useRouter()를, 
+            //    (Vue 3 <script setup> 에서는 useRouter()를,
             //     Options API에서는 this.$router를 사용합니다.)
-            
+
             //    우선 this.$router로 가정하겠습니다.
             this.$router.push({ name: 'login' });
           }
@@ -399,30 +396,30 @@ export default {
       // 본인 리뷰 체크 로직
       const review = this.reviews.find((r) => r.reviewId === reviewId)
       if (review && String(review.authorId) === String(this.currentUserId)) {
-          eventBus.emit('show-global-alert', {
+        eventBus.emit('show-global-alert', {
           message: '사용자 본인 리뷰는 신고할 수 없습니다.',
           type: 'error'
         });
-          this.openReportMenuId = null;
-          return;
-        }
+        this.openReportMenuId = null;
+        return;
+      }
 
-        // [수정] 
-   // window.prompt(...) 대신 모달 상태를 변경합니다.
-   this.reportModal.reviewId = reviewId; // 신고할 ID 저장
-   this.reportModal.visible = true;    // 모달 띄우기
-   this.openReportMenuId = null;         // ...메뉴 닫기
-      
+      // [수정]
+      // window.prompt(...) 대신 모달 상태를 변경합니다.
+      this.reportModal.reviewId = reviewId; // 신고할 ID 저장
+      this.reportModal.visible = true;    // 모달 띄우기
+      this.openReportMenuId = null;         // ...메뉴 닫기
+
     },
 
     async handleReportSubmit(reason) {
       const reviewId = this.reportModal.reviewId;
-      
+
       // 사유를 입력했는지 체크
       if (!reason || !reason.trim()) {
         eventBus.emit('show-global-alert', {
-        message: '신고 사유를 입력해야 합니다.',
-        type: 'error'
+          message: '신고 사유를 입력해야 합니다.',
+          type: 'error'
         });
         return;
       }
@@ -434,27 +431,27 @@ export default {
           message: '신고가 접수되었습니다.',
           type: 'success' // 👈 타입을 'success'로 지정
         });
-      } catch(e) {
+      } catch (e) {
         console.error('신고 실패:', e);
 
         // 💡 4. [수정] 에러 메시지 분기 처리
         // 백엔드 응답(e.response.data)에 "이미 신고함"이 포함되어 있는지 확인
         if (e.response && e.response.data && e.response.data.includes("이미 신고함")) {
-        
-        // [분기 1] 중복 신고일 경우
-        eventBus.emit('show-global-alert', {
-          message: '이미 접수된 신고입니다.', // 👈 요청하신 메시지
-          type: 'error'
-        });
+
+          // [분기 1] 중복 신고일 경우
+          eventBus.emit('show-global-alert', {
+            message: '이미 접수된 신고입니다.', // 👈 요청하신 메시지
+            type: 'error'
+          });
 
         } else {
-        
-        // [분기 2] 그 외 모든 실패일 경우 (서버 다운, 500 에러 등)
-        eventBus.emit('show-global-alert', {
-          message: '신고가 실패되었습니다.', // 👈 기존 메시지
-          type: 'error'
-        });
-    }
+
+          // [분기 2] 그 외 모든 실패일 경우 (서버 다운, 500 에러 등)
+          eventBus.emit('show-global-alert', {
+            message: '신고가 실패되었습니다.', // 👈 기존 메시지
+            type: 'error'
+          });
+        }
       } finally {
         // 모달 닫기
         this.reportModal.visible = false;

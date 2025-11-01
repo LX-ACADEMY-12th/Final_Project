@@ -9,16 +9,33 @@
 
     <CustomAlert :show="alert.show" :message="alert.message" :type="alert.type" @close="closeAlert" />
 
-    <CustomConfirmAlert :show="confirm.show"
-                        :message="confirm.message"
-                        @confirm="handleConfirm"
-                        @cancel="handleCancel" />
+    <CustomConfirmAlert :show="confirm.show" :message="confirm.message" @confirm="handleConfirm"
+      @cancel="handleCancel" />
   </div>
 </template>
 
 
 <script setup>
 import { RouterView } from 'vue-router'
+import { onMounted } from 'vue'; // 🟢 [추가] onMounted 훅 가져오기
+
+import { useAuthStore } from '@/stores/authStore'; // 1. 스토어 가져오기
+
+// 🟢 [추가] 스토어 인스턴스 생성 (onMounted에서 사용)
+const authStore = useAuthStore();
+
+// 🟢 [추가] App.vue 컴포넌트가 마운트될 때(즉, 앱이 처음 로드될 때) 실행
+onMounted(() => {
+  console.log('App.vue onMounted: 앱 시작 (setup)');
+
+  // 🟢 만료되었을 수 있는 프로필 URL을 갱신하는 액션 호출
+  // (authStore.refreshProfileUrl()는 내부적으로
+  // 로그인 상태(isLoggedIn)를 체크하므로 안전하게 호출 가능)
+  authStore.refreshProfileUrl();
+
+  // (선택사항) axiosSetup.js의 401 인터셉터가 로그아웃 처리를 하도록 설정
+  // setupAxiosInterceptors(authStore, router);
+});
 </script>
 
 <script>

@@ -24,32 +24,55 @@
             ( #{loginId}, #{password}, #{name}, #{email}, #{phoneNumber}, NOW() )
     </insert>
 
-    <!-- 🔴 [삭제] 로그인 (UserService에서 비밀번호를 비교하므로 삭제) -->
-    <!-- <select id="selectUserByLoginIdAndPassword" ... </select> -->
-
-    <!-- 🟢 [유지] 'loginId'(String)로 사용자 조회 (UserService의 'login' 메서드에서 사용) -->
+    <!-- 🟢 'loginId'(String)로 사용자 조회 (UserService의 'login' 메서드에서 사용) -->
     <select id="selectUserByLoginId" resultType="com.example.demo.dto.UserDTO">
-        SELECT "user_id", "login_id", "password", "name", "email", "phone_number", "gender", "region", "child_grade", "created_at", "updated_at"
-        FROM "user"
-        WHERE "login_id" = #{loginId}
+        SELECT
+            user_id AS userId,
+            login_id AS loginId,
+            password,
+            "name",
+            email,
+            phone_number AS phoneNumber,
+            gender,
+            region,
+            child_grade AS childGrade,
+            photo_url AS profileImageUrl
+        FROM
+            "user"
+        WHERE
+            login_id = #{loginId}
     </select>
 
-    <!-- 🟢 [추가] 'userId'(Long)로 사용자 조회 (PK 조회) -->
+    <!-- 🟢 'userId'(Long)로 사용자 조회 (PK 조회) -->
     <!-- (UserService의 'getUserInfoByUserId' 메서드에서 사용) -->
     <select id="selectUserById" resultType="com.example.demo.dto.UserDTO">
-        SELECT "user_id", "login_id", "name", "email", "phone_number", "gender", "region", "child_grade", "created_at", "updated_at"
-        FROM "user"
-        WHERE "user_id" = #{userId}
+        SELECT
+            "user_id" AS userId,
+            "login_id" AS loginId,
+            "name",
+            "email",
+            "phone_number" AS phoneNumber,
+            "gender",
+            "region",
+            "child_grade" AS childGrade,
+        <!--
+          DB의 "photo_url" 컬럼을 DTO의 "profileImageUrl" 필드로 매핑합니다.
+        -->
+            "photo_url" AS profileImageUrl
+        FROM
+            "user"
+        WHERE
+            "user_id" = #{userId}
     </select>
 
-    <!-- 🟢 [수정] 'userId'(Long)로 회원 탈퇴 -->
+    <!-- 🟢 'userId'(Long)로 회원 탈퇴 -->
     <!-- (id 변경: deleteUserByLoginId -> deleteUserById, WHERE 조건 변경) -->
     <delete id="deleteUserById">
         DELETE FROM "user"
         WHERE "user_id" = #{userId}
     </delete>
 
-    <!-- 🟢 [수정] 'userId'(Long)로 사용자 정보 수정 -->
+    <!-- 🟢 'userId'(Long)로 사용자 정보 수정 -->
     <!-- (WHERE 조건 변경: login_id -> user_id) -->
     <update id="updateUserInfo">
         UPDATE "user"

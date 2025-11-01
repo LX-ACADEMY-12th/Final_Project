@@ -10,7 +10,21 @@
         left: 18px;
         top: 16px;
       ">
-      <img src="https://placehold.co/600x400" class="rounded-circle" style="width: 48px; height: 48px; flex-shrink: 0;">
+      <!--
+        기존 <img> 태그를 user.profileImageUrl과 연동되는 v-if/v-else 블록으로 변경합니다.
+      -->
+      <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+        style="width: 48px; height: 48px; background-color: rgba(0,0,0,0.1); overflow: hidden;">
+
+        <!-- 스토어에 이미지가 있으면 <img> 표시 -->
+        <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필"
+          style="width: 100%; height: 100%; object-fit: cover;">
+        <!-- 스토어에 이미지가 없으면 기본 아이콘 표시 (v-else) -->
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#888" class="bi bi-person-fill"
+          viewBox="0 0 16 16">
+          <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zM8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6" />
+        </svg>
+      </div>
 
       <div class="flex-grow-1" style="font-family: 'SUIT', sans-serif">
         <div class="text-secondary" style="font-size: 0.9rem;">안녕하세요</div>
@@ -119,7 +133,7 @@ const map = ref(null);
 const markers = ref([]);
 const currentLocationMarker = ref(null);
 
-// 🟢 [추가] user 상태에 따라 화면에 표시할 이름을 계산하는 computed 속성
+// 🟢 user 상태에 따라 화면에 표시할 이름을 계산하는 computed 속성
 const userName = computed(() => {
   // user.value에 정보가 있고 name이 있다면 'OOO 학부모님' 형식으로 반환
   if (user.value?.name) {
@@ -140,7 +154,7 @@ const currentUserLocation = ref(null); // { lat: number, lng: number }
 const displayedItems = ref([]);      // 최종적으로 화면/지도에 보여줄 목록
 const isSearching = ref(false);      // (선택) 로딩 상태
 
-// URL 쿼리 복원
+// URL 쿼리
 const tabFromQuery = router.currentRoute.value.query.tab;
 if (tabFromQuery === '답사') {
   selectedTab.value = '답사';

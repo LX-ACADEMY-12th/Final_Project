@@ -28,8 +28,6 @@ import com.example.demo.dto.PageResponseDTO;
 import com.example.demo.dto.PhotoThumbDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
 import com.example.demo.dto.ReviewResponseDTO;
-import com.example.demo.mapper.AiCourseMapper;
-import com.example.demo.mapper.FinalScheduleMapper;
 import com.example.demo.mapper.ReviewMapper;
 
 @Slf4j
@@ -43,7 +41,7 @@ public class ReviewService {
     @Autowired
     private Storage storage;
 
-    // ⭐️ [수정] application-dev.properties의 키와 맞춤 (gcs.bucket-name)
+    // ⭐️ application-dev.properties의 키와 맞춤 (gcs.bucket-name)
     @Value("${gcs.bucket-name}") // (application-dev.properties에 gcs.bucket-name=science_book 설정 필요)
     private String bucketName;
 
@@ -68,7 +66,7 @@ public class ReviewService {
                 if (originalName != null && originalName.contains(".")) {
                     extension = originalName.substring(originalName.lastIndexOf("."));
                 }
-                String blobName = "reviews/" + UUID.randomUUID().toString() + extension;
+                String blobName = "reviews/" + UUID.randomUUID() + extension;
 
                 try {
                     BlobId blobId = BlobId.of(bucketName, blobName);
@@ -131,7 +129,7 @@ public class ReviewService {
                 if (originalName != null && originalName.contains(".")) {
                     extension = originalName.substring(originalName.lastIndexOf("."));
                 }
-                String blobName = "reviews/" + UUID.randomUUID().toString() + extension;
+                String blobName = "reviews/" + UUID.randomUUID() + extension;
 
                 try {
                     BlobId blobId = BlobId.of(bucketName, blobName);
@@ -215,10 +213,10 @@ public class ReviewService {
             for (Map<String, Object> r : rows) {
                 Long rid = ((Number) r.get("review_id")).longValue();
 
-                // 🔴 [수정] DB에서 가져온 값은 이제 GCS 객체 이름(objectName)입니다.
+                // 🔴 DB에서 가져온 값은 이제 GCS 객체 이름(objectName)입니다.
                 String objectName = (String) r.get("photo_url");
 
-                // 🟢 [추가] 객체 이름을 Signed URL로 변환합니다.
+                // 🟢 객체 이름을 Signed URL로 변환합니다.
                 String signedUrl = generateSignedUrl(objectName);
 
                 if (signedUrl != null) {
@@ -226,8 +224,15 @@ public class ReviewService {
                 }
             }
 
-            for (ReviewResponseDTO dto : reviews) {
-                dto.setPhotoUrls(photosByReview.getOrDefault(dto.getReviewId(), List.of()));
+            // 🟢 리뷰 작성자의 프로필 이미지(blobName)를 Signed URL로 변환합니다.
+            // (주의: 이 로직이 작동하려면 ReviewMapper.xml의 'findReviewsByTarget' 쿼리에서
+            //  user 테이블을 JOIN하여 user.photo_url AS authorProfileImageUrl 을 SELECT해야 합니다.)
+            for (ReviewResponseDTO review : reviews) {
+                // photosByReview 맵을 사용하여 DTO의 photoUrls 필드를 채웁니다.
+                review.setPhotoUrls(photosByReview.getOrDefault(review.getReviewId(), List.of()));
+                String blobName = review.getAuthorProfileImageUrl(); // (SQL에서 AS authorProfileImageUrl로 가져온 blobName)
+                String signedUrl = generateSignedUrl(blobName); // 기존 헬퍼 메서드 재사용
+                review.setAuthorProfileImageUrl(signedUrl); // DTO의 필드를 Signed URL로 덮어쓰기
             }
         }
 
@@ -334,9 +339,6 @@ public class ReviewService {
                 .filter(url -> url != null) // 변환 실패(null)한 경우 제외
                 .collect(Collectors.toList());
     }
-
-    // 🔴 [삭제] 불필요한 GCS URL 파싱 헬퍼 메서드 삭제
-    // private String getBlobNameFromUrl(String url) { ... }
 
     // 🟢 [추가] Signed URL 생성을 위한 헬퍼 메서드
     /**

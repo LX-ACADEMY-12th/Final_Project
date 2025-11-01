@@ -13,9 +13,20 @@
 
     <div class="d-flex align-items-center mt-4 mb-4">
       <div class="position-relative me-3">
+        <!--
+          기존 emoji 아이콘을 v-if/v-else로 감싸고,
+          user.profileImageUrl이 있으면 <img>를 표시합니다.
+          기존 'profile-pic' 클래스(60x60px)와 스타일을 유지합니다.
+        -->
         <div
-          class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary">
-          <i class="bi bi-emoji-smile" style="font-size: 2.5rem;"></i>
+          class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary"
+          style="overflow: hidden;"> <!-- 👈 이미지가 원을 벗어나지 않도록 overflow: hidden 추가 -->
+
+          <!-- 스토어에 이미지가 있으면 <img> 표시 -->
+          <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필"
+            style="width: 100%; height: 100%; object-fit: cover;">
+          <!-- 스토어에 이미지가 없으면(v-else) 기존 이모지 아이콘 표시 -->
+          <i v-else class="bi bi-emoji-smile" style="font-size: 2.5rem;"></i>
         </div>
         <button
           class="btn btn-primary rounded-circle p-0 position-absolute profile-badge d-flex align-items-center justify-content-center"

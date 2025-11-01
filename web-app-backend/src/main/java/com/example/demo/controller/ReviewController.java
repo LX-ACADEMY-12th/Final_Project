@@ -43,12 +43,12 @@ public class ReviewController {
 			@RequestParam Long targetId, 
             @RequestParam String targetType,
 
-            // ⭐️ [추가] 페이지 파라미터 (기본값: 1페이지, 10개씩)
+            // ⭐️ 페이지 파라미터 (기본값: 1페이지, 10개씩)
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ){
 		
-        // ⭐️ [수정] 서비스 호출 및 반환 타입 변경
+        // ⭐️ 서비스 호출 및 반환 타입 변경
 		PageResponseDTO<ReviewResponseDTO> reviewPage = 
             reviewService.getfindTargetReview(targetId, targetType, page, size);
             

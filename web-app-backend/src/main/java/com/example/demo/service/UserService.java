@@ -2,8 +2,8 @@ package com.example.demo.service;
 
 import java.io.IOException;
 import java.util.UUID;
-import java.net.URL; // 🟢 [추가] Signed URL 생성을 위해
-import java.util.concurrent.TimeUnit; // 🟢 [추가] Signed URL 시간 설정을
+import java.net.URL; // 🟢 Signed URL 생성을 위해
+import java.util.concurrent.TimeUnit; // 🟢 Signed URL 시간 설정을 위해
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,10 +71,10 @@ public class UserService {
         userMapper.insertUser(userDTO);
     }
 
-    // 4. 로그인 (변경 없음)
+    // 4. 로그인
     public LoginResponseDTO login(LoginRequestDTO loginRequest) {
 
-// 1. ID로만 사용자를 조회합니다.
+        // 1. ID로만 사용자를 조회합니다.
         UserDTO user = userMapper.selectUserByLoginId(loginRequest.getLoginId());
 
         // 2. 사용자가 존재하고, 암호화된 비밀번호가 일치하는지 확인
@@ -83,7 +83,7 @@ public class UserService {
             return null;
         }
 
-        // 3. 🟢 [추가] DTO를 반환하기 전, Signed URL로 변환합니다.
+        // 3. 🟢 DTO를 반환하기 전, Signed URL로 변환합니다.
         UserDTO userWithSignedUrl = convertToSignedUrl(user);
 
         // 4. 실제 JWT 토큰 생성 (userId 사용)
@@ -100,7 +100,7 @@ public class UserService {
                 userWithSignedUrl.getGender(),
                 userWithSignedUrl.getRegion(),
                 userWithSignedUrl.getChildGrade(),
-                userWithSignedUrl.getProfileImageUrl(), // 🟢 [추가] Signed URL
+                userWithSignedUrl.getProfileImageUrl(), // 🟢 15분짜리 Signed URL
                 accessToken,
                 refreshToken
         );
@@ -128,10 +128,10 @@ public class UserService {
     @Transactional
     public UserDTO updateUserInfo(UserDTO userDTO, MultipartFile profileImage) throws IOException {
 
-        // 1. 🟢 (선택 사항) GCS에서 기존 프로필 이미지 삭제 로직
+        // 🟢 (선택 사항) GCS에서 기존 프로필 이미지 삭제 로직
         // ... (UserMapper에서 기존 profileImageUrl(blobName)을 조회한 후 storage.delete() 호출) ...
 
-        // 2. 🟢 새 프로필 이미지 업로드 (파일이 있는 경우)
+        // 🟢 새 프로필 이미지 업로드 (파일이 있는 경우)
         if (profileImage != null && !profileImage.isEmpty()) {
             String blobName = "profiles/" + UUID.randomUUID().toString() + "-" + profileImage.getOriginalFilename();
 
@@ -142,13 +142,13 @@ public class UserService {
 
             storage.create(blobInfo, profileImage.getBytes());
 
-            // 🟢 [중요] DTO에 GCS 객체 이름(blobName)을 저장합니다.
+            // 🟢 DTO에 GCS 객체 이름(blobName)을 저장합니다.
             // (DB에는 전체 URL이 아닌 blobName만 저장해야 ReviewService처럼 Signed URL을 쓸 수 있습니다)
             userDTO.setProfileImageUrl(blobName);
         }
 
         // 3. 🟢 DB에 사용자 정보 업데이트
-        int updatedRows = userMapper.updateUserInfo(userDTO); // (이건 Mapper 호출)
+        int updatedRows = userMapper.updateUserInfo(userDTO);
 
         if (updatedRows > 0) {
             // 4. 🟢 DB에서 '최신' 정보를 다시 조회하여 반환
@@ -162,7 +162,7 @@ public class UserService {
         }
     }
 
-    // 🟢 [추가] GCS 객체 이름을 Signed URL로 변환 (ReviewService에서 복사)
+    // 🟢 GCS 객체 이름을 Signed URL로 변환
     /**
      * GCS 객체 이름(blobName)을 15분간 유효한 Signed URL로 변환합니다.
      */
@@ -181,6 +181,31 @@ public class UserService {
             return null;
         }
     }
+
+    /**
+     * 🟢 만료된 Signed URL을 갱신하는 전용 로직
+     */
+    public String getRefreshedProfileUrl(Long userId) {
+        // 1. DB에서 사용자 정보 조회
+        //    (UserMapper.xml의 'selectUserById' 쿼리가 photo_url AS profileImageUrl을 반환함)
+        //    (이때 'user' DTO의 profileImageUrl 필드에는 'blobName'이 담겨있음)
+        UserDTO user = userMapper.selectUserById(userId);
+
+        if (user == null || user.getProfileImageUrl() == null || user.getProfileImageUrl().isEmpty()) {
+            throw new RuntimeException("프로필 이미지를 찾을 수 없습니다.");
+        }
+
+        // 2. user.getProfileImageUrl() (이것은 blobName)을 이용해 새 Signed URL 생성
+        String blobName = user.getProfileImageUrl();
+        String newSignedUrl = generateSignedUrl(blobName);
+
+        if (newSignedUrl == null) {
+            throw new RuntimeException("Signed URL 생성에 실패했습니다.");
+        }
+
+        return newSignedUrl;
+    }
+
 
     // 🟢 [추가] UserDTO의 profileImageUrl을 Signed URL로 변환하는 헬퍼
     /**

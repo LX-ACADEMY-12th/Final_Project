@@ -198,17 +198,17 @@ export default {
     const isPlace = this.$route.path.startsWith('/place/'); // 1. URL 경로를 분석해서 'targetType'으로 사용
     this.pageType = isPlace ? 'science_place' : 'exhibition'
 
-      console.log(`created: 이미 User ID (${this.currentUserId}) 있음. 즉시 데이터 로드`);
-      // 장소인 경우
-      if (isPlace) {
-        this.fetchPlaceData(id);
-        // 전시인 경우
-      } else {
-        this.fetchExhibitionData(id);
-      }
-    
+    console.log(`created: 이미 User ID (${this.currentUserId}) 있음. 즉시 데이터 로드`);
+    // 장소인 경우
+    if (isPlace) {
+      this.fetchPlaceData(id);
+      // 전시인 경우
+    } else {
+      this.fetchExhibitionData(id);
+    }
+
     // (디버깅) setup에서 가져온 currentUserId가 잘 찍히는지 확인
-     console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
+    console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
   },
 
   watch: {
@@ -221,11 +221,11 @@ export default {
 
         // 🟢 [수정] 로그인 여부와 관계없이 무조건 데이터를 로드합니다.
         console.log(`watch($route.params.id): 데이터 로드 (User ID: ${this.currentUserId ?? '로그아웃'})`);
-          if (isPlace) {
-            this.fetchPlaceData(newId);
-          } else {
-            this.fetchExhibitionData(newId);
-          }
+        if (isPlace) {
+          this.fetchPlaceData(newId);
+        } else {
+          this.fetchExhibitionData(newId);
+        }
       }
     },
     currentUserId(newUserId, oldUserId) {

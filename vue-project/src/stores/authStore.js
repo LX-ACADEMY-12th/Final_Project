@@ -33,10 +33,10 @@ export const useAuthStore = defineStore(
         name: loginData.name,
         email: loginData.email,
         phoneNumber: loginData.phoneNumber,
-        gender: loginData.gender, // 🟢 [추가] 성별 필드 추가
-        region: loginData.region, // 🟢 [추가] 지역 필드 추가
-        childGrade: loginData.childGrade, // 🟢 [추가] 자녀정보 필드 추가
-        profileImageUrl: loginData.profileImageUrl, // 🟢 [추가] 프로필 이미지 URL
+        gender: loginData.gender, // 🟢 성별 필드 추가
+        region: loginData.region, // 🟢 지역 필드 추가
+        childGrade: loginData.childGrade, // 🟢 자녀정보 필드 추가
+        profileImageUrl: loginData.profileImageUrl, // 🟢 프로필 이미지 15분짜리 URL
       }
 
       user.value = userData // 👈 (Persisted)
@@ -54,6 +54,41 @@ export const useAuthStore = defineStore(
     function refreshAccessToken(newAccessToken) {
       console.log('[authStore] 액세스 토큰 갱신')
       accessToken.value = newAccessToken
+    }
+
+    /**
+     * 🟢 [추가] 앱 로드 시 만료된 프로필 URL을 갱신하는 액션
+     */
+    async function refreshProfileUrl() {
+      // 1. 로그인이 안 되어 있거나 user 상태가 없으면 즉시 중단
+      if (!isLoggedIn.value || !user.value) {
+        // console.log('[authStore] 비로그인 상태, URL 갱신 안 함');
+        return
+      }
+
+      console.log('[authStore] 프로필 이미지 URL 갱신 시도...')
+      try {
+        // 2. 백엔드에 새 URL 요청 (/api/user/profile-url 호출)
+        const response = await axios.get('/api/user/profile-url')
+
+        // 3. 백엔드가 { url: "https://..." } 형식으로 응답
+        if (response.data && response.data.url) {
+          // 4. Pinia 상태(및 localStorage)의 profileImageUrl을 새 URL로 덮어쓰기
+          user.value.profileImageUrl = response.data.url
+
+          console.log('[authStore] 프로필 URL 갱신 성공.')
+        } else {
+          // URL이 null (DB에 이미지가 없는 사용자)
+          user.value.profileImageUrl = null
+        }
+      } catch (error) {
+        console.error('[authStore] 프로필 URL 갱신 실패:', error)
+        // 401(토큰 만료), 404(사용자 없음) 등. axiosSetup이 처리할 수 있음.
+        // 만약 404(이미지 없음) 에러 시, 기본 아이콘을 쓰도록 null 처리
+        if (error.response?.status === 404) {
+          user.value.profileImageUrl = null
+        }
+      }
     }
 
     // ⭐ [추가] 사용자 정보 업데이트 액션 ⭐
@@ -108,7 +143,8 @@ export const useAuthStore = defineStore(
       login,
       logout,
       refreshAccessToken,
-      updateUser, // ⭐ [추가] 새로 정의된 액션을 반환합니다.
+      refreshProfileUrl,
+      updateUser,
     }
   },
   {

@@ -4,9 +4,9 @@
     <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-white"
       style="flex-shrink: 0; position: sticky; top: 0; z-index: 1020;">
       <div style="width: 24px; height: 24px;"></div>
-      <h2 class="h5 mb-0 fw-bold">홈</h2>
-      <button class="btn p-0 border-0 d-flex flex-column align-items-center"
-        style="font-size: 0.75rem; color: #4A7CEC;" @click="goToAiTutor">
+      <h2 class="h5 mb-0 fw-bold">교과서</h2>
+      <button class="btn p-0 border-0 d-flex flex-column align-items-center" style="font-size: 0.75rem; color: #4A7CEC;"
+        @click="goToAiTutor">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-robot"
           viewBox="0 0 16 16">
           <path
@@ -23,16 +23,37 @@
       <div class="p-3">
         <div class="d-flex align-items-center gap-3 p-3 rounded-4 shadow-sm"
           style="background-color: #4A7CEC; color: white;">
-          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-            style="width: 48px; height: 48px; background-color: rgba(255,255,255,0.3);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" class="bi bi-person-fill"
+
+          <!-- 프로필 이미지를 표시할 원형 컨테이너입니다.
+            'overflow: hidden;'을 추가하여 이미지가 원 밖으로 나가지 않도록 합니다. -->
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="
+          width: 48px;
+          height: 48px;
+          background-color: rgba(255, 255, 255, 0.3);
+          overflow: hidden;
+        ">
+            <!--
+          v-if:
+          스토어의 user 객체에 profileImageUrl이 존재하는 경우(null이나 undefined가 아닌 경우),
+          백엔드로부터 받은 'Signed URL'을 src 속성에 바인딩하여 <img> 태그를 표시합니다.-->
+            <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필 이미지" style="
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          " />
+            <!--
+          v-else:
+          user.profileImageUrl이 없는 경우(신규 가입자 또는 이미지 미등록자),
+          기존의 기본 SVG 아이콘을 표시합니다.
+          -->
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" class="bi bi-person-fill"
               viewBox="0 0 16 16">
               <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zM8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6" />
             </svg>
           </div>
           <div class="flex-grow-1">
             <div class="fw-bold fs-6">안녕하세요</div>
-            <div class="fw-bold fs-5">{{ user?.name || '방문자' }} 학부모님!</div>
+            <div class="fw-bold fs-5">{{ userName }}</div>
           </div>
         </div>
       </div>
@@ -63,11 +84,11 @@
 
       <div class="p-3">
         <div class="rounded-3 shadow-sm" style="background-color: #8B5A2B; padding: 10px; border-radius: 12px;">
-          <div
-            style="background-color: #2E4F2F; min-height: 180px; border-radius: 8px; position: relative;"
+          <div style="background-color: #2E4F2F; min-height: 180px; border-radius: 8px; position: relative;"
             class="p-3 chalkboard-text">
 
-            <div v-for="(semesterData, index) in chalkboardContent" :key="semesterData.semester" :class="{ 'mt-3': index > 0 }">
+            <div v-for="(semesterData, index) in chalkboardContent" :key="semesterData.semester"
+              :class="{ 'mt-3': index > 0 }">
               <h6 class="fw-bold chalkboard-heading">{{ semesterData.semester }}</h6>
               <ul v-if="semesterData.units.length > 0" class="chalkboard-list">
                 <li v-for="unit in semesterData.units" :key="unit">{{ unit }}</li>
@@ -133,12 +154,11 @@
       <div style="height: 80px;"></div>
 
     </div>
-    
+
     <BottomNavbar :selectedNavItem="selectedNavItem" @navigate="handleNavigation" style="flex-shrink: 0;" />
 
     <FilterModal v-if="isModalOpen" :initialSubject="selectedSubject" :initialGrade="selectedGrade"
-      @close="isModalOpen = false" @complete="handleFilterComplete" 
-      :showLocationOptions="false" />
+      @close="isModalOpen = false" @complete="handleFilterComplete" :showLocationOptions="false" />
 
   </div>
 </template>
@@ -152,26 +172,35 @@ import { storeToRefs } from 'pinia';
 // 컴포넌트 임포트
 import FilterModal from '@/components/modal/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
-import PlaceReviewCard from '@/components/card/PlaceReviewCard.vue'; 
+import PlaceReviewCard from '@/components/card/PlaceReviewCard.vue';
 
 
 export default {
   components: {
     FilterModal,
     BottomNavbar,
-    PlaceReviewCard 
+    PlaceReviewCard
   },
 
   setup() {
     const authStore = useAuthStore();
     const { user } = storeToRefs(authStore);
+    // 🟢 user 상태에 따라 화면에 표시할 이름을 계산하는 computed 속성
+    const userName = computed(() => {
+      // user.value에 정보가 있고 name이 있다면 'OOO 학부모님' 형식으로 반환
+      if (user.value?.name) {
+        return `${user.value.name} 학부모님`;
+      }
+      // user 정보가 없으면 기본 메시지 반환
+      return '로그인 필요';
+    });
 
-    const router = useRouter(); 
-    const selectedTab = ref('전시'); 
-    const isModalOpen = ref(false); 
-    const selectedSubject = ref('물리'); 
+    const router = useRouter();
+    const selectedTab = ref('전시');
+    const isModalOpen = ref(false);
+    const selectedSubject = ref('물리');
     const selectedGrade = ref('초등 3학년'); // [수정] '초등학생' -> '초등 3학년'
-    const selectedNavItem = ref('홈'); 
+    const selectedNavItem = ref('홈');
 
     const curriculumData = {
       '초등 3학년': {
@@ -199,7 +228,7 @@ export default {
           '물리': [],
           '화학': ['기체의 성질'],
           '생명': ['생물과 환경'],
-          '지구': ['밤하늘 관찰', '기후변화와 우리 생활'] 
+          '지구': ['밤하늘 관찰', '기후변화와 우리 생활']
         }
       },
       '초등 5학년': {
@@ -210,7 +239,7 @@ export default {
           '지구': ['지층과 화석']
         },
         '2학기': {
-          '물리': ['열과 우리 생활', '자원과 에너지'], 
+          '물리': ['열과 우리 생활', '자원과 에너지'],
           '화학': ['혼합물의 분리'],
           '생명': [],
           '지구': ['날씨와 우리 생활']
@@ -242,14 +271,14 @@ export default {
       let gradeKey = selectedGrade.value;
       // [수정] '초등학생'일 경우 '초등 3학년'으로 처리하는 로직 유지
       if (!['초등 3학년', '초등 4학년', '초등 5학년', '초등 6학년'].includes(gradeKey)) {
-        gradeKey = '초등 3학년'; 
+        gradeKey = '초등 3학년';
       }
 
-      const subjectKey = selectedSubject.value; 
+      const subjectKey = selectedSubject.value;
 
       const gradeData = curriculumData[gradeKey];
       if (!gradeData) {
-        return [ { semester: '데이터 없음', units: [] } ];
+        return [{ semester: '데이터 없음', units: [] }];
       }
 
       const semester1Units = gradeData['1학기'][subjectKey] || [];
@@ -281,7 +310,7 @@ export default {
 
     const handleNavigation = (navItemName) => {
       console.log(navItemName, '클릭됨.');
-      selectedNavItem.value = navItemName; 
+      selectedNavItem.value = navItemName;
 
       if (navItemName === '홈') {
         router.push('/home');
@@ -302,6 +331,7 @@ export default {
 
     return {
       user,
+      userName,
       selectedTab,
       isModalOpen,
       selectedSubject,
@@ -312,7 +342,7 @@ export default {
       handleFilterComplete,
       handleNavigation,
       goToAiTutor,
-      chalkboardContent 
+      chalkboardContent
     };
   }
 }
@@ -323,6 +353,7 @@ export default {
 [style*="font-family: 'SUIT'"] {
   font-family: 'SUIT', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
+
 .spec-button {
   display: flex;
   flex-direction: row;
@@ -340,50 +371,58 @@ export default {
   font-family: 'SUIT', sans-serif;
   font-weight: 500;
 }
+
 .spec-button.active {
   background: #4A7CEC;
   color: white;
   border: none;
   font-weight: 700;
 }
+
 .flex-grow-1[style*="overflow-y: auto"] {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
 [style*="overflow-x: auto"] {
   box-sizing: border-box;
 }
 
 /* --- [수정] 칠판 텍스트 스타일 --- */
 .chalkboard-text {
-  color: #f0f0f0; 
+  color: #f0f0f0;
 }
+
 .chalkboard-heading {
   color: #fff;
   font-size: 1rem;
-  font-weight: 700; 
+  font-weight: 700;
 }
+
 .chalkboard-list {
   list-style-type: none;
-  padding-left: 1.25rem; 
+  padding-left: 1.25rem;
   font-size: 0.9rem;
 }
+
 .chalkboard-list li {
   position: relative;
-  margin-bottom: 0.35rem; 
-  color: #ffffff; 
+  margin-bottom: 0.35rem;
+  color: #ffffff;
 }
+
 .chalkboard-list li::before {
   content: '';
   position: absolute;
-  left: -1.25rem; 
+  left: -1.25rem;
   top: 50%;
   transform: translateY(-50%);
   width: 10px;
   height: 10px;
-  background-color: #ffffff; 
+  background-color: #ffffff;
   border-radius: 50%;
 }
+
 .chalkboard-no-data {
   font-size: 0.9rem;
   color: #888;

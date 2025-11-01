@@ -14,17 +14,13 @@
 	        r.created_at AS createdAt,
 	        r.updated_at AS updatedAt,
 	        r.user_id AS authorId,
-	        
 	        -- "user" 테이블의 'name' 컬럼
 	        u.name AS authorName,
-	        
 	        -- "review" 테이블의 'like_count' 컬럼
-	        r.like_count AS likeCount
-	        
-	        -- ⭐️ 참고: authorProfileImageUrl은 DTO에 있지만
-	        -- "user" 테이블에 없으므로, 이 DTO 필드는 항상 null이 됩니다.
-	        -- (괜찮습니다. DTO 필드와 쿼리 결과 컬럼명이 다르면 null로 채워집니다)
-	    FROM
+	        r.like_count AS likeCount,
+            -- user 테이블에서 photo_url을 authorProfileImageUrl로 가져옵니다.
+            u.photo_url AS authorProfileImageUrl
+        FROM
 	        review r
 	    LEFT JOIN
 	        "user" u ON r.user_id = u.user_id
