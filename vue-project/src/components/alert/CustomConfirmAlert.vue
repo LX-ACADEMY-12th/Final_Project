@@ -5,7 +5,7 @@
 
       <div class="button-group">
         <button class="btn-cancel" @click="$emit('cancel')">취소</button>
-        <button class="btn-confirm" @click="$emit('confirm')">로그인</button>
+        <button class="btn-confirm" @click="$emit('confirm')">{{ msg }}</button>
       </div>
     </div>
   </div>
@@ -17,6 +17,10 @@ export default {
   props: {
     show: { type: Boolean, default: false }, // 보일지 말지
     message: { type: String, default: '메시지를 입력하세요.' }, // 내용
+    msg: {
+      type: String,
+      default: '로그인', // 부모가 값을 안주면 이 텍스트가 나옴
+    },
   },
   // 부모에게 'cancel' 또는 'confirm' 이벤트를 보냅니다.
   emits: ['cancel', 'confirm'],

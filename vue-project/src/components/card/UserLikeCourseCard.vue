@@ -381,9 +381,17 @@ export default {
 }
 
 .course-list {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: #666;
   line-height: 1.4;
+
+  /* ▼▼▼ [수정] 텍스트가 2줄을 넘어가면 ... 처리 ▼▼▼ */
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 텍스트를 2줄로 제한합니다. (1줄로 바꾸셔도 됩니다) */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* ▲▲▲ [수정] 여기까지 추가 ▲▲▲ */
 }
 
 /* 지도 컨테이너 클릭 가능하게 */
@@ -452,12 +460,24 @@ export default {
   font-weight: 600;
   color: #333;
   margin-bottom: 4px;
+
+  /* ▼▼▼ [수정] 제목을 2줄로 제한 ▼▼▼ */
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* 2줄로 제한 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .address {
   font-size: 14px;
   color: #777;
   margin-bottom: 4px;
+
+  /* ▼▼▼ [수정] 주소를 1줄로 제한 ▼▼▼ */
+  white-space: nowrap; /* 1줄로 제한 */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 카카오맵 컨트롤 숨기기 */

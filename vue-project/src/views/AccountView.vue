@@ -1,6 +1,7 @@
 <template>
   <div id="account-settings" class="container px-4 py-4">
 
+    <!-- 헤더 -->
     <div class="d-flex align-items-center justify-content-between pb-4 border-bottom">
       <button class="btn p-0 me-3 border-0" @click="goBack">
         <i class="bi bi-arrow-left fs-4"></i>
@@ -11,117 +12,113 @@
       </div>
     </div>
 
-    <div class="d-flex justify-content-center my-4">
-      <div class="position-relative">
-        <div
-          class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary">
-          <!-- 사용자 이미지 -->
-          <img v-if="imagePreviewUrl" :src="imagePreviewUrl" alt="프로필 미리보기" class="profile-pic-image">
-          <i v-else class="bi bi-emoji-smile" style="font-size: 3rem;"></i>
+    <!-- 스크롤 영역 -->
+    <div class="content-wrapper">
+      <!-- 프로필 업로드 -->
+      <div class="d-flex justify-content-center my-4">
+        <div class="position-relative">
+          <div class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary">
+            <img v-if="imagePreviewUrl" :src="imagePreviewUrl" alt="프로필 미리보기" class="profile-pic-image" />
+            <i v-else class="bi bi-emoji-smile" style="font-size: 3rem;"></i>
+          </div>
+          <button
+            class="btn btn-primary rounded-circle p-0 position-absolute profile-badge d-flex align-items-center justify-content-center"
+            @click="triggerFileUpload">
+            <i class="bi bi-plus-lg"></i>
+          </button>
         </div>
-        <button
-          class="btn btn-primary rounded-circle p-0 position-absolute profile-badge d-flex align-items-center justify-content-center"
-          @click="triggerFileUpload">
-          <i class="bi bi-plus-lg"></i>
-        </button>
       </div>
-
       <input type="file" ref="fileInput" @change="onFileSelected" accept="image/*" style="display: none;" />
 
+      <!-- 정보 수정 폼 -->
       <form @submit.prevent="handleUpdate">
+        <div class="form-group mb-3">
+          <label for="login-id" class="form-label">로그인 아이디</label>
+          <input type="text" class="form-control" id="login-id" v-model="localUser.loginId" disabled />
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="username" class="form-label">사용자 이름</label>
+          <input type="text" class="form-control" id="username" placeholder="사용자 이름 입력" v-model="localUser.name" />
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="email" class="form-label">이메일</label>
+          <input type="email" class="form-control" id="email" placeholder="이메일 입력" v-model="localUser.email" />
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="phone" class="form-label">휴대폰 번호</label>
+          <input type="tel" class="form-control" id="phone" placeholder="휴대폰 번호 입력" v-model="localUser.phoneNumber" />
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">성별</label>
+          <div class="d-flex gap-3">
+            <button type="button" class="btn w-100"
+              :class="localUser.gender === '남성' ? 'btn-gender-fill' : 'btn-gender-outline'"
+              @click="selectGender('male')">남성</button>
+            <button type="button" class="btn w-100"
+              :class="localUser.gender === '여성' ? 'btn-gender-fill' : 'btn-gender-outline'"
+              @click="selectGender('female')">여성</button>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="region" class="form-label">지역</label>
+          <input type="text" class="form-control" id="region" placeholder="지역 입력" v-model="localUser.region" />
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="child-grade" class="form-label d-flex justify-content-between align-items-center">
+            <span class="fw-medium">자녀정보 (학년)</span>
+            <small class="text-muted fw-normal">(자녀의 학년에 맞는 정보를 안내합니다.)</small>
+          </label>
+
+          <div class="btn-group w-100 dropup">
+            <button type="button" class="btn dropdown-toggle w-100 dropup-btn"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              :class="{ 'btn-selected': localUser.childGrade }">
+              {{ localUser.childGrade || '자녀 학년 선택' }}
+            </button>
+
+            <ul class="dropdown-menu w-100 custom-dropdown-menu">
+              <li v-for="grade in childGrades" :key="grade">
+                <a class="dropdown-item" href="#"
+                  @click.prevent="selectChildGrade(grade)"
+                  :class="{ 'active': localUser.childGrade === grade }">
+                  {{ grade }}
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-4 mb-4">
+          <button type="submit" class="btn btn-primary w-100 py-3 fw-bold submit-btn">수정하기</button>
+        </div>
       </form>
     </div>
-
-    <form @submit.prevent="handleUpdate">
-      <div class="form-group mb-3">
-        <label for="login-id" class="form-label">로그인 아이디</label>
-        <input type="text" class="form-control" id="login-id" v-model="localUser.loginId" disabled>
-      </div>
-      <div class="form-group mb-3">
-        <label for="username" class="form-label">사용자 이름</label>
-        <input type="text" class="form-control" id="username" placeholder="사용자 이름 입력" v-model="localUser.name">
-      </div>
-      <div class="form-group mb-3">
-        <label for="email" class="form-label">이메일</label>
-        <input type="email" class="form-control" id="email" placeholder="이메일 입력" v-model="localUser.email">
-      </div>
-      <div class="form-group mb-3">
-        <label for="phone" class="form-label">휴대폰 번호</label>
-        <input type="tel" class="form-control" id="phone" placeholder="휴대폰 번호 입력" v-model="localUser.phoneNumber">
-      </div>
-      <div class="form-group mb-3">
-        <label class="form-label">성별</label>
-        <div class="d-flex gap-3">
-          <button type="button" class="btn w-100"
-            :class="localUser.gender === '남성' ? 'btn-gender-fill' : 'btn-gender-outline'" @click="selectGender('male')">
-            남성
-          </button>
-          <button type="button" class="btn w-100"
-            :class="localUser.gender === '여성' ? 'btn-gender-fill' : 'btn-gender-outline'"
-            @click="selectGender('female')">
-            여성
-          </button>
-        </div>
-      </div>
-      <div class="form-group mb-3">
-        <label for="region" class="form-label">지역</label>
-        <input type="text" class="form-control" id="region" placeholder="지역 입력" v-model="localUser.region">
-      </div>
-
-      <div class="form-group mb-3">
-        <label for="child-grade" class="form-label d-flex justify-content-between align-items-center">
-          <span class="fw-medium">자녀정보 (학년)</span>
-          <small class="text-muted fw-normal">(자녀의 학년에 맞는 정보를 안내합니다.)</small>
-        </label>
-        <div class="btn-group w-100 dropup">
-          <button type="button" class="btn dropdown-toggle w-100 dropup-btn" data-bs-toggle="dropdown"
-            aria-expanded="false" :class="{ 'btn-selected': localUser.childGrade }">
-            {{ localUser.childGrade || '자녀 학년 선택' }}
-          </button>
-
-          <ul class="dropdown-menu w-100 custom-dropdown-menu">
-            <li v-for="grade in childGrades" :key="grade">
-              <a class="dropdown-item" href="#" @click.prevent="selectChildGrade(grade)"
-                :class="{ 'active': localUser.childGrade === grade }">
-                {{ grade }}
-              </a>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="mt-4 mb-4">
-        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold submit-btn">수정하기</button>
-      </div>
-    </form>
+    <!-- /content-wrapper -->
 
   </div>
 </template>
 
 <script>
-// ❌ axios import 제거 (Pinia 액션 내에서 사용되도록 위임)
-// 🟢 Pinia 스토어 import는 유지
+// Pinia
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
-// ❌ useRouter import 제거 (this.$router 사용)
 import eventBus from '@/utils/eventBus';
 
 export default {
   name: 'AccountSettingsView',
 
-  // setup()은 그대로 유지
   setup() {
     const authStore = useAuthStore();
     const { user, isLoggedIn } = storeToRefs(authStore);
-
-    return {
-      authStore,
-      user,
-      isLoggedIn,
-    };
+    return { authStore, user, isLoggedIn };
   },
 
-  // data()는 그대로 유지
   data() {
     return {
       localUser: {
@@ -134,8 +131,6 @@ export default {
         childGrade: '',
       },
       childGrades: ['초등 3학년', '초등 4학년', '초등 5학년', '초등 6학년'],
-
-      // 🟢 파일 업로드용 데이터
       selectedFile: null,
       imagePreviewUrl: null,
     };
@@ -143,55 +138,34 @@ export default {
 
   created() {
     this.initializeFormFromPinia();
-    // 🟢 Pinia 스토어의 기존 프로필 이미지로 미리보기 설정
     if (this.user && this.user.profileImageUrl) {
       this.imagePreviewUrl = this.user.profileImageUrl;
     }
   },
 
   methods: {
+    goBack() { this.$router.back(); },
 
-    goBack() {
-      this.$router.back();
-    },
+    triggerFileUpload() { this.$refs.fileInput.click(); },
 
-    // 🟢 '+' 버튼 클릭 시 숨겨진 input[type=file]을 클릭
-    triggerFileUpload() {
-      this.$refs.fileInput.click();
-    },
-
-    // 🟢 파일이 선택되었을 때 실행
     onFileSelected(event) {
       const file = event.target.files[0];
-      if (!file) {
-        return;
-      }
-
-      // 1. 선택된 파일 저장
+      if (!file) return;
       this.selectedFile = file;
-
-      // 2. 이미지 미리보기 생성
       const reader = new FileReader();
-      reader.onload = (e) => {
-        this.imagePreviewUrl = e.target.result;
-      };
+      reader.onload = (e) => { this.imagePreviewUrl = e.target.result; };
       reader.readAsDataURL(file);
     },
 
-    // ⭐ 1. Pinia의 user 정보를 localUser로 복사 및 로그인 확인 ⭐
     initializeFormFromPinia() {
       if (!this.isLoggedIn) {
         eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
-          onConfirm: () => {
-            this.$router.push({ name: 'login' });
-          }
+          onConfirm: () => { this.$router.push({ name: 'login' }); }
         });
         return;
       }
-
       if (this.user) {
-        // Pinia user 데이터를 localUser로 복사 (이 부분이 중요)
         this.localUser.loginId = this.user.loginId || '';
         this.localUser.name = this.user.name || '';
         this.localUser.email = this.user.email || '';
@@ -202,27 +176,20 @@ export default {
       } else {
         eventBus.emit('show-global-confirm', {
           message: '사용자 정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.',
-          onConfirm: () => {
-            this.$router.push({ name: 'login' });
-          }
+          onConfirm: () => { this.$router.push({ name: 'login' }); }
         });
-        return;
       }
     },
 
-    // ⭐ 2. 사용자 정보 업데이트 (수정하기 버튼 클릭 시) ⭐
     async handleUpdate() {
       if (!this.isLoggedIn) {
         eventBus.emit('show-global-confirm', {
           message: '인증 토큰이 없습니다. 다시 로그인 해주세요.',
-          onConfirm: () => {
-            this.$router.push({ name: 'login' });
-          }
+          onConfirm: () => { this.$router.push({ name: 'login' }); }
         });
         return;
       }
 
-      // 🟢 [수정] 백엔드에 보낼 데이터는 localUser의 현재 값을 사용
       const updateData = {
         name: this.localUser.name,
         email: this.localUser.email,
@@ -231,54 +198,34 @@ export default {
         region: this.localUser.region,
         childGrade: this.localUser.childGrade,
         loginId: this.localUser.loginId,
-        // (주의: DTO에 profileImageUrl 필드는 GCS 업로드 후 서비스단에서 채워야 함)
       };
 
       const formData = new FormData();
-
-      // 3. 🟢 텍스트 데이터(DTO)를 'dto' 파트에 JSON Blob으로 추가
-      // (제공해주신 ReviewController의 @RequestPart("dto") 방식과 일치시킴)
-      formData.append(
-        'dto',
-        new Blob([JSON.stringify(updateData)], { type: 'application/json' })
-      );
-
-      // 4. 🟢 이미지 파일이 새로 선택된 경우에만 'profileImage' 파트에 추가
+      formData.append('dto', new Blob([JSON.stringify(updateData)], { type: 'application/json' }));
       if (this.selectedFile) {
         formData.append('profileImage', this.selectedFile, this.selectedFile.name);
       }
 
       try {
-        // 🟢 Pinia 액션 호출 및 localUser 데이터를 전달
         await this.authStore.updateUser(formData);
-
-        alert('사용자 정보가 성공적으로 수정되었습니다.');
+        eventBus.emit('show-global-alert', { message: '사용자 정보가 성공적으로 수정되었습니다.', type: 'success' });
         this.goBack();
-
       } catch (error) {
         console.error('정보 수정 실패:', error);
-        const errorMessage = error.response?.data?.message || error.response?.data || '정보 수정 중 알 수 없는 오류가 발생했습니다.';
-        alert(`정보 수정 실패: ${errorMessage}`);
+        const msg = error?.response?.data?.message || error?.response?.data || '정보 수정 중 알 수 없는 오류가 발생했습니다.';
+        alert(`정보 수정 실패: ${msg}`);
       }
     },
 
-    // ⭐ 1. 성별 선택 메서드 수정: 'male'/'female' 대신 '남성'/'여성' 저장 ⭐
     selectGender(gender) {
-      // 🟢 [수정] this.user 대신 this.localUser를 사용
-      if (gender === 'male') {
-        this.localUser.gender = '남성';
-      } else if (gender === 'female') {
-        this.localUser.gender = '여성';
-      }
+      this.localUser.gender = gender === 'male' ? '남성' : '여성';
     },
 
-    // ⭐ 자녀 학년 선택 메서드 추가 ⭐
     selectChildGrade(grade) {
-      // 🟢 [수정] this.user 대신 this.localUser를 사용
       this.localUser.childGrade = grade;
     },
   }
-}
+};
 </script>
 
 <style scoped>
@@ -289,39 +236,42 @@ export default {
   font-style: normal;
 }
 
+/* ── 레이아웃 핵심: 내부 스크롤 구조 ───────────────── */
 #account-settings {
   font-family: 'SUIT Variable', sans-serif;
   max-width: 480px;
-  min-height: 100vh;
   background-color: #ffffff;
   margin: 0 auto;
+
+  /* 스크롤 구조 핵심 */
+  display: flex;
+  flex-direction: column;
+  height: 100vh;     /* 뷰포트 기준 */
+  overflow: hidden;  /* 바깥 스크롤 차단 */
 }
 
-.container {
-  flex: 1;
-  overflow-y: auto;
-
-  /* 스크롤바 숨기기 (일반 CSS) */
-  scrollbar-width: none;  /* Firefox */
-  -ms-overflow-style: none; /* IE, Edge */
+.content-wrapper {
+  flex: 1;                /* 남은 공간을 모두 차지 */
+  min-height: 0;          /* overflow가 먹히도록 (중요) */
+  overflow-y: auto;       /* 내부 스크롤 */
+  -webkit-overflow-scrolling: touch; /* iOS */
+  /* 스크롤바 숨김 (원한다면 표시해도 됨) */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.content-wrapper::-webkit-scrollbar { display: none; }
 
-
+/* ── 프로필 업로드 ───────────────── */
 .profile-pic {
   width: 80px;
   height: 80px;
-  /* 🟢 이미지가 넘칠 경우 숨김 */
   overflow: hidden;
 }
-
-/* 🟢 프로필 미리보기 이미지 스타일 */
 .profile-pic-image {
   width: 100%;
   height: 100%;
-  /* 이미지가 찌그러지지 않고 원형을 꽉 채움 */
   object-fit: cover;
 }
-
 .profile-badge {
   width: 28px;
   height: 28px;
@@ -332,40 +282,30 @@ export default {
   background-color: #3674B5;
   border-color: #3674B5;
 }
+.profile-badge:active { filter: brightness(90%); }
 
-.profile-badge:active {
-  filter: brightness(90%);
-}
-
+/* ── 폼 공통 ───────────────── */
 .form-label {
   font-weight: 500;
   color: #000;
   margin-bottom: 8px;
 }
-
-.form-label small {
-  font-size: 0.8rem;
-}
+.form-label small { font-size: 0.8rem; }
 
 .form-control,
 .dropup-btn {
-  /* dropup-btn에도 공통 스타일 적용 */
   border-radius: 12px;
   padding: 12px 16px;
   border: 1px solid #DEDEDE;
 }
-
-.form-control::placeholder {
-  color: #BDBDBD;
-}
-
+.form-control::placeholder { color: #BDBDBD; }
 .form-control:focus,
 .dropup-btn:focus {
-  /* 포커스 스타일 통일 */
   border-color: #000;
   box-shadow: none;
 }
 
+/* ── 성별/버튼 ───────────────── */
 .btn-gender-outline,
 .btn-gender-fill,
 .submit-btn,
@@ -375,38 +315,21 @@ export default {
   padding-bottom: 12px;
   font-weight: 600;
 }
-
 .btn-gender-outline {
   background-color: #fff;
   border: 1px solid #ced4da;
   color: #495057;
 }
-
-.btn-gender-outline:active {
-  background-color: #f8f9fa;
-}
-
-.btn-gender-outline:hover {
-  background-color: #fff;
-  border-color: #ced4da;
-  color: #495057;
-}
+.btn-gender-outline:hover { background-color: #fff; border-color: #ced4da; color: #495057; }
+.btn-gender-outline:active { background-color: #f8f9fa; }
 
 .btn-gender-fill {
   background-color: #3674B5;
   border-color: #3674B5;
   color: #fff;
 }
-
-.btn-gender-fill:active {
-  filter: brightness(90%);
-}
-
-.btn-gender-fill:hover {
-  background-color: #3674B5;
-  border-color: #3674B5;
-  color: #fff;
-}
+.btn-gender-fill:hover { background-color: #3674B5; border-color: #3674B5; color: #fff; }
+.btn-gender-fill:active { filter: brightness(90%); }
 
 .add-child-btn {
   border: 1px solid #DEDEDE;
@@ -416,10 +339,7 @@ export default {
   display: flex;
   align-items: center;
 }
-
-.add-child-btn:active {
-  background-color: #f8f9fa;
-}
+.add-child-btn:active { background-color: #f8f9fa; }
 
 .submit-btn {
   padding-top: 14px;
@@ -427,70 +347,30 @@ export default {
   background-color: #3674B5;
   border-color: #3674B5;
 }
+.submit-btn.btn-primary:hover { background-color: #3674B5; border-color: #3674B5; }
+.submit-btn:active { filter: brightness(90%); }
 
-.submit-btn:active {
-  filter: brightness(90%);
-}
-
-.submit-btn.btn-primary:hover {
-  background-color: #3674B5;
-  border-color: #3674B5;
-}
-
-/* ⬇️ Dropup 버튼 관련 스타일 ⬇️ */
-
-/* 버튼 배경 및 텍스트 색상 기본값 */
+/* ── Dropup ───────────────── */
 .dropup-btn {
   background-color: #fff;
-  color: #BDBDBD;
-  /* 기본 텍스트 색상 (placeholder) */
+  color: #BDBDBD;   /* placeholder 톤 */
   text-align: left;
-}
-
-/* 선택되었을 때의 버튼 색상 */
-.dropup-btn.btn-selected {
-  color: #495057;
-  /* 선택 후 텍스트 색상 */
-}
-
-/* 드롭다운 버튼의 배경과 테두리를 .form-control과 동일하게 유지 */
-.dropup-btn {
   border-color: #DEDEDE;
 }
+.dropup-btn.btn-selected { color: #495057; }
 
-/* 드롭다운 메뉴 자체 스타일 (테두리 둥글게) */
 .custom-dropdown-menu {
   border-radius: 12px;
   border: 1px solid #DEDEDE;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,.1);
 }
-
-/* 드롭다운 항목 */
 .dropdown-item {
   padding: 10px 16px;
   font-weight: 500;
 }
-
-/* 드롭다운 항목 호버/포커스 시 */
 .dropdown-item:hover,
-.dropdown-item:focus {
-  background-color: #f8f9fa;
-  /* 은은한 배경색 */
-  color: #000;
-}
-
-/* 선택된 항목 (active) 스타일 */
+.dropdown-item:focus { background-color: #f8f9fa; color: #000; }
 .dropdown-item.active,
-.dropdown-item:active {
-  background-color: #3674B5;
-  /* 파란색 배경 */
-  color: #fff;
-}
-
-/* Bootstrap의 드롭다운 토글 버튼의 포커스 시 박스 쉐도우 제거 통일 */
-.dropup-btn:focus {
-  box-shadow: none !important;
-}
-
-/* ⬆️ Dropup 버튼 관련 스타일 끝 ⬆️ */
+.dropdown-item:active { background-color: #3674B5; color: #fff; }
+.dropup-btn:focus { box-shadow: none !important; }
 </style>
