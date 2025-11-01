@@ -1,17 +1,12 @@
 <template>
   <div class="border rounded-4 shadow-sm p-3" style="flex-shrink: 0; width: 340px;">
 
-    <div class="d-flex justify-content-end">
-      <button class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center btn-add-new"
-        @click.stop="onAddClick">
-        <i class="bi bi-plus fs-5"></i>
-      </button>
-    </div>
-
-    <div class="place-card-content d-flex flex-row align-items-center gap-3 bg-white px-3 py-3 rounded-4 border mt-2"
+    <div class="place-card-content d-flex flex-row align-items-center gap-3 bg-white rounded-4 mt-2"
       @click="onItemClick">
+
       <div class="image-frame rounded-3 d-flex align-items-center justify-content-center flex-shrink-0">
-        <img v-if="item.imageUrl" :src="item.imageUrl" alt="전시 이미지" class="place-image rounded-3">
+        <img v-if="item.imageUrl" :src="item.imageUrl" alt="전시 이미지" class="place-image rounded-3"
+          style="width: 100%; height: 100%; object-fit: cover;">
       </div>
 
       <div class="content-frame d-flex flex-column flex-grow-1 gap-2 min-w-0">
@@ -38,68 +33,57 @@
         </div>
       </div>
     </div>
+
     <div class="mt-3">
-      <h6 class="fw-bold small ps-1 mb-2">방문자 후기</h6>
-      <div class="d-flex gap-3 px-1">
-        <div class="flex-shrink: 0">
-          <img src="https://placehold.co/48x48/e0e0e0/333?text=김" class="rounded-circle"
-            style="width: 48px; height: 48px;">
-        </div>
-        <div class="flex-grow-1 min-w-0">
-          <div class="fw-bold">김OO 학부모</div>
-          <div class="text-secondary small mb-1">체험명</div>
-          <div class="d-flex align-items-center mb-2" style="color: #FFC107;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-              class="bi bi-star-fill" viewBox="0 0 16 16">
-              <path
-                d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-              class="bi bi-star-fill" viewBox="0 0 16 16">
-              <path
-                d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-              class="bi bi-star-fill" viewBox="0 0 16 16">
-              <path
-                d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#e0e0e0"
-              class="bi bi-star-fill" viewBox="0 0 16 16">
-              <path
-                d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#e0e0e0"
-              class="bi bi-star-fill" viewBox="0 0 16 16">
-              <path
-                d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-            </svg>
+      <h6 class="fw-bold small mb-2">방문자 후기</h6>
+
+      <div v-if="item.latestReview">
+        <div class="d-flex gap-3">
+          <div class="flex-shrink: 0">
+            <img :src="item.latestReview.authorProfileImageUrl || 'https://placehold.co/48x48/e0e0e0/333?text=U'"
+              class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
           </div>
-          <p class="text-truncate">"아이가 정말 좋아했어요!"</p>
+
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-bold">{{ item.latestReview.authorName }}님</div>
+
+            <div class="d-flex align-items-center mb-2" style="color: #FFC107;">
+              <i v-for="i in 5" :key="i" class="bi" :class="i <= item.latestReview.rating ? 'bi-star-fill' : 'bi-star'"
+                :style="{ color: i <= item.latestReview.rating ? '#FFC107' : '#e0e0e0' }"></i>
+            </div>
+            <p class="text-truncate">"{{ item.latestReview.content }}"</p>
+          </div>
+        </div>
+
+        <div v-if="item.latestReview.photoUrls && item.latestReview.photoUrls.length > 0" class="d-flex gap-2 mt-2">
+
+          <div v-for="i in 5" :key="i" class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
+            style="background-color: #e0e0e0; height: 60px; /* 높이 살짝 줄임 */ flex-basis: 0; flex-grow: 1; overflow: hidden;">
+
+            <img v-if="item.latestReview.photoUrls && item.latestReview.photoUrls[i - 1]"
+              :src="item.latestReview.photoUrls[i - 1]" alt="리뷰 사진"
+              style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
         </div>
       </div>
-      <div class="d-flex gap-2 mt-2 px-1">
-        <div class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
-          style="background-color: #e0e0e0; height: 80px; flex-basis: 0; flex-grow: 1;">사진1</div>
-        <div class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
-          style="background-color: #e0e0e0; height: 80px; flex-basis: 0; flex-grow: 1;">사진2</div>
-        <div class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
-          style="background-color: #e0e0e0; height: 80px; flex-basis: 0; flex-grow: 1;">사진3</div>
-        <div class="rounded-3 d-flex align-items-center justify-content-center text-secondary fw-bold"
-          style="background-color: #e0e0e0; height: 80px; flex-basis: 0; flex-grow: 1;">+24</div>
+
+      <div v-else class="text-secondary text-center p-4"
+        style="font-size: 0.9rem; background-color: #f8f9fa; border-radius: 8px;">
+        등록된 리뷰가 없습니다.
       </div>
     </div>
-    </div>
+
+  </div>
 </template>
 
 <script setup>
-// PlaceCard.vue에서 사용하던 컴포넌트들을 그대로 import
+// [기존 코드] <script setup> 내용은 수정할 필요가 없습니다.
+// prop으로 item을 받는 것은 동일합니다.
 import PillTag from '@/components/tag/PillTag.vue';
 import TypeTag from '@/components/tag/TypeTag.vue';
 import HashTag from '@/components/tag/HashTag.vue';
 import { computed } from 'vue';
 
-// HomeView로부터 item 데이터를 prop으로 받습니다.
 const props = defineProps({
   item: {
     type: Object,
@@ -107,10 +91,8 @@ const props = defineProps({
   }
 });
 
-// HomeView로 'add'와 'item-click' 이벤트를 전달하기 위해 emit을 정의
 const emit = defineEmits(['add', 'item-click']);
 
-// --- PlaceCard.vue에서 가져온 스크립트 로직 ---
 const maxHashtags = 2;
 const visibleHashtags = computed(() => {
   return props.item.hashtags?.slice(0, maxHashtags) || [];
@@ -121,43 +103,52 @@ const hasMoreHashtags = computed(() => {
 const remainingHashtagsCount = computed(() => {
   return props.item.hashtags?.length - maxHashtags || 0;
 });
-// ------------------------------------------
 
-// 새 '+' 버튼 클릭 핸들러
-const onAddClick = () => {
-  emit('add', props.item);
-};
-
-// 카드 본체 클릭 핸들러 (이제 안쪽 카드를 클릭해야 호출됨)
 const onItemClick = () => {
-  emit('item-click');
+  emit('item-click', props.item); // [수정] item-click 시에도 item 객체를 전달
 }
 </script>
 
 <style scoped>
-/* 1. PlaceReviewCard의 루트 래퍼 스타일 */
+/* [수정] 루트 래퍼 스타일 */
 .border.rounded-4.shadow-sm.p-3 {
   background-color: var(--bs-body-bg, #fff);
-  /* [수정] 루트 래퍼는 클릭 이벤트를 받지 않음 */
-  /* cursor: pointer; */
+  /* 모든 자식 요소의 간격/정렬은
+    flex, gap, mt/mb 및 루트의 p-3로 제어합니다.
+  */
 }
 
-/* 2. [수정] '+' 버튼 스타일 (position:absolute 제거) */
+/* [수정] '+' 버튼 스타일 */
 .btn-add-new {
   width: 28px;
   height: 28px;
   border: 1.5px solid #C6C6C8;
   padding: 0;
-  background-color: white; 
+  background-color: white;
+  /* 루트 p-3 내부에 있으므로,
+    장소 정보 카드와의 간격은
+    장소 정보 카드의 `mt-2` (삭제됨) 대신
+    이 버튼이 속한 div의 `margin-bottom`으로 제어할 수 있으나,
+    현재 구조(다음 요소가 mt-3)도 괜찮습니다.
+  */
 }
 
-/* 3. PlaceCard에서 가져온 컨텐츠 영역 스타일 */
+/* [수정] 장소 정보 컨텐츠 영역 (기존 .place-card-content) */
 .place-card-content {
+  /* `border`가 제거되어 더 이상 카드-인-카드 구조가 아님.
+     `p-3`가 제거되어 부모의 `p-3`를 따름.
+  */
   z-index: 1;
   overflow: hidden;
-  /* [추가] 안쪽 카드에만 클릭 이벤트 적용 */
-  cursor: pointer; 
+  cursor: pointer;
+  transition: background-color 0.15s ease-out;
 }
+
+.place-card-content:hover {
+  background-color: #f8f9fa !important;
+  /* 클릭 가능 영역 피드백 */
+}
+
 
 .image-frame {
   width: 80px;
@@ -169,9 +160,11 @@ const onItemClick = () => {
 .place-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  /* [수정] contain -> cover */
+  object-fit: cover;
 }
 
+/* (이하 스타일은 기존과 동일) */
 .content-frame {
   min-width: 0;
   max-width: calc(100% - 80px - 12px);
