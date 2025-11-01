@@ -76,7 +76,7 @@
       </div>
     </template>
 
-    <ConfirmDeleteModal :show="showDeleteModal" @confirm="confirmDeleteItem" @close="closeDeleteModal" />
+    <ConfirmDeleteModal :show="showDeleteModal" message="장소를 삭제하시겠어요?" @confirm="confirmDeleteItem" @close="closeDeleteModal" />
     <AddPlaceModal :show="showAddModal" @add-item="addNewItem" @close="closeAddModal" />
 
   </div>
@@ -89,6 +89,7 @@ import draggable from 'vuedraggable';
 // Pinia 스토어 관련 임포트
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
+import eventBus from '@/utils/eventBus';
 
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import AddPlaceModal from '@/components/modal/AddPlaceModal.vue';
@@ -387,12 +388,16 @@ export default {
 
     goBack() {
       if (this.hasChanges) {
-        if (confirm('저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?')) {
-          this.$router.back();
-        }
-      } else {
-        this.$router.back();
+        eventBus.emit('show-global-confirm', {
+          message: '저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?',
+          msg: '확인',
+          onConfirm: () => {
+            this.$router.back();
+          }
+        });
       }
+
+      this.$router.back();
     },
 
     handleDelete(id) {

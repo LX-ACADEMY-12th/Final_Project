@@ -9,7 +9,7 @@
 
     <CustomAlert :show="alert.show" :message="alert.message" :type="alert.type" @close="closeAlert" />
 
-    <CustomConfirmAlert :show="confirm.show" :message="confirm.message" @confirm="handleConfirm"
+    <CustomConfirmAlert :show="confirm.show" :message="confirm.message" :msg="confirm.msg" @confirm="handleConfirm"
       @cancel="handleCancel" />
   </div>
 </template>
@@ -61,6 +61,7 @@ export default {
       confirm: {
         show: false,
         message: '',
+        msg:'',
         onConfirm: null, // '확인' 버튼을 눌렀을 때 실행할 함수
         onCancel: null, // '취소' 버튼을 눌렀을 때 실행할 함수
       },
@@ -86,6 +87,8 @@ export default {
       // 콜백 함수가 있으면 저장, 없으면 null
       this.confirm.onConfirm = payload.onConfirm || null;
       this.confirm.onCancel = payload.onCancel || null;
+
+      this.confirm.msg = payload.msg || '확인'; // ⬅️ [2. 이 줄 추가]
       this.confirm.show = true; // 확인창 띄우기
     },
     // ⭐️ 5. [추가] '확인' 버튼을 눌렀을 때
