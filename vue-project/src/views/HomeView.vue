@@ -14,7 +14,7 @@
 
     <div class="flex-grow-1" style="overflow-y: auto; min-height: 0;">
 
-      <div class="p-3" @click="goToMyPage()">
+      <div class="p-3" @click="goToMyPage()()">
         <div class="d-flex align-items-center gap-3 p-3 rounded-4 shadow-sm"
           style="background-color: #4A7CEC; color: white;">
           <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="
@@ -766,6 +766,187 @@ button.btn.p-0.border-0.d-flex.flex-column.align-items-center:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: rgba(2, 6, 23, 0.12);
+}
+
+/* Chalkboard section (keeps container & layout) */
+.chalkboard-text {
+  --chalkboard: #213a2a;
+  --chalk-stroke: #f0f7ee;
+  --chalk-green: #b6f2cf;
+  --chalk-yellow: #ffe19c;
+  color: var(--chalk-stroke);
+  background: radial-gradient(120% 120% at 0% 0%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 40%), var(--chalkboard);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, .2);
+  position: relative;
+  overflow: hidden;
+  /* [수정] 템플릿의 인라인 스타일을 CSS로 이동 */
+  min-height: 180px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.chalkboard-text::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.04), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.03), transparent 50%);
+  pointer-events: none;
+}
+
+.chalkboard-text .title {
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: .4px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
+}
+
+/* 칠판 받침대 (템플릿 인라인 스타일 제거) */
+div[style*="bottom: -20px"] {
+  background-color: #D2B48C !important;
+}
+
+/* Chalkboard tabs */
+.chalkboard-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chalkboard-tab-button {
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, .25);
+  background: rgba(0, 0, 0, .15);
+  color: var(--chalk-green);
+  font-weight: 700;
+  padding: 8px 10px;
+  transition: transform .12s ease, background .15s ease, border-color .15s ease;
+  font-family: 'SUIT', sans-serif;
+  font-size: 0.9rem;
+}
+
+.chalkboard-tab-button:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 0, 0, .22);
+  border-color: rgba(255, 255, 255, .35);
+}
+
+.chalkboard-tab-button.active {
+  background: rgba(255, 255, 255, .08);
+  color: var(--chalk-yellow);
+  border-color: rgba(255, 255, 255, .45);
+}
+
+/* Chalkboard list */
+.chalkboard-list {
+  list-style: none;
+  margin: 10px 0 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.chalkboard-list li {
+  display: flex;
+  flex-direction: column;
+  /* [수정] 세로 정렬 */
+  align-items: flex-start;
+  /* [수정] 좌측 정렬 */
+  gap: 4px;
+  /* [수정] 간격 조정 */
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .18);
+  border: 1px dashed rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  opacity: 0;
+  animation: fadeSlide .32s ease-out forwards;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* [수정] li > span (제목) */
+.chalkboard-list li>span {
+  font-weight: 600;
+  color: var(--chalk-stroke);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* [수정] 인덱스 번호 */
+.chalkboard-list li .index {
+  font-weight: 800;
+  width: 22px;
+  /* 살짝 줄임 */
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .08);
+  border-radius: 6px;
+  /* 모서리 */
+  color: var(--chalk-yellow);
+  border: 1px solid rgba(255, 255, 255, .22);
+  font-size: 0.85rem;
+}
+
+/* [수정] 설명 텍스트 */
+.chalkboard-description {
+  font-size: 0.9rem;
+  color: var(--chalk-green);
+  opacity: 0.9;
+  padding-left: 30px;
+  /* (인덱스 너비 + 갭) */
+}
+
+
+.chalkboard-list li:nth-child(1) {
+  animation-delay: .06s;
+}
+
+.chalkboard-list li:nth-child(2) {
+  animation-delay: .1s;
+}
+
+.chalkboard-list li:nth-child(3) {
+  animation-delay: .14s;
+}
+
+.chalkboard-list li:nth-child(4) {
+  animation-delay: .18s;
+}
+
+.chalkboard-list li:nth-child(5) {
+  animation-delay: .22s;
+}
+
+/* [추가] 데이터 없음 */
+.chalkboard-no-data {
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 1rem 0;
+  opacity: 0;
+  animation: fadeSlide .32s ease-out forwards;
+}
+
+
+/* ========================================
+   🔽 [추가] "추천 학습 장소" 이하 기존 스타일 🔽
+   ========================================
+*/
+
+.card-carousel-container {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+.card-carousel-container::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 /* Chalkboard section (keeps container & layout) */

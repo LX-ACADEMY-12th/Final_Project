@@ -36,6 +36,7 @@
 
         <ConfirmDeleteModal
         :show="showConfirmDeleteModal"
+        message="리뷰를 삭제하시겠습니까?"
         @confirm="confirmDelete"
         @close="cancelDelete"
         />

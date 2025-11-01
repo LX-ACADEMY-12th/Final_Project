@@ -1,10 +1,10 @@
 <template>
   <div v-if="show" class="modal-overlay" @click.self="close" style="font-family: 'SUIT', sans-serif">
     <div class="modal-content">
-      <p>리뷰를 삭제하시겠습니까?</p>
+      <p>{{message}}</p>
       <div class="button-group">
         <button class="btn btn-cancel" @click="close">취소</button>
-        <button class="btn btn-confirm" @click="confirm">리뷰 삭제</button>
+        <button class="btn btn-confirm" @click="confirm">삭제</button>
       </div>
     </div>
   </div>
@@ -18,6 +18,10 @@ export default {
     show: {
       type: Boolean,
       default: false,
+    },
+    message: {
+      type: String,
+      default: '삭제하시겠습니까?', // 부모가 값을 안주면 이 텍스트가 나옴
     },
   },
   // 'confirm'과 'close' 이벤트를 부모에게 전달합니다.
