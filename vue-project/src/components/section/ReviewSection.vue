@@ -80,11 +80,10 @@
     <div class="pagination" v-if="totalPages > 1 && !isLoading">
       <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="page-btn">&lt; 이전</button>
 
-      <button v-for="page in totalPages" :key="page" @click="goToPage(page)" class="page-btn"
+      <button v-for="page in visiblePages" :key="page" @click="goToPage(page)" class="page-btn"
         :class="{ active: page === currentPage }">
         {{ page }}
       </button>
-
       <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="page-btn">다음
         &gt;</button>
     </div>
@@ -133,6 +132,39 @@ export default {
     morePhotoCountToShow() {
       const remaining = this.photoReviewCount - this.allPhotoThumbnails.length
       return Math.max(0, remaining)
+    },
+
+    visiblePages() {
+      const maxVisible = 5; // 👈 최대 5개의 숫자 버튼
+      const total = this.totalPages;
+      const current = this.currentPage;
+
+      // 1. 총 페이지가 5개 이하면, 모든 페이지 번호 반환
+      if (total <= maxVisible) {
+        return Array.from({ length: total }, (_, i) => i + 1); // [1, 2, ... total]
+      }
+
+      // 2. 총 페이지가 5개를 넘을 때 (슬라이딩 윈도우 계산)
+      let start = current - 2; // 중앙(current)에서 2칸 왼쪽
+      let end = current + 2;   // 중앙(current)에서 2칸 오른쪽
+
+      // 3. 시작/끝 경계 보정
+      if (start < 1) {
+        // (예: 1, 2페이지일 때)
+        start = 1;
+        end = maxVisible;
+      } else if (end > total) {
+        // (예: 마지막 페이지 근처일 때)
+        end = total;
+        start = total - maxVisible + 1;
+      }
+
+      // 4. 보정된 값으로 [start, ..., end] 배열 생성
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
     }
   },
 

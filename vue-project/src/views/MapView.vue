@@ -275,7 +275,7 @@ const moveMapToItem = (lat, lng) => {
   if (map.value) {
     const itemLatLng = new window.kakao.maps.LatLng(lat, lng);
     map.value.setCenter(itemLatLng);
-    map.value.setLevel(7); // 줌인
+    map.value.setLevel(1); // 줌인
   }
 };
 

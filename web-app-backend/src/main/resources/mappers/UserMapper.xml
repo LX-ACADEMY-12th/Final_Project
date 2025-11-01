@@ -13,7 +13,7 @@
     <select id="countByEmail" resultType="int">
         SELECT COUNT(*)
         FROM "user"
-        WHERE email = #{email}updateUserInfo
+        WHERE email = #{email}
     </select>
 
     <!-- 회원가입 (변경 없음) -->

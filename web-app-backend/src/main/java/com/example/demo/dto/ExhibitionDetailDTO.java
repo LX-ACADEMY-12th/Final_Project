@@ -15,7 +15,7 @@ public class ExhibitionDetailDTO {
 	private String type; // 상설 or 기획
 	private Date startDate;
 	private Date endDate;
-	private BigDecimal admissionFee;
+	private String admissionFee;
 	private String openingHours;
 	private String mainImageUrl;
 	private String description;
