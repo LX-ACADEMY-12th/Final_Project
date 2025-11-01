@@ -460,6 +460,7 @@ export default {
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
+        type: dto.type ?? 'science_place',
       };
 
       // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
@@ -900,7 +901,7 @@ export default {
           hashtags: Array.isArray(currentItemData.subCategories)
             ? currentItemData.subCategories
             : (currentItemData.subCategories ? [currentItemData.subCategories] : []),  // ← 예외 처리
-          type: this.pageType === 'science_place' ? 'science_place' : 'exhibition',
+          type: currentItemData.type,
           place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation || '주소 정보 없음',  // ← null 체크 추가
           lat: currentItemInfo.lat || 0,
           lng: currentItemInfo.lng || 0,
@@ -912,7 +913,7 @@ export default {
           // (item = 백엔드 DTO: { placeId, placeName, imageUrl, address, latitude, longitude ... })
           return {
             id: item.placeId,
-            number: index + 2,     // [!!] 2번부터 작
+            number: index + 2,
             imageUrl: item.imageUrl || 'https://via.placeholder.com/60x60',
             title: item.placeName,
             subject: item.subjectName,

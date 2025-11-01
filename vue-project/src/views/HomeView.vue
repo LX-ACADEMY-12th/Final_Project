@@ -14,7 +14,7 @@
 
     <div class="flex-grow-1" style="overflow-y: auto; min-height: 0;">
 
-      <div class="p-3" @click="goToMyPage">
+      <div class="p-3" @click="goToMyPage()">
         <div class="d-flex align-items-center gap-3 p-3 rounded-4 shadow-sm"
           style="background-color: #4A7CEC; color: white;">
           <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="
@@ -118,18 +118,33 @@
 
       <div class="d-flex gap-2 px-3">
         <button type="button" class="spec-button shadow-sm flex-grow-1" :class="{ 'active': selectedTab === '전시' }"
-          @click="selectedTab = '전시'">전시</button>
+          @click="changeTab('전시')">전시</button>
         <button type="button" class="spec-button shadow-sm flex-grow-1" :class="{ 'active': selectedTab === '답사' }"
-          @click="selectedTab = '답사'">답사</button>
+          @click="changeTab('답사')">답사</button>
       </div>
 
-      <div class="mt-3" style="height: 450px;">
-        <div style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; height: 100%;">
-          <div class="d-flex flex-row align-items-start px-3" style="gap: 16px; height: 100%;">
+      <div>
+        <div class="card-carousel-container"
+          style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-top: 1rem; padding-bottom: 1rem;">
 
-            <PlaceReviewCard v-for="item in carouselItems" :key="item.id" :item="item" @add="goToDetail(item)" />
+          <div v-if="isSearching" class="d-flex justify-content-center align-items-center text-muted w-100"
+            style="min-height: 350px;">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+          <div v-else-if="displayedItems.length === 0"
+            class="d-flex justify-content-center align-items-center text-muted w-100" style="min-height: 350px;">
+            추천 장소가 없습니다.
+          </div>
+
+          <div v-else class="d-flex flex-row" style="gap: 16px; padding-left: 1rem; padding-right: 1rem;">
+
+            <PlaceReviewCard v-for="item in displayedItems" :key="item.id" :item="item" @add="goToDetail(item)"
+              @item-click="goToDetail(item)" />
 
           </div>
+
         </div>
       </div>
 
@@ -172,11 +187,12 @@
 
 <script>
 // (스크립트 부분은 변경 사항이 없습니다. 기존 코드와 동일합니다.)
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 import eventBus from '@/utils/eventBus';
+import axios from '@/api/axiosSetup';
 
 // 컴포넌트 임포트
 import FilterModal from '@/components/modal/FilterModal.vue';
@@ -209,8 +225,157 @@ export default {
     const selectedGrade = ref('초등 3학년');
     const selectedNavItem = ref('홈');
 
-    // [추가] 1학기/2학기 탭 상태
+    // 1학기/2학기 탭 상태
     const selectedSemester = ref('1학기');
+    // 검색/데이터 상태
+    const displayedItems = ref([]);
+    const isSearching = ref(false);
+
+    /**
+     * 탭 변경 시 API 재호출
+     */
+    const changeTab = (tabName) => {
+      selectedTab.value = tabName;
+      performSearch();
+    };
+
+    /**
+     * API 검색 실행 함수 - 장소 정보와 리뷰를 함께 가져옴
+     */
+    const performSearch = async () => {
+      console.log('==== Home API 검색 실행 시작 ====');
+      isSearching.value = true;
+      displayedItems.value = [];
+
+      const params = {
+        searchType: 'all', // Home은 위치기반이 아니므로 'all'
+        itemType: selectedTab.value, // '전시' or '답사'
+        subject: selectedSubject.value,
+        grade: selectedGrade.value,
+      };
+
+      try {
+        console.log('API 요청 파라미터:', params);
+
+        // 1. 장소/전시 정보 가져오기
+        const response = await axios.get('/api/places/search', { params });
+
+        if (response.data && Array.isArray(response.data)) {
+          // 2. 각 장소에 대해 최신 리뷰와 사진 요약 정보 가져오기
+          const itemsWithReviews = await Promise.all(
+            response.data.slice(0, 10).map(async (item) => {
+              try {
+                // 각 장소의 targetType 결정
+                const targetType = selectedTab.value === '전시' ? 'exhibition' : 'science_place';
+
+                // 2-1. 리뷰 API 호출 (ReviewSection과 동일한 구조)
+                const reviewParams = {
+                  targetId: item.id,
+                  targetType: targetType,
+                  page: 1,
+                  size: 1 // 최신 리뷰 1개만
+                };
+
+                const reviewResponse = await axios.get('/api/reviews', { params: reviewParams });
+
+                // 페이징 응답에서 content 추출
+                const reviewPage = reviewResponse.data;
+                const latestReview = reviewPage?.content?.[0] || null;
+
+                // 2-2. 사진 썸네일 정보 가져오기 (선택사항)
+                let photoThumbnails = [];
+                try {
+                  const photoParams = {
+                    targetId: item.id,
+                    targetType: targetType,
+                    limit: 3
+                  };
+                  const { data: thumbs } = await axios.get('/api/reviews/photos-summary', { params: photoParams });
+                  photoThumbnails = Array.isArray(thumbs) ? thumbs : [];
+                } catch (photoErr) {
+                  console.warn(`사진 썸네일 로드 실패 (장소 ID: ${item.id}):`, photoErr);
+                }
+
+                // 최종 데이터 구조
+                return {
+                  ...item,
+                  // 리뷰 페이징 정보
+                  totalReviews: reviewPage?.totalElements || 0,
+                  totalPages: reviewPage?.totalPages || 0,
+                  // 최신 리뷰 정보
+                  latestReview: latestReview ? {
+                    reviewId: latestReview.reviewId,
+                    authorId: latestReview.authorId,
+                    authorName: latestReview.authorName,
+                    authorProfileImageUrl: latestReview.authorProfileImageUrl,
+                    rating: latestReview.rating,
+                    content: latestReview.content,
+                    createdAt: latestReview.createdAt,
+                    photoUrls: latestReview.photoUrls || [],
+                    likeCount: latestReview.likeCount || 0
+                  } : null,
+                  // 사진 썸네일 정보
+                  photoThumbnails: photoThumbnails,
+                  // 평균 평점 (API에서 제공한다면)
+                  averageRating: item.averageRating || 0
+                };
+              } catch (reviewError) {
+                console.warn(`리뷰 로드 실패 (장소 ID: ${item.id}):`, reviewError);
+                // 리뷰 로드 실패해도 장소 정보는 표시
+                return {
+                  ...item,
+                  latestReview: null,
+                  totalReviews: 0,
+                  totalPages: 0,
+                  photoThumbnails: [],
+                  averageRating: item.averageRating || 0
+                };
+              }
+            })
+          );
+
+          displayedItems.value = itemsWithReviews;
+          console.log('API 응답 결과 (리뷰 포함):', JSON.stringify(displayedItems.value, null, 2));
+
+        } else {
+          console.error('API 응답 형식이 잘못되었습니다:', response.data);
+          displayedItems.value = [];
+        }
+      } catch (error) {
+        console.error("Home API 검색 중 오류:", error.response ? error.response.data : error.message);
+        eventBus.emit('show-global-alert', {
+          message: '추천 장소를 불러오는 중 오류가 발생했습니다.',
+          type: 'error'
+        });
+        displayedItems.value = [];
+      } finally {
+        isSearching.value = false;
+        console.log('==== Home API 검색 완료 ====');
+      }
+    };
+
+    /**
+     * 리뷰 날짜 포맷
+     */
+    const formatReviewDate = (dateString) => {
+      if (!dateString) return '';
+      try {
+        const date = new Date(dateString);
+        return date
+          .toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+          .replace(/\. /g, '.')
+          .replace(/\.$/, '');
+      } catch (error) {
+        return dateString;
+      }
+    };
+
+    /**
+     * 컴포넌트 마운트 시 첫 검색 실행
+     */
+    onMounted(() => {
+      performSearch();
+    });
 
     // [수정] curriculumData의 구조를 { title: '...', description: '...' } 객체 배열로 변경
     const curriculumData = {
@@ -369,18 +534,40 @@ export default {
       ];
     });
 
+    /**
+     * 상세 페이지로 이동
+     */
     const goToDetail = (item) => {
       console.log(`상세 페이지로 이동:`, item.title);
-      router.push('/place/:id')
-    }
+
+      if (selectedTab.value === '전시') {
+        router.push({
+          path: `/exhibition/${item.id}`,
+          query: {
+            mainCategoryTags: selectedSubject.value,
+            subCategoryTags: item.hashtags,
+            gradeTags: selectedGrade.value,
+          }
+        });
+      } else {
+        router.push({
+          path: `/place/${item.id}`,
+          query: {
+            mainCategoryTags: selectedSubject.value,
+            subCategoryTags: item.hashtags,
+            gradeTags: selectedGrade.value,
+          }
+        });
+      }
+    };
 
     const goToMyPage = () => {
       if (!user.value) {
         eventBus.emit('show-global-confirm', {
-        message: '로그인이 필요한 기능입니다.',
-        onConfirm: () => {
-          router.push({ name: 'login' }); // 👈 this.$router 대신 router 사용
-        }
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            router.push({ name: 'login' }); // 👈 this.$router 대신 router 사용
+          }
         });
         return; // 페이지 이동 중단
       }
@@ -389,12 +576,16 @@ export default {
       router.push('/mypage');
     }
 
+    /**
+     * 필터 완료 시 API 재호출
+     */
     const handleFilterComplete = (filterData) => {
       console.log(`필터 선택 완료:`, filterData);
       selectedSubject.value = filterData.subject;
       selectedGrade.value = filterData.grade;
       isModalOpen.value = false;
-    }
+      performSearch();
+    };
 
     const handleNavigation = (navItemName) => {
       console.log(navItemName, '클릭됨.');
@@ -402,10 +593,10 @@ export default {
 
       if (navItemName === '코스관리' && !user.value) {
         eventBus.emit('show-global-confirm', {
-        message: '로그인이 필요한 기능입니다.',
-        onConfirm: () => {
-          router.push({ name: 'login' }); // 👈 this.$router 대신 router 사용
-        }
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            router.push({ name: 'login' }); // 👈 this.$router 대신 router 사용
+          }
         });
         return; // 페이지 이동 중단
       }
@@ -426,10 +617,10 @@ export default {
     const goToAiTutor = () => {
       if (!user.value) {
         eventBus.emit('show-global-confirm', {
-        message: '로그인이 필요한 기능입니다.',
-        onConfirm: () => {
-          router.push({ name: 'login' }); // 👈 this.$router 대신 router 사용
-        }
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            router.push({ name: 'login' }); // 👈 this.$router 대신 router 사용
+          }
         });
         return; // 페이지 이동 중단
       }
@@ -446,12 +637,17 @@ export default {
       selectedGrade,
       selectedNavItem,
       carouselItems,
+      chalkboardContent,
+      selectedSemester,
+      displayedItems,
+      isSearching,
+      changeTab,
       goToDetail,
+      goToMyPage,
       handleFilterComplete,
       handleNavigation,
       goToAiTutor,
-      chalkboardContent,
-      selectedSemester // [추가] 템플릿에서 사용하도록 반환
+      formatReviewDate
     };
   }
 }
@@ -476,7 +672,7 @@ export default {
   --danger: #ef4444;
   --card: #ffffff;
   --card-border: rgba(15, 23, 42, 0.08);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 8px 24px rgba(2, 6, 23, 0.08);
   --shadow-lg: 0 16px 40px rgba(2, 6, 23, 0.12);
   --ring: 0 0 0 4px rgba(74, 124, 236, 0.14);
@@ -491,7 +687,7 @@ export default {
 
 /* Sticky top bar (keeps exact markup) */
 .d-flex.justify-content-between.align-items-center.p-3.border-bottom.bg-white {
-  background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.66));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.66));
   backdrop-filter: saturate(1.2) blur(10px);
   border-bottom: 1px solid var(--card-border) !important;
 }
@@ -507,6 +703,7 @@ button.btn.p-0.border-0.d-flex.flex-column.align-items-center {
   gap: 2px;
   transition: transform .15s ease, opacity .2s ease;
 }
+
 button.btn.p-0.border-0.d-flex.flex-column.align-items-center:hover {
   transform: translateY(-1px);
   opacity: .9;
@@ -524,14 +721,18 @@ button.btn.p-0.border-0.d-flex.flex-column.align-items-center:hover {
   gap: 8px;
   background-color: #f8f9fa;
   padding: 1rem;
-  border-radius: 16px; /* 둥근 모서리 */
+  border-radius: 16px;
+  /* 둥근 모서리 */
   border: 1px solid var(--card-border);
-  font-size: 1.15rem; /* 폰트 크기 살짝 키움 */
+  font-size: 1.15rem;
+  /* 폰트 크기 살짝 키움 */
 }
+
 .quick-badge-group a {
   color: var(--brand) !important;
   font-weight: 600;
 }
+
 .quick-badge-group .bi {
   vertical-align: -2px;
 }
@@ -546,6 +747,7 @@ button.btn.p-0.border-0.d-flex.flex-column.align-items-center:hover {
   letter-spacing: .2px;
   color: var(--brand-ink);
 }
+
 .section-title .hint {
   font-weight: 600;
   color: var(--muted);
@@ -554,15 +756,16 @@ button.btn.p-0.border-0.d-flex.flex-column.align-items-center:hover {
 
 /* Cards */
 .rounded-3.shadow-sm {
-  background: radial-gradient(100% 100% at 100% 0%, rgba(74,124,236,0.06) 0%, rgba(255,255,255,0) 60%) , var(--card);
+  background: radial-gradient(100% 100% at 100% 0%, rgba(74, 124, 236, 0.06) 0%, rgba(255, 255, 255, 0) 60%), var(--card);
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-sm);
   transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease;
 }
+
 .rounded-3.shadow-sm:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: rgba(2,6,23,0.12);
+  border-color: rgba(2, 6, 23, 0.12);
 }
 
 /* Chalkboard section (keeps container & layout) */
@@ -572,29 +775,31 @@ button.btn.p-0.border-0.d-flex.flex-column.align-items-center:hover {
   --chalk-green: #b6f2cf;
   --chalk-yellow: #ffe19c;
   color: var(--chalk-stroke);
-  background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 40%), var(--chalkboard);
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.1), inset 0 -2px 0 rgba(0,0,0,0.12);
-  border: 1px solid rgba(0,0,0,.2);
+  background: radial-gradient(120% 120% at 0% 0%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 40%), var(--chalkboard);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, .2);
   position: relative;
   overflow: hidden;
   /* [수정] 템플릿의 인라인 스타일을 CSS로 이동 */
-  min-height: 180px; 
+  min-height: 180px;
   border-radius: 8px;
   position: relative;
 }
+
 .chalkboard-text::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.04), transparent 40%),
-                    radial-gradient(circle at 80% 0%, rgba(255,255,255,0.03), transparent 50%);
+  background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.04), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.03), transparent 50%);
   pointer-events: none;
 }
+
 .chalkboard-text .title {
   font-weight: 800;
   font-size: 1.1rem;
   letter-spacing: .4px;
-  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
 }
 
 /* 칠판 받침대 (템플릿 인라인 스타일 제거) */
@@ -604,12 +809,15 @@ div[style*="bottom: -20px"] {
 
 /* Chalkboard tabs */
 .chalkboard-tabs {
-  display: flex; gap: 6px; flex-wrap: wrap;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
+
 .chalkboard-tab-button {
   border-radius: 10px;
-  border: 1px dashed rgba(255,255,255,.25);
-  background: rgba(0,0,0,.15);
+  border: 1px dashed rgba(255, 255, 255, .25);
+  background: rgba(0, 0, 0, .15);
   color: var(--chalk-green);
   font-weight: 700;
   padding: 8px 10px;
@@ -617,67 +825,101 @@ div[style*="bottom: -20px"] {
   font-family: 'SUIT', sans-serif;
   font-size: 0.9rem;
 }
-.chalkboard-tab-button:hover { transform: translateY(-1px); background: rgba(0,0,0,.22); border-color: rgba(255,255,255,.35); }
-.chalkboard-tab-button.active { background: rgba(255,255,255,.08); color: var(--chalk-yellow); border-color: rgba(255,255,255,.45); }
+
+.chalkboard-tab-button:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 0, 0, .22);
+  border-color: rgba(255, 255, 255, .35);
+}
+
+.chalkboard-tab-button.active {
+  background: rgba(255, 255, 255, .08);
+  color: var(--chalk-yellow);
+  border-color: rgba(255, 255, 255, .45);
+}
 
 /* Chalkboard list */
-.chalkboard-list { 
-  list-style: none; 
-  margin: 10px 0 0 0; 
-  padding: 0; 
-  display: grid; 
-  gap: 10px; 
+.chalkboard-list {
+  list-style: none;
+  margin: 10px 0 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
 }
+
 .chalkboard-list li {
-  display: flex; 
-  flex-direction: column; /* [수정] 세로 정렬 */
-  align-items: flex-start; /* [수정] 좌측 정렬 */
-  gap: 4px; /* [수정] 간격 조정 */
+  display: flex;
+  flex-direction: column;
+  /* [수정] 세로 정렬 */
+  align-items: flex-start;
+  /* [수정] 좌측 정렬 */
+  gap: 4px;
+  /* [수정] 간격 조정 */
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(0,0,0,.18);
-  border: 1px dashed rgba(255,255,255,.18);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  background: rgba(0, 0, 0, .18);
+  border: 1px dashed rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
   opacity: 0;
   animation: fadeSlide .32s ease-out forwards;
   font-size: 1rem;
   font-weight: 500;
 }
+
 /* [수정] li > span (제목) */
-.chalkboard-list li > span {
+.chalkboard-list li>span {
   font-weight: 600;
   color: var(--chalk-stroke);
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 /* [수정] 인덱스 번호 */
 .chalkboard-list li .index {
-  font-weight: 800; 
-  width: 22px; /* 살짝 줄임 */
-  height: 22px; 
-  display: grid; 
+  font-weight: 800;
+  width: 22px;
+  /* 살짝 줄임 */
+  height: 22px;
+  display: grid;
   place-items: center;
-  background: rgba(255,255,255,.08); 
-  border-radius: 6px; /* 모서리 */
+  background: rgba(255, 255, 255, .08);
+  border-radius: 6px;
+  /* 모서리 */
   color: var(--chalk-yellow);
-  border: 1px solid rgba(255,255,255,.22);
+  border: 1px solid rgba(255, 255, 255, .22);
   font-size: 0.85rem;
 }
+
 /* [수정] 설명 텍스트 */
 .chalkboard-description {
   font-size: 0.9rem;
   color: var(--chalk-green);
   opacity: 0.9;
-  padding-left: 30px; /* (인덱스 너비 + 갭) */
+  padding-left: 30px;
+  /* (인덱스 너비 + 갭) */
 }
 
 
-.chalkboard-list li:nth-child(1){ animation-delay: .06s;}
-.chalkboard-list li:nth-child(2){ animation-delay: .1s;}
-.chalkboard-list li:nth-child(3){ animation-delay: .14s;}
-.chalkboard-list li:nth-child(4){ animation-delay: .18s;}
-.chalkboard-list li:nth-child(5){ animation-delay: .22s;}
+.chalkboard-list li:nth-child(1) {
+  animation-delay: .06s;
+}
+
+.chalkboard-list li:nth-child(2) {
+  animation-delay: .1s;
+}
+
+.chalkboard-list li:nth-child(3) {
+  animation-delay: .14s;
+}
+
+.chalkboard-list li:nth-child(4) {
+  animation-delay: .18s;
+}
+
+.chalkboard-list li:nth-child(5) {
+  animation-delay: .22s;
+}
 
 /* [추가] 데이터 없음 */
 .chalkboard-no-data {
@@ -694,6 +936,18 @@ div[style*="bottom: -20px"] {
    🔽 [추가] "추천 학습 장소" 이하 기존 스타일 🔽
    ========================================
 */
+
+.card-carousel-container {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+.card-carousel-container::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
 
 .spec-button {
   display: flex;
@@ -712,6 +966,7 @@ div[style*="bottom: -20px"] {
   font-family: 'SUIT', sans-serif;
   font-weight: 500;
 }
+
 .spec-button.active {
   background: #4A7CEC;
   color: white;
@@ -725,14 +980,23 @@ div[style*="bottom: -20px"] {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
 [style*="overflow-x: auto"] {
   box-sizing: border-box;
 }
 
 /* Utility spacings (without touching DOM) */
-.mt-tight { margin-top: 6px; }
-.mb-tight { margin-bottom: 6px; }
-.gap-6 { gap: 1.5rem; }
+.mt-tight {
+  margin-top: 6px;
+}
+
+.mb-tight {
+  margin-bottom: 6px;
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
 
 /* Focus ring for all interactive children */
 :where(button, [role="button"], .btn, input, a):focus-visible {
@@ -742,11 +1006,21 @@ div[style*="bottom: -20px"] {
 
 /* Animations */
 @keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 </style>
