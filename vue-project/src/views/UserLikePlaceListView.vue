@@ -100,11 +100,11 @@ export default {
 
     // 장소 상세페이지 이동 함수 (기존 로직 유지)
     goToDetail(item) {
-      // ... (기존 로직 유지) ...
+      //
       const queryParams = {
-        mainCategoryTags: item.mainCategory, // 👈 [수정] 아이템의 카테고리를 사용
+        mainCategoryTags: item.subject, // 👈 [수정] 아이템의 카테고리를 사용
         subCategoryTags: item.hashtags,
-        gradeTags: item.gradeTag,     // 👈 [수정] 아이템의 학년 태그를 사용
+        gradeTags: item.grade,     // 👈 [수정] 아이템의 학년 태그를 사용
       };
 
       // item.itemType (exhibition/science_place)에 따라 경로 설정
