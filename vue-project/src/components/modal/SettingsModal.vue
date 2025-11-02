@@ -91,15 +91,15 @@ export default {
 }
 
 .modal-logout-btn {
-  background-color: #5883e3;
-  border-color: #5883e3;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
   font-weight: 600;
   font-size: 1rem;
 }
 
 .modal-logout-btn:hover {
-  background-color: #5883e3;
-  border-color: #5883e3;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
 }
 
 .modal-logout-btn:active {
@@ -107,8 +107,8 @@ export default {
 }
 
 .modal-withdraw-btn {
-  color: #5883e3;
-  border-color: #5883e3;
+  color: #4A7CEC;
+  border-color: #4A7CEC;
   border-width: 1px;
   font-weight: 600;
   font-size: 1rem;
@@ -116,8 +116,8 @@ export default {
 
 .modal-withdraw-btn:active {
   color: #ffffff;
-  background-color: #5883e3;
-  border-color: #5883e3;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
 }
 
 .modal-body h5 {

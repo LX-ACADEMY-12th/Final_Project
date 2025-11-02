@@ -279,8 +279,8 @@ export default {
   right: 0;
   font-size: 0.9rem;
   border: 2px solid white;
-  background-color: #3674B5;
-  border-color: #3674B5;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
 }
 .profile-badge:active { filter: brightness(90%); }
 
@@ -324,11 +324,11 @@ export default {
 .btn-gender-outline:active { background-color: #f8f9fa; }
 
 .btn-gender-fill {
-  background-color: #3674B5;
-  border-color: #3674B5;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
   color: #fff;
 }
-.btn-gender-fill:hover { background-color: #3674B5; border-color: #3674B5; color: #fff; }
+.btn-gender-fill:hover { background-color: #4A7CEC; border-color: #4A7CEC; color: #fff; }
 .btn-gender-fill:active { filter: brightness(90%); }
 
 .add-child-btn {
@@ -344,10 +344,10 @@ export default {
 .submit-btn {
   padding-top: 14px;
   padding-bottom: 14px;
-  background-color: #3674B5;
-  border-color: #3674B5;
+  background-color: #4A7CEC;
+  border-color: #4A7CEC;
 }
-.submit-btn.btn-primary:hover { background-color: #3674B5; border-color: #3674B5; }
+.submit-btn.btn-primary:hover { background-color: #4A7CEC; border-color: #4A7CEC; }
 .submit-btn:active { filter: brightness(90%); }
 
 /* ── Dropup ───────────────── */
@@ -371,6 +371,6 @@ export default {
 .dropdown-item:hover,
 .dropdown-item:focus { background-color: #f8f9fa; color: #000; }
 .dropdown-item.active,
-.dropdown-item:active { background-color: #3674B5; color: #fff; }
+.dropdown-item:active { background-color: #4A7CEC; color: #fff; }
 .dropup-btn:focus { box-shadow: none !important; }
 </style>
