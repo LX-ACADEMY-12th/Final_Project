@@ -320,7 +320,7 @@ export default {
   width: 20px;
   height: 20px;
   border: 2px solid #f3f3f3;
-  border-top: 2px solid #5887FF;
+  border-top: 2px solid #4A7CEC;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 10px;
@@ -468,7 +468,7 @@ export default {
   border-radius: 18px;
   font-weight: bold;
   cursor: pointer;
-  background-color: #5887FF;
+  background-color: #4A7CEC;
   color: white;
   flex-shrink: 0;
   margin-left: 12px;

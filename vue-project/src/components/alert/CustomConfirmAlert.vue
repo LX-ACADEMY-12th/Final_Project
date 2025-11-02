@@ -89,7 +89,7 @@ export default {
 
 /* 확인 버튼 (파란색) */
 .btn-confirm {
-  background-color: #4a89f3; /* 메인 색상 */
+  background-color: #4A7CEC; /* 메인 색상 */
   color: white;
 }
 </style>

@@ -609,7 +609,7 @@ export default {
 
 .write-review-btn {
   width: 100%;
-  background-color: #4a89f3;
+  background-color: #4A7CEC;
   color: white;
   border: none;
   padding: 12px 0;
@@ -697,7 +697,7 @@ export default {
 }
 
 .review-meta .likes.active {
-  color: #4A89F3;
+  color: #4A7CEC;
   font-weight: 600;
 }
 

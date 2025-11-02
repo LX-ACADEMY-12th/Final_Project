@@ -87,7 +87,7 @@ export default {
 /* 확인 버튼 */
 .confirm-btn {
   width: 100%;
-  background-color: #4a89f3; /* (이전 코드의 버튼 색상) */
+  background-color: #4A7CEC; /* (이전 코드의 버튼 색상) */
   color: white;
   border: none;
   padding: 12px 0;
