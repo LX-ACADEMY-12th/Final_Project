@@ -76,7 +76,8 @@
       </div>
     </template>
 
-    <ConfirmDeleteModal :show="showDeleteModal" message="장소를 삭제하시겠어요?" @confirm="confirmDeleteItem" @close="closeDeleteModal" />
+    <ConfirmDeleteModal :show="showDeleteModal" message="장소를 삭제하시겠어요?" @confirm="confirmDeleteItem"
+      @close="closeDeleteModal" />
     <AddPlaceModal :show="showAddModal" @add-item="addNewItem" @close="closeAddModal" />
 
   </div>
@@ -205,8 +206,9 @@ export default {
                 // --- 스냅샷 태그 매핑 ---
 
                 // 1. type (itemType을 프론트엔드 'type'으로 매핑)
-                // (백엔드 DTO의 itemType이 'exhibition' 또는 'science_place')
+                // (백엔드 DTO의 itemType이 'exhibition' 또는 'science_place' 또는 'custom')
                 type: item.itemType,
+                itemType: item.Type,
 
                 // 2. subject (mainCategoryNames 리스트의 [첫 번째 값]을 사용)
                 subject: (item.mainCategoryNames && item.mainCategoryNames.length > 0)
@@ -249,7 +251,7 @@ export default {
         this.exhibitionName = targetCourse.ExhibitionName;
         // 커스텀 아이템에 임시 ID 할당
         this.courseItems = (targetCourse.courseItems || []).map(item => {
-          if (item.itemType === 'custom' && !item.id) {
+          if (item.type === 'custom' && !item.id) {
             return {
               ...item,
               id: `custom_${item.title}_${item.place}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
@@ -267,6 +269,7 @@ export default {
           this.pageType = 'exhibition';
         }
 
+        console.log("코스 상세 정보 로드 성공:", JSON.stringify(targetCourse, null, 2));
       } catch (err) {
         console.error("코스 상세 정보 로드 실패:", err);
         this.error = err.message || '코스 정보를 불러오는 데 실패했습니다.';
@@ -326,7 +329,7 @@ export default {
               itemId: item.itemId || null, // 기존 아이템의 경우 itemId 포함
               sourceItemId: isCustom ? null : item.id,
               sequence: index + 1,
-              itemType: isCustom ? 'custom' : item.itemType,
+              itemType: isCustom ? 'custom' : item.type,
               customName: isCustom ? (item.title || null) : null,
               customAddress: isCustom ? (item.place || null) : null,
               customLatitude: isCustom ? (item.lat || null) : null,
