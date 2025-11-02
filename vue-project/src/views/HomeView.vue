@@ -87,7 +87,7 @@
               <div v-if="(selectedSemester === '1학기' && semesterData.semester.includes('1학기')) ||
                 (selectedSemester === '2학기' && semesterData.semester.includes('2학기'))">
 
-                <h6 class="fw-bold chalkboard-heading title">{{ semesterData.semester }}</h6>
+                <h6 class="fw-bold chalkboard-heading title mt-2">{{ semesterData.semester }}</h6>
 
                 <ul v-if="semesterData.units.length > 0" class="chalkboard-list">
                   <li v-for="(unit, index) in semesterData.units" :key="unit.title">
@@ -148,7 +148,7 @@
         </div>
       </div>
 
-      <div class="p-3 mt-3">
+      <!-- <div class="p-3 mt-3">
         <h5 class="fw-bold fs-6 mb-3">최근 저장 경로</h5>
       </div>
       <div class="px-3">
@@ -171,7 +171,7 @@
             G
           </svg>
         </div>
-      </div>
+      </div> -->
 
       <div style="height: 80px;"></div>
 
