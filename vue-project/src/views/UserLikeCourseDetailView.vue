@@ -208,7 +208,7 @@ export default {
                 // 1. type (itemType을 프론트엔드 'type'으로 매핑)
                 // (백엔드 DTO의 itemType이 'exhibition' 또는 'science_place' 또는 'custom')
                 type: item.itemType,
-                itemType: item.Type,
+                itemType: item.itemType,
 
                 // 2. subject (mainCategoryNames 리스트의 [첫 번째 값]을 사용)
                 subject: (item.mainCategoryNames && item.mainCategoryNames.length > 0)
@@ -329,7 +329,7 @@ export default {
               itemId: item.itemId || null, // 기존 아이템의 경우 itemId 포함
               sourceItemId: isCustom ? null : item.id,
               sequence: index + 1,
-              itemType: isCustom ? 'custom' : item.type,
+              itemType: isCustom ? 'custom' : item.itemType,
               customName: isCustom ? (item.title || null) : null,
               customAddress: isCustom ? (item.place || null) : null,
               customLatitude: isCustom ? (item.lat || null) : null,

@@ -5,7 +5,7 @@
       @click="onItemClick">
 
       <div class="image-frame rounded-3 d-flex align-items-center justify-content-center flex-shrink-0">
-        <img v-if="item.imageUrl" :src="item.imageUrl" alt="전시 이미지" class="place-image rounded-3"
+        <img v-if="computedImageUrl" :src="computedImageUrl" alt="전시 이미지" class="place-image rounded-3"
           style="width: 100%; height: 100%; object-fit: cover;">
       </div>
 
@@ -55,13 +55,13 @@
           </div>
         </div>
 
-        <div v-if="item.latestReview.photoUrls && item.latestReview.photoUrls.length > 0" class="d-flex gap-2 mt-2">
+        <div v-if="computedReviewPhotos.length > 0" class="d-flex gap-2 mt-2">
 
           <div v-for="i in 5" :key="i" class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
             style="background-color: #e0e0e0; height: 60px; /* 높이 살짝 줄임 */ flex-basis: 0; flex-grow: 1; overflow: hidden;">
 
-            <img v-if="item.latestReview.photoUrls && item.latestReview.photoUrls[i - 1]"
-              :src="item.latestReview.photoUrls[i - 1]" alt="리뷰 사진"
+            <img v-if="computedReviewPhotos[i - 1]"
+              :src="computedReviewPhotos[i - 1]" alt="리뷰 사진"
               style="width: 100%; height: 100%; object-fit: cover;">
           </div>
         </div>
@@ -77,8 +77,6 @@
 </template>
 
 <script setup>
-// [기존 코드] <script setup> 내용은 수정할 필요가 없습니다.
-// prop으로 item을 받는 것은 동일합니다.
 import PillTag from '@/components/tag/PillTag.vue';
 import TypeTag from '@/components/tag/TypeTag.vue';
 import HashTag from '@/components/tag/HashTag.vue';
@@ -93,6 +91,35 @@ const props = defineProps({
 
 const emit = defineEmits(['add', 'item-click']);
 
+// [!!] 1. 이미지 기본 URL 정의
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+
+// [!!] 2. 메인 이미지 URL 계산
+const computedImageUrl = computed(() => {
+  // HomeView는 mainImageUrl을 수정해서 보내줍니다.
+  const url = props.item.mainImageUrl || props.item.imageUrl;
+  if (url && !url.startsWith('http')) {
+    return IMAGE_BASE_URL + url;
+  }
+  return url;
+});
+
+// [!!] 3. 리뷰 사진 URL 목록 계산
+const computedReviewPhotos = computed(() => {
+  if (props.item.latestReview?.photoUrls) {
+    return props.item.latestReview.photoUrls.map(url => {
+      // HomeView가 이미 photoThumbnails로 수정했지만, 혹시 모르니 여기서도 처리
+      // (이중 확인)
+      if (url && !url.startsWith('http')) {
+        return IMAGE_BASE_URL + url;
+      }
+      return url;
+    });
+  }
+  return [];
+});
+
+
 const maxHashtags = 2;
 const visibleHashtags = computed(() => {
   return props.item.hashtags?.slice(0, maxHashtags) || [];
@@ -105,77 +132,51 @@ const remainingHashtagsCount = computed(() => {
 });
 
 const onItemClick = () => {
-  emit('item-click', props.item); // [수정] item-click 시에도 item 객체를 전달
+  emit('item-click', props.item); 
 }
 </script>
 
 <style scoped>
-/* [수정] 루트 래퍼 스타일 */
+/* (스타일은 변경사항 없습니다) */
 .border.rounded-4.shadow-sm.p-3 {
   background-color: var(--bs-body-bg, #fff);
-  /* 모든 자식 요소의 간격/정렬은
-    flex, gap, mt/mb 및 루트의 p-3로 제어합니다.
-  */
 }
-
-/* [수정] '+' 버튼 스타일 */
 .btn-add-new {
   width: 28px;
   height: 28px;
   border: 1.5px solid #C6C6C8;
   padding: 0;
   background-color: white;
-  /* 루트 p-3 내부에 있으므로,
-    장소 정보 카드와의 간격은
-    장소 정보 카드의 `mt-2` (삭제됨) 대신
-    이 버튼이 속한 div의 `margin-bottom`으로 제어할 수 있으나,
-    현재 구조(다음 요소가 mt-3)도 괜찮습니다.
-  */
 }
-
-/* [수정] 장소 정보 컨텐츠 영역 (기존 .place-card-content) */
 .place-card-content {
-  /* `border`가 제거되어 더 이상 카드-인-카드 구조가 아님.
-     `p-3`가 제거되어 부모의 `p-3`를 따름.
-  */
   z-index: 1;
   overflow: hidden;
   cursor: pointer;
   transition: background-color 0.15s ease-out;
 }
-
 .place-card-content:hover {
   background-color: #f8f9fa !important;
-  /* 클릭 가능 영역 피드백 */
 }
-
-
 .image-frame {
   width: 80px;
   height: 80px;
   overflow: hidden;
   background-color: #f0f0f0;
 }
-
 .place-image {
   width: 100%;
   height: 100%;
-  /* [수정] contain -> cover */
   object-fit: cover;
 }
-
-/* (이하 스타일은 기존과 동일) */
 .content-frame {
   min-width: 0;
   max-width: calc(100% - 80px - 12px);
   min-height: 0;
 }
-
 .text-frame {
   min-width: 0;
   min-height: 0;
 }
-
 .hashtag-container {
   display: flex;
   flex-direction: row;
@@ -184,7 +185,6 @@ const onItemClick = () => {
   overflow: hidden;
   min-width: 0;
 }
-
 .more-tags {
   font-size: 0.7rem;
   color: #6c757d;
