@@ -13,9 +13,7 @@
       <div class="rating">
         <span class="stars">
           <i v-for="i in Math.floor(item.rating)" :key="'full-' + i" class="bi bi-star-fill"></i>
-
           <i v-if="item.rating % 1 >= 0.5" class="bi bi-star-half"></i>
-
           <i v-for="i in (5 - Math.ceil(item.rating))" :key="'empty-' + i" class="bi bi-star"></i>
         </span>
 
@@ -24,7 +22,6 @@
           <span class="review-count-value">({{ item.reviewCount }})</span>
         </span>
 
-        <!-- 과목 및 학년태그 -->
         <div v-if="mainCategory || gradeTag" class="subject-tags-container">
           <PillTag v-if="mainCategory" :text="mainCategory" type="subject" />
           <PillTag v-if="gradeTag" :text="gradeTag.replace('초등 ', '')" type="grade" />
@@ -32,7 +29,6 @@
 
       </div>
 
-      <!-- 중분류 태그 -->
       <div v-if="subCategories.length > 0" class="hashtags-area">
         <Hashtag v-for="tag in subCategories" :key="tag" :text="tag" />
       </div>
@@ -52,6 +48,9 @@
 import PillTag from '@/components/tag/PillTag.vue';
 import Hashtag from '@/components/tag/HashTag.vue';
 import TypeTag from '@/components/tag/TypeTag.vue';
+
+// [!!] 1. 이미지 기본 URL 정의
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 
 export default {
   name: 'InfoSection',
@@ -92,13 +91,6 @@ export default {
       required: false,
       default: () => null,
     },
-
-    // ✨ 3. subject-tags prop을 추가합니다. (ExhibitionDetailWithModal에서 전달받음)
-    // subjectTags: {
-    //   type: Array, // 배열 형태로 과목 이름들을 받습니다.
-    //   required: false,
-    //   default: () => [], // 기본값은 빈 배열로 설정합니다.
-    // },
     mainCategory: {
       type: String,
       default: '' // HashTag용
@@ -117,10 +109,18 @@ export default {
   computed: {
     // 1. 실제로 화면에 표시할 메인 이미지 URL을 결정합니다.
     mainImageSrc() {
-      // 만약 exhibition 데이터가 있다면, 그 이미지(exhibition.mainImage)를 사용하고,
-      // place 데이터가 있다면, 그 이미지(palce.mainImage)를 사용하며,
-      // 둘 다 없다면 기본 이미지 URL을 사용합니다.
-      return this.exhibition?.mainImage || this.place?.mainImage || 'https://via.placeholder.com/600x400';
+      // [!!] 2. PlaceCard2.vue와 동일한 로직 적용
+      // 부모(PlaceDetailsView)가 DTO를 매핑하며 'mainImage' 필드에 넣어준 값을 가져옵니다.
+      const rawUrl = this.exhibition?.mainImage || this.place?.mainImage;
+
+      if (rawUrl && !rawUrl.startsWith('http')) {
+        // 'exhibition/1.jpg' 같은 값이면 '앞주소'를 붙여줍니다.
+        return IMAGE_BASE_URL + rawUrl;
+      }
+      
+      // 'http://...'로 시작하거나, null이거나, 'https://via.placeholder...' 같은 fallback이면
+      // 그대로 반환합니다.
+      return rawUrl || 'https://via.placeholder.com/600x400';
     },
     // 2. 실제로 화면에 표시할 핵심 데이터를 결정합니다.
     // 이렇게 하면 템플릿 코드가 훨씬 단순해집니다.

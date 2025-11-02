@@ -1,40 +1,28 @@
 <template>
   <div class="place-card d-flex flex-row bg-white align-items-center px-3 py-3 rounded-4 shadow gap-3" style="
     font-family: 'SUIT' , sans-serif">
-    <!-- 이미지  -->
-    <img :src="item.imageUrl" :alt="item.title" class="map-thumbnail" />
-    <!-- 컨텐츠 프레임 -->
+    <img :src="computedImageUrl" :alt="item.title" class="map-thumbnail" />
+    
     <div class="content-frame d-flex flex-column flex-grow-1 gap-2 min-w-0">
-      <!-- 첫 줄 프레임 -->
       <div class="d-flex justify-content-between align-items-center gap-1">
-        <!-- 알약 태그 프레임 -->
         <div class="d-flex flex-row gap-2 flex-shrink-1 min-w-0">
           <PillTag :text="item.subject || ''" type="subject" />
           <PillTag :text="(item.grade || '').replace('초등 ', '')" type="grade" />
         </div>
-        <!-- 더보기 버튼 -->
         <button class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center btn-add flex-shrink-0"
           @click="onAddClick">
           <i class="bi bi-plus fs-5"></i>
         </button>
       </div>
-      <!-- 섹션 프레임 -->
       <div class="text-frame d-flex flex-column gap-1 min-w-0">
-        <!-- 첫 줄 프레임 -->
         <div class="d-flex align-items-center gap-1 min-w-0">
-          <!-- 상설 및 기획 태그 -->
           <TypeTag :text="item.type || ''" class="flex-shrink-0" />
-          <!-- 전시명 -->
           <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title || '' }}</h5>
         </div>
-        <!-- 두번째 줄 프레임 -->
         <div class="d-flex flex-row align-items-center gap-2 min-w-0">
-          <!-- 전시관명 -->
           <span class="text-truncate flex-grow-1 min-w-0">{{ item.place || '' }}</span>
         </div>
-        <!-- 세번째 줄 프레임 -->
         <div class="hashtag-container">
-          <!-- 해시태그 반복 -->
           <HashTag v-for="tag in visibleHashtags" :key="tag" :text="tag" />
 
           <span v-if="hasMoreHashtags" class="more-tags">
@@ -59,19 +47,26 @@ const props = defineProps({
   item: {
     type: Object,
     required: true
-    /* item 객체 예시:
-      {
-        imageUrl: 'https://example.com/some-image.jpg',
-        grade: '초등 3학년',
-        subject: '과학',
-        type: '상설',
-        place: '국립중앙과학관',
-        title: '과학 탐험대',
-        hashtags: ['대전', '체험', '교육', '재미있는', '학습']
-      }
-    */
   }
 });
+
+// [!!] 1. 이미지 기본 URL 정의
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+
+// [!!] 2. 이미지 URL을 계산하는 computed 속성 추가
+const computedImageUrl = computed(() => {
+  // 부모 뷰가 main_image_url을 imageUrl로 매핑해줬다는 가정
+  const url = props.item.imageUrl; 
+  
+  if (url && !url.startsWith('http')) {
+    // URL이 있고, http로 시작하지 않으면 (즉, 'exhibition/1.jpg' 이면)
+    return IMAGE_BASE_URL + url;
+  }
+  // URL이 http로 시작하거나, URL이 없으면(null) 그대로 반환
+  // (URL이 없으면 엑박 대신 alt 텍스트가 표시됨)
+  return url;
+});
+
 
 // 1. 최대 2개의 해시태그만 표시
 const maxHashtags = 2;
@@ -102,7 +97,7 @@ const onAddClick = () => {
 /* --- 레이아웃의 핵심 부분 --- */
 
 /* [카드 전체]
-  'display: flex'를 사용해 [이미지] | [콘텐츠 영역]으로
+  'display: flex'를 사용해  | [콘텐츠 영역]으로
   가로 2단 분리합니다.
 */
 .place-card {

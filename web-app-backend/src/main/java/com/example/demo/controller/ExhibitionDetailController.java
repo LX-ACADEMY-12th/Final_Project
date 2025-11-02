@@ -8,27 +8,53 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.dto.ExhibitionDetailDTO;
-import com.example.demo.service.ExhibitionDetailService;
+// [!!] 1. 필요한 클래스들을 import 합니다.
+import com.example.demo.dto.ExhibitionDTO;          // (목록용 DTO)
+import com.example.demo.service.ExhibitionService;      // (목록용 Service)
+import com.example.demo.dto.ExhibitionDetailDTO;    // (기존 상세용 DTO)
+import com.example.demo.service.ExhibitionDetailService; // (기존 상세용 Service)
+import java.util.List;                             // (List import)
 
 @RestController
-@RequestMapping("/api/exhibitions") // 공통 url
+@RequestMapping("/api/exhibitions")
+@CrossOrigin(origins = "http://localhost:5173") // [!!] 2. CORS 설정을 메서드가 아닌 클래스 레벨로 이동
 public class ExhibitionDetailController {
 
 	@Autowired
-	private ExhibitionDetailService exhibitionDetailService;
-	
+	private ExhibitionDetailService exhibitionDetailService; // (기존 상세용 서비스)
+
+	// --- ▼ [!!] 3. '목록용 서비스'를 새로 주입받습니다. ▼ ---
+	@Autowired
+	private ExhibitionService exhibitionService; 
+
+	// --- ▼ [!!] 4. '목록 조회' 메서드를 새로 추가합니다. ▼ ---
 	/**
-	 * 전시 상세 정보를 ID로 조회하는 API
-	 * GET /api/exhibition?id...
-	 * */
-	@GetMapping
+	 * (카테고리별) '전체 목록'을 조회하는 API
+	 * - GET /api/exhibitions
+	 * - GET /api/exhibitions?category=explore
+	 */
+	// [중요] 'params = "!exhibitionId"' -> exhibitionId 파라미터가 '없는' 요청만 이 메서드가 받음
+	@GetMapping(params = "!exhibitionId") 
+	public List<ExhibitionDTO> getAllExhibitions(
+			@RequestParam(name = "category", required = false) String categoryParam
+	) {
+		// 방금 만든 ExhibitionService의 메서드 호출
+		return exhibitionService.findAllExhibitions(categoryParam);
+	}
+	
+	// --- ▼ [!!] 5. '상세 조회' 메서드를 수정합니다. ▼ ---
+	/**
+	 * '상세 정보'를 ID로 조회하는 API
+	 * - GET /api/exhibitions?exhibitionId=1
+	 */
+	// [중요] 'params = "exhibitionId"' -> exhibitionId 파라미터가 '있는' 요청만 이 메서드가 받음
+	@GetMapping(params = "exhibitionId")
 	public ResponseEntity<ExhibitionDetailDTO> getExhibitionById(
-			@RequestParam Long exhibitionId,
+			@RequestParam Long exhibitionId, // (required=true가 기본값)
 			@RequestParam(required = false) String mainCategoryTags,
 			@RequestParam(required = false) String subCategoryTags,
 			@RequestParam(required = false) String gradeTags) {
-		// 1. URL에서 받은 ID(101)를 서비스(Service)로 전달
+		
 		ExhibitionDetailDTO dto = exhibitionDetailService.getfindExhibitionDetails(
 				exhibitionId,
 				mainCategoryTags,
@@ -36,13 +62,10 @@ public class ExhibitionDetailController {
 				gradeTags
 				);
 		
-		// 2. 서비스가 DB에서 가져온 DTO를 프론트엔드로 반환 (JSON 형태로)
 		if (dto != null) {
-            // 데이터가 있으면 200 (OK) 상태와 함께 DTO 반환
-            return ResponseEntity.ok(dto);
-        } else {
-            // 데이터가 없으면 404 (Not Found) 상태 반환
-            return ResponseEntity.notFound().build();
-        }
+			return ResponseEntity.ok(dto);
+		} else {
+			return ResponseEntity.notFound().build();
 	}
 }
+	}

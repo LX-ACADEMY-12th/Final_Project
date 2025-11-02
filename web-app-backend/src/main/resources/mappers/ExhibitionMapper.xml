@@ -4,4 +4,23 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.demo.mapper.ExhibitionMapper">
 
+    <select id="findAllExhibitions" resultType="com.example.demo.dto.ExhibitionDTO">
+        SELECT 
+            exhibition_id,
+            exhibition_name,
+            description,
+            image_file_name
+        FROM 
+            exhibition
+        
+        <where>
+            <if test="category != null and category != ''">
+                AND image_file_name LIKE CONCAT(#{category}, '/%')
+            </if>
+        </where>
+        
+        ORDER BY 
+            exhibition_id ASC
+    </select>
+
 </mapper>
