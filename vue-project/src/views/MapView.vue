@@ -120,6 +120,9 @@ import { storeToRefs } from 'pinia';
 
 const router = useRouter();
 
+// 🟢 [추가] 시연을 위한 대전 시청 고정 좌표
+const DEMO_LOCATION = { lat: 36.3504119, lng: 127.3845475 };
+
 // 🟢 [추가] Pinia 스토어 초기화 및 상태 가져오기
 const authStore = useAuthStore();
 // user 객체와 isLoggedIn 상태를 반응형으로 가져옵니다.
@@ -201,27 +204,36 @@ const handleItemClick = (item) => {
   moveMapToItem(item.lat, item.lng);
 };
 
-// 현재 위치 가져오기
+// // 현재 위치 가져오기
+// const getCurrentLocation = () => {
+//   return new Promise((resolve, reject) => {
+//     if (!navigator.geolocation) {
+//       return reject(new Error("Geolocation 미지원"));
+//     }
+//     navigator.geolocation.getCurrentPosition(
+//       (position) => {
+//         currentUserLocation.value = {
+//           lat: position.coords.latitude,
+//           lng: position.coords.longitude
+//         };
+//         console.log('현재 위치 획득:', currentUserLocation.value);
+//         resolve(currentUserLocation.value);
+//       },
+//       (error) => {
+//         console.error('위치 정보 획득 실패:', error);
+//         currentUserLocation.value = null;
+//         reject(error);
+//       }
+//     );
+//   });
+// };
+
+// 현재 위치 가져오기 (대전 시청으로 고정)
 const getCurrentLocation = () => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      return reject(new Error("Geolocation 미지원"));
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        currentUserLocation.value = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        console.log('현재 위치 획득:', currentUserLocation.value);
-        resolve(currentUserLocation.value);
-      },
-      (error) => {
-        console.error('위치 정보 획득 실패:', error);
-        currentUserLocation.value = null;
-        reject(error);
-      }
-    );
+  return new Promise((resolve) => {
+    currentUserLocation.value = DEMO_LOCATION;
+    console.log('현재 위치 고정 (대전 시청):', currentUserLocation.value);
+    resolve(currentUserLocation.value);
   });
 };
 
