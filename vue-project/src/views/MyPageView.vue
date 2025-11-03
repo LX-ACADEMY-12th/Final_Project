@@ -258,7 +258,7 @@ export default {
 <style scoped>
 @font-face {
   font-family: 'SUIT Variable';
-  src: url('@/assets/fonts/SUIT-Variable.woff2') format('woff2-variations');
+  src: url('@/assets/fonts/SUIT-Variable.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
 }

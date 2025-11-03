@@ -17,7 +17,8 @@
       <!-- 프로필 업로드 -->
       <div class="d-flex justify-content-center my-4">
         <div class="position-relative">
-          <div class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary">
+          <div
+            class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary">
             <img v-if="imagePreviewUrl" :src="imagePreviewUrl" alt="프로필 미리보기" class="profile-pic-image" />
             <i v-else class="bi bi-emoji-smile" style="font-size: 3rem;"></i>
           </div>
@@ -76,16 +77,14 @@
           </label>
 
           <div class="btn-group w-100 dropup">
-            <button type="button" class="btn dropdown-toggle w-100 dropup-btn"
-              data-bs-toggle="dropdown" aria-expanded="false"
-              :class="{ 'btn-selected': localUser.childGrade }">
+            <button type="button" class="btn dropdown-toggle w-100 dropup-btn" data-bs-toggle="dropdown"
+              aria-expanded="false" :class="{ 'btn-selected': localUser.childGrade }">
               {{ localUser.childGrade || '자녀 학년 선택' }}
             </button>
 
             <ul class="dropdown-menu w-100 custom-dropdown-menu">
               <li v-for="grade in childGrades" :key="grade">
-                <a class="dropdown-item" href="#"
-                  @click.prevent="selectChildGrade(grade)"
+                <a class="dropdown-item" href="#" @click.prevent="selectChildGrade(grade)"
                   :class="{ 'active': localUser.childGrade === grade }">
                   {{ grade }}
                 </a>
@@ -231,7 +230,7 @@ export default {
 <style scoped>
 @font-face {
   font-family: 'SUIT Variable';
-  src: url('@/assets/fonts/SUIT-Variable.woff2') format('woff2-variations');
+  src: url('@/assets/fonts/SUIT-Variable.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
 }
@@ -246,20 +245,29 @@ export default {
   /* 스크롤 구조 핵심 */
   display: flex;
   flex-direction: column;
-  height: 100vh;     /* 뷰포트 기준 */
-  overflow: hidden;  /* 바깥 스크롤 차단 */
+  height: 100vh;
+  /* 뷰포트 기준 */
+  overflow: hidden;
+  /* 바깥 스크롤 차단 */
 }
 
 .content-wrapper {
-  flex: 1;                /* 남은 공간을 모두 차지 */
-  min-height: 0;          /* overflow가 먹히도록 (중요) */
-  overflow-y: auto;       /* 내부 스크롤 */
-  -webkit-overflow-scrolling: touch; /* iOS */
+  flex: 1;
+  /* 남은 공간을 모두 차지 */
+  min-height: 0;
+  /* overflow가 먹히도록 (중요) */
+  overflow-y: auto;
+  /* 내부 스크롤 */
+  -webkit-overflow-scrolling: touch;
+  /* iOS */
   /* 스크롤바 숨김 (원한다면 표시해도 됨) */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.content-wrapper::-webkit-scrollbar { display: none; }
+
+.content-wrapper::-webkit-scrollbar {
+  display: none;
+}
 
 /* ── 프로필 업로드 ───────────────── */
 .profile-pic {
@@ -267,11 +275,13 @@ export default {
   height: 80px;
   overflow: hidden;
 }
+
 .profile-pic-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .profile-badge {
   width: 28px;
   height: 28px;
@@ -282,7 +292,10 @@ export default {
   background-color: #3674B5;
   border-color: #3674B5;
 }
-.profile-badge:active { filter: brightness(90%); }
+
+.profile-badge:active {
+  filter: brightness(90%);
+}
 
 /* ── 폼 공통 ───────────────── */
 .form-label {
@@ -290,7 +303,10 @@ export default {
   color: #000;
   margin-bottom: 8px;
 }
-.form-label small { font-size: 0.8rem; }
+
+.form-label small {
+  font-size: 0.8rem;
+}
 
 .form-control,
 .dropup-btn {
@@ -298,7 +314,11 @@ export default {
   padding: 12px 16px;
   border: 1px solid #DEDEDE;
 }
-.form-control::placeholder { color: #BDBDBD; }
+
+.form-control::placeholder {
+  color: #BDBDBD;
+}
+
 .form-control:focus,
 .dropup-btn:focus {
   border-color: #000;
@@ -315,21 +335,38 @@ export default {
   padding-bottom: 12px;
   font-weight: 600;
 }
+
 .btn-gender-outline {
   background-color: #fff;
   border: 1px solid #ced4da;
   color: #495057;
 }
-.btn-gender-outline:hover { background-color: #fff; border-color: #ced4da; color: #495057; }
-.btn-gender-outline:active { background-color: #f8f9fa; }
+
+.btn-gender-outline:hover {
+  background-color: #fff;
+  border-color: #ced4da;
+  color: #495057;
+}
+
+.btn-gender-outline:active {
+  background-color: #f8f9fa;
+}
 
 .btn-gender-fill {
   background-color: #3674B5;
   border-color: #3674B5;
   color: #fff;
 }
-.btn-gender-fill:hover { background-color: #3674B5; border-color: #3674B5; color: #fff; }
-.btn-gender-fill:active { filter: brightness(90%); }
+
+.btn-gender-fill:hover {
+  background-color: #3674B5;
+  border-color: #3674B5;
+  color: #fff;
+}
+
+.btn-gender-fill:active {
+  filter: brightness(90%);
+}
 
 .add-child-btn {
   border: 1px solid #DEDEDE;
@@ -339,7 +376,10 @@ export default {
   display: flex;
   align-items: center;
 }
-.add-child-btn:active { background-color: #f8f9fa; }
+
+.add-child-btn:active {
+  background-color: #f8f9fa;
+}
 
 .submit-btn {
   padding-top: 14px;
@@ -347,30 +387,53 @@ export default {
   background-color: #3674B5;
   border-color: #3674B5;
 }
-.submit-btn.btn-primary:hover { background-color: #3674B5; border-color: #3674B5; }
-.submit-btn:active { filter: brightness(90%); }
+
+.submit-btn.btn-primary:hover {
+  background-color: #3674B5;
+  border-color: #3674B5;
+}
+
+.submit-btn:active {
+  filter: brightness(90%);
+}
 
 /* ── Dropup ───────────────── */
 .dropup-btn {
   background-color: #fff;
-  color: #BDBDBD;   /* placeholder 톤 */
+  color: #BDBDBD;
+  /* placeholder 톤 */
   text-align: left;
   border-color: #DEDEDE;
 }
-.dropup-btn.btn-selected { color: #495057; }
+
+.dropup-btn.btn-selected {
+  color: #495057;
+}
 
 .custom-dropdown-menu {
   border-radius: 12px;
   border: 1px solid #DEDEDE;
-  box-shadow: 0 4px 6px rgba(0,0,0,.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, .1);
 }
+
 .dropdown-item {
   padding: 10px 16px;
   font-weight: 500;
 }
+
 .dropdown-item:hover,
-.dropdown-item:focus { background-color: #f8f9fa; color: #000; }
+.dropdown-item:focus {
+  background-color: #f8f9fa;
+  color: #000;
+}
+
 .dropdown-item.active,
-.dropdown-item:active { background-color: #3674B5; color: #fff; }
-.dropup-btn:focus { box-shadow: none !important; }
+.dropdown-item:active {
+  background-color: #3674B5;
+  color: #fff;
+}
+
+.dropup-btn:focus {
+  box-shadow: none !important;
+}
 </style>

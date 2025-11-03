@@ -8,21 +8,23 @@
       <div class="form-group">
         <label for="id">아이디 *</label>
         <div class="input-with-button">
-          <input type="text" id="id" v-model="id" placeholder="아이디 입력" required class="text-input" @input="resetIdCheckStatus" />
+          <input type="text" id="id" v-model="id" placeholder="아이디 입력" required class="text-input"
+            @input="resetIdCheckStatus" />
           <button type="button" class="check-button" @click="checkIdDuplicate" :disabled="!id">중복확인</button>
         </div>
-        <div v-if="isIdChecked && !idCheckLoading" :class="{'validation-message': true, 'valid': !isIdDuplicate, 'invalid': isIdDuplicate}">
-            <span v-if="isIdDuplicate">이미 사용 중인 아이디입니다.</span>
-            <span v-else>사용 가능한 아이디입니다!</span>
+        <div v-if="isIdChecked && !idCheckLoading"
+          :class="{ 'validation-message': true, 'valid': !isIdDuplicate, 'invalid': isIdDuplicate }">
+          <span v-if="isIdDuplicate">이미 사용 중인 아이디입니다.</span>
+          <span v-else>사용 가능한 아이디입니다!</span>
         </div>
       </div>
       <!-- 비밀번호 입력창 -->
       <div class="form-group">
         <label for="password">비밀번호 *</label>
         <div class="input-with-icon">
-          <input :type="passwordVisible.password ? 'text' : 'password'" id="password" v-model="password" @input="checkPasswordValidity"
-            @focus="handlePasswordFocus" @blur="handlePasswordBlur" placeholder="영문, 숫자, 특수문자 조합 8~16자리" required
-            class="text-input" />
+          <input :type="passwordVisible.password ? 'text' : 'password'" id="password" v-model="password"
+            @input="checkPasswordValidity" @focus="handlePasswordFocus" @blur="handlePasswordBlur"
+            placeholder="영문, 숫자, 특수문자 조합 8~16자리" required class="text-input" />
           <span class="password-toggle-icon" @click="togglePasswordVisibility('password')">
             <i v-if="passwordVisible.password" class="bi bi-eye"></i>
             <i v-else class="bi bi-eye-slash"></i>
@@ -39,7 +41,8 @@
             최소 1개의 숫자
           </div>
           <div :class="['validation-item', { 'valid': passwordCriteria.specialChar }]">
-            <i :class="['validation-icon', passwordCriteria.specialChar ? 'bi-check-circle-fill' : 'bi-x-circle-fill']"></i>
+            <i
+              :class="['validation-icon', passwordCriteria.specialChar ? 'bi-check-circle-fill' : 'bi-x-circle-fill']"></i>
             최소 1개의 특수문자
           </div>
         </div>
@@ -52,22 +55,25 @@
 
       <div class="form-group">
         <label for="email">이메일 *</label>
-        <input type="email" id="email" v-model="email" placeholder="이메일 입력" required class="text-input" @input="checkEmailDuplicateWithDebounce" />
-        
+        <input type="email" id="email" v-model="email" placeholder="이메일 입력" required class="text-input"
+          @input="checkEmailDuplicateWithDebounce" />
+
         <div v-if="email.length > 0 && !isEmailValid" class="validation-message invalid">
           유효한 이메일 형식이 아닙니다.
         </div>
 
-        <div v-if="isEmailValid && isEmailCheckedOnce" :class="{'validation-message': true, 'checking-status': isEmailChecking, 'valid': !isEmailDuplicate && !isEmailChecking, 'invalid': isEmailDuplicate && !isEmailChecking}">
-            <span v-if="isEmailChecking">중복 확인 중...</span>
-            <span v-else-if="isEmailDuplicate">이미 사용 중인 이메일입니다.</span>
-            <span v-else>사용 가능한 이메일입니다!</span>
+        <div v-if="isEmailValid && isEmailCheckedOnce"
+          :class="{ 'validation-message': true, 'checking-status': isEmailChecking, 'valid': !isEmailDuplicate && !isEmailChecking, 'invalid': isEmailDuplicate && !isEmailChecking }">
+          <span v-if="isEmailChecking">중복 확인 중...</span>
+          <span v-else-if="isEmailDuplicate">이미 사용 중인 이메일입니다.</span>
+          <span v-else>사용 가능한 이메일입니다!</span>
         </div>
       </div>
 
       <div class="form-group">
         <label for="phone">휴대폰 번호 *</label>
-        <input type="tel" id="phone" v-model="phone" placeholder="휴대폰 번호 입력" required class="text-input" @input="formatPhoneNumber" />
+        <input type="tel" id="phone" v-model="phone" placeholder="휴대폰 번호 입력" required class="text-input"
+          @input="formatPhoneNumber" />
       </div>
 
       <p class="terms-text">
@@ -95,9 +101,9 @@
 </template>
 
 <script>
-// 1. axios 라이브러리 import 
+// 1. axios 라이브러리 import
 import eventBus from '@/utils/eventBus';
-import axios from 'axios'; 
+import axios from 'axios';
 
 // 백엔드 API의 기본 URL을 상수로 정의합니다. (실제 환경에 맞게 변경 필요)
 const API_URL = 'http://localhost:8080/api/user';
@@ -105,10 +111,10 @@ const API_URL = 'http://localhost:8080/api/user';
 export default {
   // 컴포넌트의 이름 설정
   name: 'SignupForm',
-  
+
   // 디바운싱 타이머를 컴포넌트 인스턴스에 추가하지 않고,
   // 컴포넌트 인스턴스가 아닌 옵션에 추가 (Vue 2 방식)
-  debounceTimer: null, 
+  debounceTimer: null,
 
   // 1. 상태(Data) 정의 (변동 없음)
   data() {
@@ -123,12 +129,12 @@ export default {
       isIdChecked: false, // 중복확인 버튼 클릭 여부
       isIdDuplicate: true, // 아이디 중복 여부 (초기값: 중복)
       idCheckLoading: false, // 아이디 중복 확인 로딩 상태
-      
+
       // 비밀번호 표시/숨김
       passwordVisible: {
         password: false
       },
-      
+
       // 비밀번호 유효성 메시지 표시
       isPasswordFocused: false,
 
@@ -172,7 +178,7 @@ export default {
         this.passwordCriteria.number &&
         this.passwordCriteria.specialChar
       );
-    } 
+    }
   },
 
   // 3. 메서드(Methods)
@@ -230,17 +236,17 @@ export default {
       try {
         // 2. 백엔드 API 호출: GET /api/user/check-id/{id}
         const response = await axios.get(`${API_URL}/check-id/${this.id}`);
-        
+
         // 백엔드에서 true를 반환하면 중복, false를 반환하면 중복 아님
-        const isDuplicate = response.data; 
+        const isDuplicate = response.data;
 
         this.isIdChecked = true; // 확인 완료 상태로 변경
         this.isIdDuplicate = isDuplicate; // 중복 여부 저장
-        
+
         if (isDuplicate) {
-            console.log('아이디 중복');
+          console.log('아이디 중복');
         } else {
-            console.log('사용 가능 아이디');
+          console.log('사용 가능 아이디');
         }
 
       } catch (error) {
@@ -292,14 +298,14 @@ export default {
           const response = await axios.get(`${API_URL}/check-email/${emailValue}`);
 
           // 백엔드에서 true를 반환하면 중복, false를 반환하면 중복 아님
-          const isDuplicate = response.data; 
+          const isDuplicate = response.data;
 
           this.isEmailDuplicate = isDuplicate;
-          
+
         } catch (error) {
           console.error('이메일 중복 확인 실패:', error);
           // 오류 발생 시 사용자에게 알림 없이, 중복으로 간주
-          this.isEmailDuplicate = true; 
+          this.isEmailDuplicate = true;
         } finally {
           this.isEmailChecking = false; // 로딩 상태 해제
         }
@@ -333,7 +339,7 @@ export default {
           cleanedNumber.substring(3, 7) +
           '-' +
           cleanedNumber.substring(7, 11);
-        }
+      }
 
       // data 속성 업데이트
       this.phone = formattedNumber;
@@ -363,7 +369,7 @@ export default {
       try {
         // 2. 백엔드 API 호출: POST /api/user/signup
         const response = await axios.post(`${API_URL}/signup`, userData);
-        
+
         // 3. 응답 처리
         if (response.status === 201) { // HTTP 201 Created
           console.log('회원가입 성공:', response.data);
@@ -371,27 +377,27 @@ export default {
         } else {
           // 200번대 상태 코드가 아닌 경우
           eventBus.emit('show-global-alert', {
-          message: '회원가입에 실패했습니다. (응답 상태: ' + response.status + ')',
-          type: 'error'
-        });
+            message: '회원가입에 실패했습니다. (응답 상태: ' + response.status + ')',
+            type: 'error'
+          });
         }
       } catch (error) {
         // 4. 에러 처리 (4xx, 5xx 에러 등)
         console.error('회원가입 요청 실패:', error);
         if (error.response && error.response.data) {
           eventBus.emit('show-global-alert', {
-          message: '회원가입 요청 중 오류가 발생했습니다: ' + error.response.data,
-          type: 'error'
-        });
+            message: '회원가입 요청 중 오류가 발생했습니다: ' + error.response.data,
+            type: 'error'
+          });
         } else {
           eventBus.emit('show-global-alert', {
-          message: '회원가입 요청 중 알 수 없는 오류가 발생했습니다.',
-          type: 'error'
-        });
+            message: '회원가입 요청 중 알 수 없는 오류가 발생했습니다.',
+            type: 'error'
+          });
         }
-      } 
+      }
     },
-    
+
     // 로그인 화면으로 이동하는 메서드 추가 (변동 없음)
     navigateToLogin() {
       // ... (기존 코드 유지) ...
@@ -406,7 +412,7 @@ export default {
 <style scoped>
 @font-face {
   font-family: 'SUIT Variable';
-  src: url('@/assets/fonts/SUIT-Variable.woff2') format('woff2-variations');
+  src: url('@/assets/fonts/SUIT-Variable.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
 }
@@ -429,22 +435,22 @@ export default {
 }
 
 .validation-item.valid {
-  color: #000000; 
+  color: #000000;
 }
 
 .validation-icon {
   font-size: 14px;
   margin-right: 8px;
-  width: 14px; 
+  width: 14px;
   text-align: center;
 }
 
 .validation-item:not(.valid) .validation-icon {
-  color: #FF6666; 
+  color: #FF6666;
 }
 
 .validation-item.valid .validation-icon {
-  color: #4CAF50; 
+  color: #4CAF50;
 }
 
 .signup-container {
@@ -466,34 +472,34 @@ export default {
 
 .header {
   text-align: center;
-  margin-bottom: 40px; 
+  margin-bottom: 40px;
 }
 
 .header h2 {
-  font-size: 20px; 
-  font-weight: 500; 
+  font-size: 20px;
+  font-weight: 500;
   color: #000000;
-  margin: 10px 0 0; 
+  margin: 10px 0 0;
 }
 
 .form-group {
-  margin-bottom: 24px; 
+  margin-bottom: 24px;
 }
 
 .form-group label {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #000000; 
-  margin-bottom: 4px; 
+  color: #000000;
+  margin-bottom: 4px;
 }
 
 .text-input {
   width: 100%;
-  padding: 12px 14px; 
+  padding: 12px 14px;
   font-size: 16px;
-  border: 1px solid #DEDEDE; 
-  border-radius: 15px; 
+  border: 1px solid #DEDEDE;
+  border-radius: 15px;
   box-sizing: border-box;
 }
 
@@ -503,7 +509,7 @@ export default {
 
 .text-input:focus {
   outline: none;
-  border-color: #000000; 
+  border-color: #000000;
 }
 
 .input-with-button {
@@ -517,13 +523,13 @@ export default {
 }
 
 .check-button {
-  padding: 12px 16px; 
+  padding: 12px 16px;
   font-size: 16px;
-  font-weight: 500; 
+  font-weight: 500;
   color: #fff;
-  background-color: #4A7CEC; 
+  background-color: #4A7CEC;
   border: none;
-  border-radius: 15px; 
+  border-radius: 15px;
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 0.3s;
@@ -538,7 +544,7 @@ export default {
 }
 
 .input-with-icon .text-input {
-  padding-right: 40px; 
+  padding-right: 40px;
 }
 
 .password-toggle-icon {
@@ -557,18 +563,18 @@ export default {
   color: #616161;
   text-align: center;
   margin-top: 24px;
-  margin-bottom: 28px; 
+  margin-bottom: 28px;
 }
 
 .submit-button {
   width: 100%;
-  padding: 14px; 
+  padding: 14px;
   font-size: 16px;
-  font-weight: 500; 
+  font-weight: 500;
   color: #fff;
-  background-color: #4A7CEC; 
+  background-color: #4A7CEC;
   border: none;
-  border-radius: 15px; 
+  border-radius: 15px;
   cursor: pointer;
   transition: background-color 0.3s;
 }
@@ -581,13 +587,13 @@ export default {
   text-align: center;
   margin-top: 24px;
   font-size: 14px;
-  color: #000000; 
+  color: #000000;
 }
 
 .login-link-wrapper a {
   font-weight: 500;
-  color: #4A7CEC; 
-  text-decoration: none; 
+  color: #4A7CEC;
+  text-decoration: none;
 }
 
 .login-link-wrapper a:hover {
@@ -601,22 +607,25 @@ export default {
 
 /* ⭐⭐ 아이디 유효성 메시지 스타일 추가 (기존 스타일 재활용) ⭐⭐ */
 .validation-message {
-    margin-top: 5px;
-    font-size: 13px;
-    font-weight: 500;
-    padding-left: 5px;
+  margin-top: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  padding-left: 5px;
 }
 
 .validation-message.invalid {
-    color: #FF6666; /* 빨간색 (새로운 스타일의 오류 색상) */
+  color: #FF6666;
+  /* 빨간색 (새로운 스타일의 오류 색상) */
 }
 
 .validation-message.valid {
-    color: #4CAF50; /* 녹색 */
+  color: #4CAF50;
+  /* 녹색 */
 }
 
 .checking-status {
-    color: #4A7CEC; /* 버튼 색상과 유사한 파란색 */
+  color: #4A7CEC;
+  /* 버튼 색상과 유사한 파란색 */
 }
 
 /* ⭐⭐⭐ 모달 관련 스타일 수정 (ReviewModal 스타일 통일) ⭐⭐⭐ */
@@ -628,7 +637,8 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* 투명도 0.6에서 0.5로 통일 */
+  background-color: rgba(0, 0, 0, 0.5);
+  /* 투명도 0.6에서 0.5로 통일 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -639,29 +649,37 @@ export default {
 .modal-content {
   background: white;
   width: 90%;
-  max-width: 400px; /* 크기 통일 */
-  border-radius: 12px; /* 둥근 모서리 통일 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* 그림자 통일 */
+  max-width: 400px;
+  /* 크기 통일 */
+  border-radius: 12px;
+  /* 둥근 모서리 통일 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  /* 그림자 통일 */
   overflow: hidden;
   display: flex;
   flex-direction: column;
   text-align: center;
 
   /* ReviewModal의 바디/푸터 스타일을 참고하여 내부 패딩 조정 */
-  padding: 30px 20px 20px; /* 기존 모달 스타일 유지하면서 ReviewModal 크기/모양 반영 */
+  padding: 30px 20px 20px;
+  /* 기존 모달 스타일 유지하면서 ReviewModal 크기/모양 반영 */
 }
 
 .modal-content h3 {
   font-size: 20px;
-  font-weight: bold; /* bold로 통일 */
-  color: #333; /* ReviewModal 본문 텍스트와 유사하게 변경 */
-  margin-bottom: 10px; /* 간격 조정 */
+  font-weight: bold;
+  /* bold로 통일 */
+  color: #333;
+  /* ReviewModal 본문 텍스트와 유사하게 변경 */
+  margin-bottom: 10px;
+  /* 간격 조정 */
 }
 
 .modal-content p {
   font-size: 14px;
   color: #333;
-  margin-bottom: 5px; /* 간격 조정 */
+  margin-bottom: 5px;
+  /* 간격 조정 */
   line-height: 1.5;
 }
 
@@ -669,18 +687,24 @@ export default {
 .modal-button {
   margin-top: 20px;
   width: 100%;
-  background-color: #4A7CEC; /* 버튼 색상 통일 */
+  background-color: #4A7CEC;
+  /* 버튼 색상 통일 */
   color: white;
   border: none;
-  padding: 14px 0; /* 패딩 통일 */
-  border-radius: 8px; /* 둥근 모서리 통일 */
+  padding: 14px 0;
+  /* 패딩 통일 */
+  border-radius: 8px;
+  /* 둥근 모서리 통일 */
   font-size: 16px;
-  font-weight: bold; /* bold로 통일 */
+  font-weight: bold;
+  /* bold로 통일 */
   cursor: pointer;
-  transition: background-color 0.2s; /* 트랜지션 통일 */
+  transition: background-color 0.2s;
+  /* 트랜지션 통일 */
 }
 
 .modal-button:hover {
-  background-color: #4A7CEC; /* 호버 색상 유지 */
+  background-color: #4A7CEC;
+  /* 호버 색상 유지 */
 }
 </style>
