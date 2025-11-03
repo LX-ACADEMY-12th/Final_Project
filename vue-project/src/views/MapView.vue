@@ -54,7 +54,7 @@
       <button
         class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center">
         <i class="bi bi-geo-alt" style="font-size: 1rem; line-height: 1;"></i>
-        <span style="font-size: 0.6rem; margin-top: 2px;">방문장소</span>
+        <span style="font-size: 0.6rem; margin-top: 2px;">과학관 실내</span>
       </button>
       <button class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center"
         @click="goToCurrentLocation">
