@@ -61,7 +61,7 @@ export default {
       confirm: {
         show: false,
         message: '',
-        msg:'',
+        msg: '',
         onConfirm: null, // '확인' 버튼을 눌렀을 때 실행할 함수
         onCancel: null, // '취소' 버튼을 눌렀을 때 실행할 함수
       },
@@ -157,14 +157,15 @@ body {
 
 <style scoped>
 #app-container {
-  width: 412px;
-  height: 917px;
+  width: 480px;
+  height: 100%;
   position: relative;
   background-color: #f0f0f0;
   border: 1px solid #ccc;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   border-radius: 20px;
+  /* 문서의 흐름에 따라 요소 배치 */
   display: flex;
   flex-direction: column;
 }

@@ -11,36 +11,45 @@
       </div>
     </div>
 
-    <div
-      class="voice-interaction-body flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center p-4">
+    <div class="voice-interaction-body flex-grow-1 d-flex flex-column align-items-center text-center p-4">
 
-      <div class="ai-character-bubble" :class="uiState">
-        <div class="ai-character">
+      <div class="ai-character-bubble flex-shrink-0" :class="uiState">
+        <div class="ai-character" :style="listeningAnimationStyle">
           <i class="bi" :class="getCharacterIcon()"></i>
         </div>
       </div>
 
-      <div class="speech-bubble" v-if="statusText">
-        {{ statusText }}
+      <div class="chat-history-container" ref="chatHistoryRef">
+
+        <div v-for="(msg, index) in messages" :key="index" class="chat-message" :class="msg.sender">
+          <div class="chat-bubble" :class="msg.sender">
+            {{ msg.text }}
+          </div>
+        </div>
+
+        <div class="chat-message ai" v-if="statusText">
+          <div class="chat-bubble status">
+            {{ statusText }}
+          </div>
+        </div>
       </div>
+
     </div>
 
     <div class="voice-control-area d-flex align-items-center justify-content-center p-4 bg-white flex-shrink-0">
-
       <button class="btn btn-lg rounded-circle d-flex justify-content-center align-items-center shadow"
-        :class="getButtonClass()" @click="toggleRecording"
-        :disabled="uiState === 'processing' || uiState === 'speaking'">
+        :class="getButtonClass()" @click="toggleRecording" :disabled="uiState === 'processing'">
         <i class="bi fs-1" :class="uiState === 'listening' ? 'bi-stop-fill' : 'bi-mic-fill'"></i>
       </button>
     </div>
 
   </div>
 </template>
-
 <script setup>
-import { ref, computed } from 'vue';
+// [!!] (수정됨) watch, nextTick 추가
+import { ref, computed, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-// import axios from '@/api/axiosSetup'; // 👈 [!!] 실제 API 호출을 안 하므로 주석 처리 (나중에 다시 활성화)
+import axios from '@/api/axiosSetup';
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
@@ -50,143 +59,152 @@ const router = useRouter();
 
 const goToHome = () => router.push('/home');
 
-// --- 상태 관리 (동일) ---
+// --- 상태 관리 ---
 const uiState = ref('idle');
-const statusText = ref(`안녕! 만나서 반가워. \n 궁금한 걸 물어봐!`);
-const messages = ref([]);
+
+// [!!] (수정됨) messages와 statusText 역할 분리
+const messages = ref([
+  { sender: 'ai', text: '안녕! 만나서 반가워. \n 궁금한 걸 물어봐!' }
+]);
+const statusText = ref(''); // 일시적인 상태 메시지 (듣는 중, 생각 중...)
 const currentAudio = ref(null);
+
+// [!!] (추가됨) 자동 스크롤을 위한 ref
+const chatHistoryRef = ref(null);
 
 // --- 녹음 로직 (동일) ---
 const mediaRecorder = ref(null);
 const audioChunks = ref([]);
+const audioContext = ref(null);
+const analyser = ref(null);
+const source = ref(null);
+const animationFrameId = ref(null);
+const currentVolume = ref(0);
 
 const toggleRecording = () => {
   if (uiState.value === 'listening') {
     stopAndSendAudio();
-  } else if (uiState.value === 'idle') {
+
+    // [!!] 'idle' 또는 'speaking' 상태일 때
+  } else if (uiState.value === 'idle' || uiState.value === 'speaking') {
     if (currentAudio.value) {
-      currentAudio.value.pause();
+      currentAudio.value.pause(); // (중요!) AI 음성을 즉시 중지
       currentAudio.value.currentTime = 0;
     }
-    startRecording();
+    statusText.value = '';
+    startRecording(); // 즉시 새로운 녹음 시작
   }
 };
 
+// [!!] (수정됨) statusText 설정
 const startRecording = async () => {
   try {
-    // [!!] 목업 테스트 중에는 실제 마이크를 켤 필요가 없습니다.
-    // [!!] '듣는 중' 상태로 바로 전환합니다.
-    // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // mediaRecorder.value = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-    // mediaRecorder.value.ondataavailable = (event) => audioChunks.value.push(event.data);
-    // mediaRecorder.value.start();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder.value = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    mediaRecorder.value.ondataavailable = (event) => audioChunks.value.push(event.data);
+    mediaRecorder.value.start();
 
-    console.log("Mock recording started...");
+    audioContext.value = new (window.AudioContext || window.webkitAudioContext)();
+    analyser.value = audioContext.value.createAnalyser();
+    source.value = audioContext.value.createMediaStreamSource(stream);
+    source.value.connect(analyser.value);
+    analyser.value.fftSize = 256;
+
+    visualizeAudio();
+
+    console.log("Real recording started...");
     uiState.value = 'listening';
-    statusText.value = '듣고 있어! 말해봐~';
-
-    // [!!] 테스트를 위해 3초 후에 자동으로 녹음 중지 및 전송
-    setTimeout(() => {
-      if (uiState.value === 'listening') {
-        console.log("Mock recording auto-stopping after 3s...");
-        stopAndSendAudio();
-      }
-    }, 3000);
-
+    statusText.value = '듣고 있어! 말해봐~'; // (수정됨)
   } catch (error) {
-    statusText.value = '앗! 마이크를 켤 수 없어.';
+    console.error("Error starting recording:", error);
+    statusText.value = '앗! 마이크를 켤 수 없어.'; // (수정됨)
   }
 };
 
-
-// [!!] 1. 가짜 API 호출 함수 (목업 데이터)
-// ----------------------------------------------------
-/**
- * 2초간의 딜레이 후, 가짜 AI 응답(목업 데이터)을 반환하는 Promise
- */
-const mockApiCall = () => {
-  console.log("Mock API 호출 시작... (2초간 '생각 중' 상태)");
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-
-      // 80% 확률로 성공, 20% 확률로 실패 (오류 케이스 테스트용)
-      if (Math.random() < 0.8) {
-        console.log("Mock API -> 성공 응답 반환");
-        resolve({
-          data: {
-            userTranscript: "선생님, 공룡은 왜 멸종했어요?", // (가짜 STT 결과)
-            aiResponseText: "아주아주 큰 운석이 지구랑 \n 꽝! 부딪혔기 때문이야.", // (가짜 AI 답변)
-            // (가짜 AI 음성 - 구글의 효과음 URL로 대체)
-            aiResponseAudio: "https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg"
-          }
-        });
-      } else {
-        console.log("Mock API -> 실패 응답 반환");
-        reject(new Error("Mock API Error: 앗! 대답을 못 찾았어요."));
-      }
-
-    }, 2000); // 2초 딜레이
-  });
+const visualizeAudio = () => {
+  // (시각화 로직은 동일)
+  if (!analyser.value) return;
+  const bufferLength = analyser.value.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  analyser.value.getByteFrequencyData(dataArray);
+  let sum = 0;
+  for (let i = 0; i < bufferLength; i++) {
+    sum += dataArray[i];
+  }
+  let avgVolume = sum / bufferLength;
+  currentVolume.value = Math.min(avgVolume / 60, 1) * 100;
+  animationFrameId.value = requestAnimationFrame(visualizeAudio);
 };
-// ----------------------------------------------------
 
-
-/**
- * 녹음 중지 및 서버 전송 ( [!!] 이 부분이 수정되었습니다 )
- */
+// [!!] (수정됨) statusText 및 messages 처리 로직 변경
 const stopAndSendAudio = () => {
-  // [!!] 실제 녹음 로직은 필요 없으므로 주석 처리
-  // if (!mediaRecorder.value) return;
-  // mediaRecorder.value.stop();
+  if (!mediaRecorder.value) return;
 
-  console.log("Mock recording stopped. Calling Mock API...");
+  if (animationFrameId.value) {
+    cancelAnimationFrame(animationFrameId.value);
+    animationFrameId.value = null;
+  }
+
+  console.log("Real recording stopped. Sending to server...");
   uiState.value = 'processing';
-  statusText.value = '음... 잠깐만 생각해볼게!'; // 생각 중 멘트
+  statusText.value = '음... 잠깐만 생각해볼게!'; // (수정됨)
 
-  // [!!] onstop 대신 바로 비동기 로직 실행
-  (async () => {
-    // const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm' });
-    // audioChunks.value = [];
-    // const formData = new FormData();
-    // formData.append('audio', audioBlob, 'recording.webm');
+  mediaRecorder.value.onstop = async () => {
+    const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm' });
+    audioChunks.value = [];
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.webm');
 
-    // ... (실제 마이크 스트림 중지 로직도 주석 처리) ...
+    if (mediaRecorder.value && mediaRecorder.value.stream) {
+      mediaRecorder.value.stream.getTracks().forEach(track => track.stop());
+    }
+    if (audioContext.value && audioContext.value.state !== 'closed') {
+      audioContext.value.close();
+    }
+    currentVolume.value = 0;
 
     try {
-      // [!!] 2. 실제 axios.post 대신 mockApiCall()을 호출합니다.
-      // const response = await axios.post('http://localhost:8080/api/voice-query', formData, {
-      //   headers: { 'Content-Type': 'multipart/form-data' }
-      // });
-      const response = await mockApiCall(); // 👈 [!!] 이 부분 변경
-
+      const response = await axios.post('http://localhost:8080/api/voice-query', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
       const { userTranscript: sttText, aiResponseText, aiResponseAudio } = response.data;
 
-      messages.value.push({ sender: 'user', text: sttText });
-      messages.value.push({ sender: 'ai', text: aiResponseText });
+      // [!!] (수정됨) "processing" 상태 메시지를 지우고 대화 내역(messages)에 추가
+      statusText.value = '';
+
+      // [!!] (수정됨)
+      // "못 들었어" 케이스와 정상 케이스를 분리하여 messages에 push
+      // 이것이 '사용자 입력 텍스트 표시' 문제를 해결합니다.
+      if (!sttText && aiResponseText.includes("목소리를 잘 못 들었어")) {
+        messages.value.push({ sender: 'ai', text: aiResponseText });
+      } else {
+        messages.value.push({ sender: 'user', text: sttText });
+        messages.value.push({ sender: 'ai', text: aiResponseText });
+      }
 
       uiState.value = 'speaking';
-      statusText.value = aiResponseText;
+      // statusText.value = aiResponseText; // (제거됨)
 
       currentAudio.value = new Audio(aiResponseAudio);
       currentAudio.value.play();
 
       currentAudio.value.onended = () => {
         uiState.value = 'idle';
-        statusText.value = '또 궁금한 거 있어?';
+        statusText.value = '또 궁금한 거 있어?'; // (수정됨)
       };
 
     } catch (error) {
-      // [!!] 목업 에러가 발생하면 이 부분이 실행됩니다.
-      console.error(error.message);
+      console.error("Error sending audio:", error);
       uiState.value = 'idle';
-      statusText.value = '앗! 대답을 못 찾았어. \n 다시 물어봐줄래?';
+      statusText.value = '앗! 대답을 못 찾았어. \n 다시 물어봐줄래?'; // (수정됨)
     }
-  })(); // 비동기 즉시 실행 함수
+  }; // onstop 핸들러 정의 끝
+
+  mediaRecorder.value.stop();
 };
 
 // --- UI 상태 함수 (동일) ---
-
 const getCharacterIcon = () => {
   switch (uiState.value) {
     case 'listening': return 'bi-ear-fill';
@@ -201,30 +219,53 @@ const getCharacterIcon = () => {
 const getButtonClass = () => {
   switch (uiState.value) {
     case 'listening': return 'btn-speak-stop';
-    case 'idle': return 'btn-speak-go';
+    case 'idle':
+    case 'speaking': // [!!] (추가됨) 말하는 중에도 'go' 버튼을 표시
+      return 'btn-speak-go';
     case 'processing':
-    case 'speaking':
     default:
       return 'btn-speak-disabled';
   }
 }
-</script>
 
+const listeningAnimationStyle = computed(() => {
+  // (computed 로직은 동일)
+  if (uiState.value !== 'listening') {
+    return { transform: 'scale(1)' };
+  }
+  const scale = 1.1 + (currentVolume.value / 100) * 0.3;
+  return {
+    transform: `scale(${scale})`
+  };
+});
+
+// [!!] (추가됨) 새 메시지 또는 상태 변경 시 맨 아래로 스크롤
+const scrollToBottom = async () => {
+  await nextTick(); // DOM 업데이트를 기다림
+  const el = chatHistoryRef.value;
+  if (el) {
+    el.scrollTop = el.scrollHeight;
+  }
+};
+watch(messages, scrollToBottom, { deep: true });
+watch(statusText, scrollToBottom);
+
+</script>
 <style scoped>
-/* [폰트] - SUIT 폰트가 설치되어 있어야 합니다. */
+/* [폰트] - (동일) */
 @import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css');
 
 .chat-page-container {
+  /* (동일) */
   font-family: 'SUIT', sans-serif;
   overflow: hidden;
   margin: 0 auto;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   width: 100%;
-  /* 배경색: 부드러운 하늘색 */
   background-color: #E6F7FF;
 }
 
-/* [헤더] */
+/* [헤더] - (동일) */
 .chat-header {
   background-color: #FFF;
   border-bottom: 1px solid #E0E0E0;
@@ -248,41 +289,12 @@ const getButtonClass = () => {
 /* [메인 화면] */
 .voice-interaction-body {
   width: 100%;
-  padding-bottom: 100px;
-  /* 하단 버튼 영역만큼 공간 확보 */
-}
-
-/* [말풍선] */
-.speech-bubble {
-  position: relative;
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 16px 24px;
-  margin-top: 30px;
-  max-width: 90%;
-  font-size: 1.2rem;
-  font-weight: 500;
-  line-height: 1.6;
-  color: #333;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-
-  white-space: pre-line;
-}
-
-/* 말풍선 꼬리 */
-.speech-bubble::after {
-  content: '';
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 15px;
-  border-style: solid;
-  border-color: transparent transparent #ffffff transparent;
+  overflow: hidden;
 }
 
 /* [AI 캐릭터] */
 .ai-character-bubble {
+  /* (동일) */
   width: 150px;
   height: 150px;
   border-radius: 50%;
@@ -291,35 +303,109 @@ const getButtonClass = () => {
   align-items: center;
   transition: all 0.3s ease;
   background-color: #FFD600;
-  /* 노란색 배경 */
   border: 8px solid #FFF;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  /* [!!] (추가됨) 상단 고정을 위해 */
+  margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 .ai-character {
+  /* (동일) */
   font-size: 80px;
   color: #FFF;
-  /* 아이콘 흰색 */
   transition: transform 0.2s ease;
 }
 
-/* -- 캐릭터 애니메이션 -- */
 
-/* 듣는 중 (귀 쫑긋) */
+/* [!!] (수정됨)
+   여기부터가 새롭게 추가/수정된 채팅 UI 스타일입니다. */
+
+/* 1. 채팅 내역 스크롤 컨테이너 */
+.chat-history-container {
+  width: 100%;
+  flex-grow: 1;
+  /* 캐릭터를 제외한 나머지 공간을 모두 차지 */
+  overflow-y: auto;
+  /* [!!] '긴 텍스트 깨짐' 문제를 해결하는 핵심 */
+  padding: 0 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  /* 말풍선 사이의 간격 */
+  gap: 15px;
+
+  /* 1. Firefox 브라우저용 */
+  scrollbar-width: none;
+  /* 2. IE/Edge (구형) 브라우저용 */
+  -ms-overflow-style: none;
+}
+
+/* 2. 말풍선 행 (정렬용) */
+.chat-message {
+  display: flex;
+  width: 100%;
+}
+
+.chat-message.user {
+  justify-content: flex-end;
+  /* [!!] 사용자 말풍선은 오른쪽 */
+}
+
+.chat-message.ai {
+  justify-content: flex-start;
+  /* [!!] AI 말풍선은 왼쪽 */
+}
+
+/* 3. 새 말풍선 스타일 (꼬리 제거, 범용성) */
+.chat-bubble {
+  position: relative;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px 24px;
+  max-width: 85%;
+  /* 너무 길어지지 않게 */
+  font-size: 1.1rem;
+  /* 글자 크기 살짝 줄임 */
+  font-weight: 500;
+  line-height: 1.6;
+  color: #333;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  white-space: pre-line;
+  /* \n을 줄바꿈으로 인식 */
+  text-align: left;
+  /* 항상 왼쪽 정렬 */
+}
+
+/* 4. 사용자 말풍선 스타일 */
+.chat-bubble.user {
+  background-color: #FFECB3;
+  /* 연한 노란색 */
+  color: #333;
+}
+
+/* 5. 상태 메시지 말풍선 스타일 (듣는 중, 생각 중...) */
+.chat-bubble.status {
+  background-color: #f0f0f0;
+  /* 연한 회색 */
+  color: #555;
+  font-style: italic;
+}
+
+/* [!!] 기존 .speech-bubble 및 .speech-bubble::after 스타일은 삭제했습니다. */
+
+
+/* -- 캐릭터 애니메이션 (동일) -- */
 .ai-character-bubble.listening {
   background-color: #00C4FF;
-  /* 하늘색 */
 }
 
 .ai-character-bubble.listening .ai-character {
   transform: scale(1.1);
-  /* 살짝 커짐 */
+  /* (참고) listeningAnimationStyle에 의해 오버라이드 됨 */
 }
 
-/* 생각 중 (뱅글뱅글) */
 .ai-character-bubble.processing {
   background-color: #7B68EE;
-  /* 보라색 */
   animation: thinking 1s infinite linear;
 }
 
@@ -327,18 +413,17 @@ const getButtonClass = () => {
   color: #FFF;
 }
 
-/* 말하는 중 (신남!) */
 .ai-character-bubble.speaking {
   background-color: #FF6B6B;
-  /* 붉은색 */
   animation: speaking 0.5s infinite alternate ease-in-out;
 }
 
-/* [하단 컨트롤] */
+/* [하단 컨트롤] - (동일) */
 .voice-control-area {
   min-height: 120px;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
+  flex-shrink: 0;
 }
 
 .voice-control-area .btn {
@@ -353,10 +438,8 @@ const getButtonClass = () => {
   transform: scale(0.95);
 }
 
-/* 버튼 색상 */
 .btn-speak-go {
   background-color: #28a745;
-  /* 초록색 */
   box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
 }
 
@@ -366,7 +449,6 @@ const getButtonClass = () => {
 
 .btn-speak-stop {
   background-color: #dc3545;
-  /* 빨간색 */
   box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
 }
 
@@ -376,11 +458,10 @@ const getButtonClass = () => {
 
 .btn-speak-disabled {
   background-color: #E0E0E0;
-  /* 회색 */
   opacity: 0.7;
 }
 
-/* [애니메이션 키프레임] */
+/* [애니메이션 키프레임] - (동일) */
 @keyframes thinking {
   from {
     transform: rotate(0deg) scale(1.05);

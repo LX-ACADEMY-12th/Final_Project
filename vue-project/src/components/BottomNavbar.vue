@@ -1,9 +1,9 @@
 <template>
   <nav class="position-absolute bg-white border-top d-flex flex-row justify-content-center align-items-center p-0"
     style="
-         width: 413px;
+         width: 100%;
          height: 63px;
-         left: calc(50% - 413px / 2 - 0.5px);
+         left: 0;
          bottom: 0px;
          z-index: 1030;
        ">
@@ -47,9 +47,9 @@ defineEmits(['navigate']);
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 80px;
+  width: 96px;
   gap: 2px;
-  height: 100%;
+  height: 61px;
   text-decoration: none;
   color: #888;
   font-family: 'SUIT', sans-serif;
