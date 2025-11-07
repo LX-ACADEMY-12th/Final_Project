@@ -5,7 +5,7 @@
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
       </div>
       <div class="header-center fw-bold fs-6" style="flex: 1; text-align: center;">
-        관심 장소 목록
+        관심 목록
       </div>
       <div class="header-right" style="flex: 1; text-align: right;">
       </div>

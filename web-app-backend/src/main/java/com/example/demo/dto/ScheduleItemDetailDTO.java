@@ -18,8 +18,8 @@ public class ScheduleItemDetailDTO {
     private String mainImageUrl;
     private String exhibitionOpeningHours;
     private String placeOpeningHours;
-    private BigDecimal exhibitionAdmissionFee; // DB 타입이 NUMERIC(28)이므로 BigDecimal이 적합
-    private String placeAdmissionFee;       // DB 타입이 VARCHAR(100)
+    private BigDecimal exhibitionAdmissionFee;
+    private String placeAdmissionFee;
     private String hallName;
     private String scienceCenterName;
 
@@ -27,4 +27,9 @@ public class ScheduleItemDetailDTO {
     private List<String> gradeNames;
     private List<String> subCategoryNames;
 
+    // 누락된 필드 추가
+    private String sciencePlaceName;
+
+    // 누락된 필드 추가 (다른 배열과 동일하게 List<String> 사용)
+    private List<String> exhibitionList;
 }

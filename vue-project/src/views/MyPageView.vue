@@ -74,7 +74,8 @@
         </div>
         <i class="bi bi-chevron-right text-muted"></i>
       </li>
-      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
+      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0"
+        @click="goToNotice">
         <div class="d-flex align-items-center">
           <i class="bi bi-bell-fill me-3 fs-5 text-warning"></i>
           <span>공지사항</span>
@@ -185,7 +186,10 @@ export default {
       }
       this.$router.push({ name: 'UserLikeCourseList' })
     },
-
+    // 공지사항 페이지로 이동
+    goToNotice() {
+      this.$router.push({ name: 'Notice' });
+    },
     // ⭐ 로그아웃 로직 ⭐
     handleLogout() {
       console.log('MyPageView에서 로그아웃 로직 실행');

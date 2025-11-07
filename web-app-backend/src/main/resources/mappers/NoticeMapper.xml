@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.NoticeMapper">
+    
+    <!-- 전체 공지사항 조회 -->
+    <select id="getAllNotices" resultType="com.example.demo.dto.NoticeDTO">
+        SELECT id, title, content, author, views, created_at as createdAt, updated_at as updatedAt
+        FROM notices
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- ID로 공지사항 조회 -->
+    <select id="getNoticeById" parameterType="long" resultType="com.example.demo.dto.NoticeDTO">
+        SELECT id, title, content, author, views, created_at as createdAt, updated_at as updatedAt
+        FROM notices
+        WHERE id = #{id}
+    </select>
+
+    <!-- 공지사항 생성 -->
+    <insert id="createNotice" parameterType="com.example.demo.dto.NoticeDTO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO notices (title, content, author, views, created_at, updated_at)
+        VALUES (#{title}, #{content}, #{author}, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    </insert>
+
+    <!-- 공지사항 수정 -->
+    <update id="updateNotice" parameterType="com.example.demo.dto.NoticeDTO">
+        UPDATE notices
+        SET title = #{title}, content = #{content}, author = #{author}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- 공지사항 삭제 -->
+    <delete id="deleteNotice" parameterType="long">
+        DELETE FROM notices
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 조회수 증가 -->
+    <update id="incrementViews" parameterType="long">
+        UPDATE notices
+        SET views = views + 1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+</mapper>

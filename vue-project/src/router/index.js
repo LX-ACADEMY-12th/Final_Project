@@ -13,6 +13,8 @@ import ReviewPhotoGridView from '@/views/ReviewPhotoGridView.vue'
 import LoginView from '@/views/LoginView.vue'
 import SignupView from '@/views/SignupView.vue'
 import UserLikePlaceListView from '@/views/UserLikePlaceListView.vue'
+import NoticeView from '@/views/NoticeView.vue'
+import NoticeDetailView from '@/views/NoticeDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -101,6 +103,17 @@ const router = createRouter({
       name: 'LikePlace',
       component: UserLikePlaceListView,
       props: true,
+    },
+    {
+      path: '/notice',
+      name: 'Notice',
+      component: NoticeView,
+    },
+    //  공지사항 상세 페이지
+    {
+      path: '/notice/:id',
+      name: 'NoticeDetail',
+      component: NoticeDetailView,
     },
   ],
 })

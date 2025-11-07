@@ -76,7 +76,7 @@
           <div v-if="isSearching" class="text-center p-5 text-muted w-100">
             검색 중...
           </div>
-          <div v-else-if="displayedItems.length === 0" class="text-center p-5 text-muted w-100">
+          <div v-else-if="filteredItems.length === 0" class="text-center p-5 text-muted w-100">
             <div>표시할 장소가 없습니다.</div>
             <div v-if="locationType === 'radius'" class="text-sm mt-2">
               현재위치: {{ currentUserLocation ? `${currentUserLocation.lat.toFixed(4)},
@@ -84,7 +84,7 @@
               반경: {{ searchRadius }}km / 과목: {{ selectedSubject }} / 학년: {{ selectedGrade }}
             </div>
           </div>
-          <PlaceCard v-else v-for="item in displayedItems" :key="item.id" :item="item" @add="goToDetail(item)"
+          <PlaceCard v-else v-for="item in filteredItems" :key="item.id" :item="item" @add="goToDetail(item)"
             @item-click="handleItemClick(item)" />
         </div>
       </div>
@@ -127,6 +127,7 @@ const authStore = useAuthStore();
 // user 객체와 isLoggedIn 상태를 반응형으로 가져옵니다.
 const { user } = storeToRefs(authStore);
 
+// 상태 Ref
 const selectedTab = ref('전시');
 const selectedNavItem = ref('지도');
 const isModalOpen = ref(false);
@@ -173,6 +174,22 @@ const currentUserLocation = ref(null); // { lat: number, lng: number }
 const displayedItems = ref([]);      // 최종적으로 화면/지도에 보여줄 목록
 const isSearching = ref(false);      // (선택) 로딩 상태
 
+//'전체' 데이터를 보관할 새 Ref
+const allFetchedItems = ref([]);
+
+// '필터링'된 결과를 보여줄 computed 속성
+const filteredItems = computed(() => {
+  const items = allFetchedItems.value;
+
+  if (selectedTab.value === '전시') {
+    // API 응답에 itemType: 'exhibition'이 포함되어 있다고 가정
+    return items.filter(item => item.itemType === 'exhibition');
+  } else { // '답사'
+    // API 응답에 itemType: 'science_place'가 포함되어 있다고 가정
+    return items.filter(item => item.itemType === 'science_place');
+  }
+});
+
 // URL 쿼리
 const tabFromQuery = router.currentRoute.value.query.tab;
 if (tabFromQuery === '답사') {
@@ -188,7 +205,6 @@ onActivated(() => {
 const changeTab = (tabName) => {
   selectedTab.value = tabName;
   router.replace({ query: { tab: tabName } });
-  performSearch();
 };
 
 // 상세 페이지 이동
@@ -316,10 +332,16 @@ const clearMapElements = () => {
     infoOverlay.value = null;
   }
 };
+
 // 아이템들을 '커스텀 핀'과 '호버 오버레이'로 표시
 const drawMarkers = (items) => {
-  if (!map.value || !items.length) return;
+  if (!map.value || !items.length) {
+    // 아이템이 0개일 때 마커 제거
+    clearMapElements();
+    return;
+  }
   clearMapElements();
+
   items.forEach(item => {
     const markerImage = (item.itemType === 'exhibition')
       ? exhibitionMarkerImage
@@ -389,14 +411,11 @@ const performSearch = async () => {
   console.log('학년:', selectedGrade.value);
 
   isSearching.value = true;
-  displayedItems.value = []; // 검색 시작 시 목록 초기화
-
-  const currentItemType = (selectedTab.value === '전시') ? 'exhibition' : 'science_place';
+  allFetchedItems.value = [];
 
   // 1. API 요청 파라미터 준비
   const params = {
     searchType: locationType.value, // 'all', 'radius', 'region'
-    itemType: selectedTab.value,   // '전시' or '답사' (서버에서 구분용)
     subject: selectedSubject.value,
     grade: selectedGrade.value,
   };
@@ -428,23 +447,17 @@ const performSearch = async () => {
 
     console.log('API 요청 파라미터:', params);
 
-    // 2. API 호출 (axios 사용)
+    // API 호출 (axios 사용)
     //    (URL은 실제 백엔드 엔드포인트로 변경해야 함)
     const response = await axios.get('/api/content/search', { params });
 
-    // 3. 결과 처리
+    // 결과 처리
     if (response.data && Array.isArray(response.data)) {
-      displayedItems.value = response.data.map(item => {
-        return {
-          ...item,
-          itemType: currentItemType
-        };
-      });
-      console.log('API 응답 결과:', displayedItems.value.length, '개');
-      console.log(displayedItems.value)
+      allFetchedItems.value = response.data;
+      console.log('API 응답 결과:', allFetchedItems.value.length, '개');
     } else {
       console.error('API 응답 형식이 잘못되었습니다:', response.data);
-      displayedItems.value = [];
+      allFetchedItems.value = [];
     }
 
   } catch (error) {
@@ -453,7 +466,7 @@ const performSearch = async () => {
       message: '장소를 검색하는 중 오류가 발생했습니다.' + (error.message.includes("위치") ? "위치 정보를 확인해주세요." : ""),
       type: 'error'
     });
-    displayedItems.value = [];
+    allFetchedItems.value = [];
   } finally {
     isSearching.value = false;
     console.log('==== API 검색 완료 ====');
@@ -505,8 +518,8 @@ onMounted(async () => {
   }
 });
 
-// --- displayedItems 변경 감지 (기존 로직 유지) ---
-watch(displayedItems, (newItems) => {
+// --- filteredItems 변경 감지 (기존 로직 유지) ---
+watch(filteredItems, (newItems) => {
   if (!map.value) return;
 
   drawMarkers(newItems);

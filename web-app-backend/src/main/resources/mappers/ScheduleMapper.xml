@@ -3,34 +3,6 @@
 
 <mapper namespace="com.example.demo.mapper.ScheduleMapper">
 
-    <resultMap id="ScheduleItemDetailDTOMap" type="com.example.demo.dto.ScheduleItemDetailDTO">
-        <result property="sequence" column="sequence"/>
-        <result property="itemType" column="item_type"/>
-        <result property="sourceItemId" column="source_item_id"/>
-        <result property="itemName" column="item_name"/>
-        <result property="addressDetail" column="address_detail"/>
-        <result property="latitude" column="latitude"/>
-        <result property="longitude" column="longitude"/>
-        <result property="description" column="description"/>
-        <result property="mainImageUrl" column="main_image_url"/>
-        <result property="exhibitionOpeningHours" column="exhibition_opening_hours"/>
-        <result property="placeOpeningHours" column="place_opening_hours"/>
-        <result property="exhibitionAdmissionFee" column="exhibition_admission_fee"/>
-        <result property="placeAdmissionFee" column="place_admission_fee"/>
-        <result property="hallName" column="hall_name"/>
-        <result property="scienceCenterName" column="science_center_name"/>
-
-        <result property="mainCategoryNames" column="main_category_names"
-                jdbcType="ARRAY" javaType="java.util.List"
-                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
-        <result property="gradeNames" column="grade_names"
-                jdbcType="ARRAY" javaType="java.util.List"
-                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
-        <result property="subCategoryNames" column="sub_category_names"
-                jdbcType="ARRAY" javaType="java.util.List"
-                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
-    </resultMap>
-
     <resultMap id="UserScheduleDTOMap" type="com.example.demo.dto.UserScheduleDTO">
         <id property="scheduleId" column="schedule_id"/>
         <result property="scheduleName" column="schedule_name"/>
@@ -58,38 +30,133 @@
             created_at DESC;
     </select>
 
+    <resultMap id="ScheduleItemDetailDTOMap" type="com.example.demo.dto.ScheduleItemDetailDTO">
+        <result property="sequence" column="sequence"/>
+        <result property="itemType" column="item_type"/>
+        <result property="sourceItemId" column="source_item_id"/>
+        <result property="itemName" column="item_name"/>
+        <result property="addressDetail" column="address_detail"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+        <result property="description" column="description"/>
+        <result property="mainImageUrl" column="main_image_url"/>
+        <result property="exhibitionOpeningHours" column="exhibition_opening_hours"/>
+        <result property="placeOpeningHours" column="place_opening_hours"/>
+        <result property="exhibitionAdmissionFee" column="exhibition_admission_fee"/>
+        <result property="placeAdmissionFee" column="place_admission_fee"/>
+
+        <result property="hallName" column="exhibition_hall_name"/>
+        <result property="scienceCenterName" column="science_center_name"/>
+
+        <result property="mainCategoryNames" column="main_category_names"
+                jdbcType="ARRAY" javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+        <result property="gradeNames" column="grade_names"
+                jdbcType="ARRAY" javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+        <result property="subCategoryNames" column="sub_category_names"
+                jdbcType="ARRAY" javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+
+        <result property="sciencePlaceName" column="science_place_name"/>
+
+        <result property="exhibitionList" column="exhibition_list"
+                jdbcType="ARRAY" javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+    </resultMap>
+
     <select id="findScheduleItemsByScheduleId" resultMap="ScheduleItemDetailDTOMap">
         SELECT
             fsi.sequence,
             fsi.item_type,
             fsi.item_id1 AS source_item_id,
-            COALESCE(e.exhibition_name, sp.place_name, fsi.custom_name) AS item_name,
-            COALESCE(sp.address_detail, eh.address_detail, fsi.custom_address) AS address_detail,
-            COALESCE(e.latitude, sp.latitude, fsi.custom_latitude) AS latitude,
-            COALESCE(e.longitude, sp.longitude, fsi.custom_longitude) AS longitude,
-            COALESCE(e.description, sp.description) AS description,
-            COALESCE(e.main_image_url, sp.main_image_url) AS main_image_url,
-            eh.hall_name,
+            -- 기본 정보
+            CASE
+                WHEN fsi.item_type = 'exhibition' THEN eh.hall_name
+                WHEN fsi.item_type = 'science_place' THEN sp.place_name
+                ELSE fsi.custom_name
+                END AS item_name,
+            CASE
+                WHEN fsi.item_type = 'exhibition' THEN eh.address_detail
+                WHEN fsi.item_type = 'science_place' THEN sp.address_detail
+                ELSE fsi.custom_address
+                END AS address_detail,
+            -- 위치 정보
+            COALESCE(eh.latitude, sp.latitude, fsi.custom_latitude) AS latitude,
+            COALESCE(eh.longitude, sp.longitude, fsi.custom_longitude) AS longitude,
+            -- 상세 정보
+            COALESCE(eh.description, sp.description) AS description,
+            COALESCE(eh.main_image_url, sp.main_image_url) AS main_image_url,
+            -- 전시관 관련 정보
+            eh.hall_name AS exhibition_hall_name,
             eh.science_center_name,
             eh.opening_hours AS exhibition_opening_hours,
-            sp.opening_hours AS place_opening_hours,
             eh.admission_fee AS exhibition_admission_fee,
+            -- 체험장소 관련 정보
+            sp.place_name AS science_place_name,
+            sp.opening_hours AS place_opening_hours,
             sp.admission_fee AS place_admission_fee,
-
-            -- [수정] VARCHAR 컬럼(category_name)은 ARRAY[]로 감싸고
-            COALESCE(ARRAY[fsi.category_name], '{}'::TEXT[]) AS main_category_names,
-            COALESCE(ARRAY[fsi.grade_name], '{}'::TEXT[]) AS grade_names,
-
-            -- [수정] TEXT[] 컬럼(sub_categories)은 그대로 COALESCE
-            COALESCE(fsi.sub_category_name, '{}'::TEXT[]) AS sub_category_names
+            -- 카테고리 및 학년 정보
+            COALESCE(
+                    CASE
+                        WHEN fsi.category_name IS NOT NULL THEN ARRAY[fsi.category_name]
+                        ELSE '{}'::TEXT[]
+                        END
+            ) AS main_category_names,
+            COALESCE(
+                    CASE
+                        WHEN fsi.grade_name IS NOT NULL THEN ARRAY[fsi.grade_name]
+                        ELSE '{}'::TEXT[]
+                        END
+            ) AS grade_names,
+            COALESCE(fsi.sub_category_name, '{}'::TEXT[]) AS sub_category_names,
+            -- 전시 목록 (해당 전시관의 전시들)
+            ARRAY_AGG(DISTINCT e.exhibition_name) FILTER (WHERE e.exhibition_name IS NOT NULL) AS exhibition_list
         FROM
-            final_schedule_item fsi
-            -- [수정] 아이템의 '현재' 정보(이름, 이미지, 주소 등)만 가져오기 위해 JOIN
-            LEFT JOIN exhibition_hall AS eh ON fsi.item_type = 'exhibition' AND fsi.item_id1 = e.exhibition_id
-            LEFT JOIN exhibition AS e ON e.hall_id = eh.hall_id
-            LEFT JOIN science_place sp ON fsi.item_type = 'science_place' AND fsi.item_id1 = sp.place_id
+            final_schedule_item AS fsi
+                -- exhibition_hall 조인 (item_type이 'exhibition'일 때만)
+                LEFT JOIN exhibition_hall AS eh
+                          ON fsi.item_type = 'exhibition'
+                              AND fsi.item_id1 = eh.hall_id
+                -- exhibition 조인 (전시관에 속한 전시 목록)
+                LEFT JOIN exhibition AS e
+                          ON eh.hall_id = e.hall_id
+                -- science_place 조인 (item_type이 'science_place'일 때만)
+                LEFT JOIN science_place AS sp
+                          ON fsi.item_type = 'science_place'
+                              AND fsi.item_id1 = sp.place_id
         WHERE
-            fsi.schedule_id = #{scheduleId}
+            fsi.schedule_id = #{schedule_id}
+        GROUP BY
+            fsi.sequence,
+            fsi.item_type,
+            fsi.item_id1,
+            fsi.custom_name,
+            fsi.custom_address,
+            fsi.custom_latitude,
+            fsi.custom_longitude,
+            fsi.category_name,
+            fsi.grade_name,
+            fsi.sub_category_name,
+            eh.hall_id,
+            eh.hall_name,
+            eh.address_detail,
+            eh.latitude,
+            eh.longitude,
+            eh.description,
+            eh.main_image_url,
+            eh.science_center_name,
+            eh.opening_hours,
+            eh.admission_fee,
+            sp.place_id,
+            sp.place_name,
+            sp.address_detail,
+            sp.latitude,
+            sp.longitude,
+            sp.description,
+            sp.main_image_url,
+            sp.opening_hours,
+            sp.admission_fee
         ORDER BY
             fsi.sequence ASC;
     </select>

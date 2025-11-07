@@ -6,40 +6,18 @@
 
     <hr class="divider" />
 
-      <ReviewSection
-        ref="reviewSectionRef"
-        :target-id="targetId"
-        :target-type="targetType"
-        :current-user-id="currentUserId"
-        :rating="exhibition.rating" 
-        :review-count="exhibition.reviewCount"
-        :photo-review-count="photoReviewCount || 0" 
-        :is-place="isPlace" 
-        @show-modal="showModal" 
-        @edit-review="handleEditReview"
-        @request-delete="handleRequestDelete"
-      />
+    <ReviewSection ref="reviewSectionRef" :target-id="targetId" :target-type="targetType"
+      :current-user-id="currentUserId" :rating="exhibition.rating" :review-count="exhibition.reviewCount"
+      :photo-review-count="photoReviewCount || 0" :is-place="isPlace" @show-modal="showModal"
+      @edit-review="handleEditReview" @request-delete="handleRequestDelete" />
 
-      <ReviewModal v-if="showReviewModal" 
-        :reviewText="reviewText" 
-        :selectedRating="selectedRating"
-        :uploadedFiles="uploadedFiles"  
-        :isFormValid="isFormValid" 
-        @update:reviewText="reviewText = $event"
-        @update:selectedRating="selectedRating = $event" 
-        @close="closeModal" 
-        @submit="submitReview" 
-        :isEditing="!!editingReviewId"
-        @files-selected="handleFiles"
-        @remove-file="handleRemoveFile"
-        />
+    <ReviewModal v-if="showReviewModal" :reviewText="reviewText" :selectedRating="selectedRating"
+      :uploadedFiles="uploadedFiles" :isFormValid="isFormValid" @update:reviewText="reviewText = $event"
+      @update:selectedRating="selectedRating = $event" @close="closeModal" @submit="submitReview"
+      :isEditing="!!editingReviewId" @files-selected="handleFiles" @remove-file="handleRemoveFile" />
 
-        <ConfirmDeleteModal
-        :show="showConfirmDeleteModal"
-        message="리뷰를 삭제하시겠습니까?"
-        @confirm="confirmDelete"
-        @close="cancelDelete"
-        />
+    <ConfirmDeleteModal :show="showConfirmDeleteModal" message="리뷰를 삭제하시겠습니까?" @confirm="confirmDelete"
+      @close="cancelDelete" />
   </div>
 </template>
 
@@ -47,7 +25,6 @@
 import axios from '@/api/axiosSetup';
 
 import { useAuthStore } from '@/stores/authStore';
-import { storeToRefs } from 'pinia';
 import eventBus from '@/utils/eventBus'; // 💡 [추가] 글로벌 알림용
 
 // 필요한 모든 하위 컴포넌트들을 불러옵니다.
@@ -116,7 +93,7 @@ export default {
       showConfirmDeleteModal: false,
       pendingDeleteReviewId: null,
       isDeleting: false,
-      loading:true,
+      loading: true,
       error: null,
     };
   },
@@ -137,14 +114,14 @@ export default {
     currentUserId() {
       const auth = useAuthStore();
       return auth.user?.userId ?? null;
-      },
+    },
   },
 
   // 사용자 정의 함수 (메서드): 모든 로직은 여기서 처리됩니다.
   methods: {
     // '후기작성' 버튼 클릭 시 모달을 표시하는 함수
     showModal() {
-      if(!this.isLoggedIn) {
+      if (!this.isLoggedIn) {
         this.$router.push('/login');
         return;
       }
@@ -168,7 +145,7 @@ export default {
     // 자식에게서 받은 파일들을 처리하는 메서드
     handleFiles(fileList) {
       const newFiles = Array.from(fileList);
-      
+
       const remainingSlots = 5 - this.uploadedFiles.length;
       if (newFiles.length > remainingSlots) {
         eventBus.emit('show-global-alert', {
@@ -181,7 +158,7 @@ export default {
       this.uploadedFiles.push(...filesToAdd);
 
       console.log('현재 업로드된 파일 목록:', this.uploadedFiles);
-      
+
       // ⭐️ [제거] this.uploadedImageCount = this.uploadedFiles.length;
     },
     // ⭐️ [추가] 자식(ReviewModal)이 요청한 파일 삭제 처리
@@ -213,15 +190,15 @@ export default {
         return;
       }
 
-      
+
       // 1. FormData 객체를 생성합니다.
       const formData = new FormData();
-      
+
       // 1. 리뷰 텍스트 데이터 생성
       // 서버 @RequestPart("dto")와 동일한 키 사용
       const dto = {
         targetId: this.targetId, // prop으로 받은 값
-        targetType : this.targetType, // 'exhibition' | 'science_place' (서버와 합의값)
+        targetType: this.targetType, // 'exhibition' | 'science_place' (서버와 합의값)
         content: this.reviewText, // data()의 값
         rating: this.selectedRating, // data()의 값
         authorId: this.currentUserId
@@ -231,7 +208,8 @@ export default {
       // 'dto'라는 이름(KEY)으로 FormData에 추가합니다.
       // 백엔드의 @RequestPart("dto")와 이름이 일치해야 합니다.
       formData.append('dto', new Blob([JSON.stringify(dto)], {
-        type: 'application/json'}
+        type: 'application/json'
+      }
       ));
 
       // 4. (⭐️ 중요) handleFiles가 저장해 둔 파일 목록을 FormData에 추가합니다.
@@ -252,30 +230,30 @@ export default {
               delete headers['Content-Type'];
             }
             return data;
-        }],
-      };
-        
-      if(this.editingReviewId) {
-        // 서버에 수정용 엔드포인트가 실제로 있을 때만 사용
-        await axios.put(`/api/reviews/${this.editingReviewId}/upload`, formData, cfg);
-        eventBus.emit('show-global-alert', {
-          message: '리뷰가 성공적으로 수정되었습니다.',
-          type: 'success'
-        });
-        this.$emit('review-posted');
-      } else {
-        await axios.post(`/api/reviews/upload`, formData, cfg);
-        eventBus.emit('show-global-alert', {
-          message: '리뷰가 성공적으로 등록되었습니다.',
-          type: 'success'
-        });
-        this.$emit('review-posted');
-      }
+          }],
+        };
+
+        if (this.editingReviewId) {
+          // 서버에 수정용 엔드포인트가 실제로 있을 때만 사용
+          await axios.put(`/api/reviews/${this.editingReviewId}/upload`, formData, cfg);
+          eventBus.emit('show-global-alert', {
+            message: '리뷰가 성공적으로 수정되었습니다.',
+            type: 'success'
+          });
+          this.$emit('review-posted');
+        } else {
+          await axios.post(`/api/reviews/upload`, formData, cfg);
+          eventBus.emit('show-global-alert', {
+            message: '리뷰가 성공적으로 등록되었습니다.',
+            type: 'success'
+          });
+          this.$emit('review-posted');
+        }
 
         this.closeModal();
         await this.$refs.reviewSectionRef?.fetchReviews();
 
-      } catch(error) {
+      } catch (error) {
         // 5. API 호출 실패 시
         console.error('리뷰 등록 실패:', error);
         const msg = error?.response?.data || `리뷰 ${this.editingReviewId ? '수정' : '등록'}에 실패했습니다.`;
@@ -288,7 +266,7 @@ export default {
       }
     },
 
-    handleRequestDelete({reviewId}) {
+    handleRequestDelete({ reviewId }) {
       this.pendingDeleteReviewId = reviewId;
       this.showConfirmDeleteModal = true;
     },
@@ -299,12 +277,12 @@ export default {
       this.showConfirmDeleteModal = true;
     },
 
-    // ⭐️ 8. [추가] 삭제 확인 모달에서 '취소' 시 호출 
+    // ⭐️ 8. [추가] 삭제 확인 모달에서 '취소' 시 호출
     cancelDelete() {
       this.showConfirmDeleteModal = false;
       this.pendingDeleteReviewId = null;
     },
-    
+
     // ⭐️ 9. [추가] 삭제 확인 모달에서 '확인' 시 호출 - 로그인 연동 완료
     async confirmDelete() {
       if (!this.pendingDeleteReviewId) return;

@@ -81,88 +81,90 @@
             cmc.category_name;
     </select>
 
-<!--    &lt;!&ndash; 콘텐츠 반경 필터  &ndash;&gt;-->
-<!--    <select id="findContentByRadius" resultMap="PlaceResultMap">-->
-<!--        &#45;&#45; ▼▼▼ 사용자 위치 및 반경 설정 (이 값들을 실제 값으로 대체) ▼▼▼-->
-<!--        &#45;&#45; $user_lat : 37.5665  (예: 사용자의 현재 위도)-->
-<!--        &#45;&#45; $user_lng : 126.9780 (예: 사용자의 현재 경도)-->
-<!--        &#45;&#45; $radius_km : 10       (예: 검색 반경 10km)-->
+    <!-- 콘텐츠 반경 필터  -->
+    <select id="findContentByRadius" resultMap="ContentResultMap">
+        SELECT
+            eh.hall_id as contentId,
+            eh.main_image_url as imageUrl,
+            eh.hall_name as title,
+            ARRAY_AGG(DISTINCT e.exhibition_name) AS exhibitionLists,
+            cmc.category_name AS categoryName,
+            ARRAY_AGG(DISTINCT csc.sub_category_name) AS subCategoryName,
+            e.type as type,
+            eh.science_center_name AS place,
+            eh.latitude AS lat,
+            eh.longitude AS lng,
+            #{grade} AS gradeName,
+            'exhibition' AS itemType,
+            -- 거리 계산 (km 단위)
+            (ST_Distance(
+                     eh.geog,
+                     ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography
+             ) / 1000.0) AS distance_km
+        FROM exhibition_hall AS eh
+                 JOIN exhibition AS e ON e.hall_id = eh.hall_id
+                 JOIN exhibition_curriculum_mapping AS ecm ON ecm.exhibition_id = e.exhibition_id
+                 JOIN curriculum_sub_category AS csc ON csc.sub_category_id = ecm.sub_category_id
+                 JOIN curriculum_main_category AS cmc ON cmc.main_category_id = csc.main_category_id
+                 JOIN grade_category AS gc ON gc.grade_id = csc.grade_id
+        WHERE
+            cmc.category_name = #{subject}
+          AND gc.grade_name LIKE '%' || #{grade} || '%'
+          -- [!!] 전시관(eh.geog) 기준으로 반경 필터 적용
+          AND ST_DWithin(
+                eh.geog,
+                ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography,
+                #{radius} * 1000  -- km를 미터(m)로 변환
+              )
+        GROUP BY
+            eh.hall_id,
+            e.type,
+            cmc.category_name,
+            eh.geog  -- ST_Distance를 사용했으므로 GROUP BY에 geog 추가
 
-<!--        &#45;&#45; (참고) 사용자의 위치를 geography 객체로 미리 생성-->
-<!--        &#45;&#45; ST_SetSRID(ST_MakePoint(경도, 위도), 4326)::geography-->
-<!--        &#45;&#45; $user_geog := ST_SetSRID(ST_MakePoint($user_lng, $user_lat), 4326)::geography-->
+        UNION ALL
 
-<!--        SELECT e.exhibition_id                               as id,-->
-<!--               e.main_image_url                              as imageUrl,-->
-<!--               MIN(gc.grade_name)                            as grade,-->
-<!--               cmc.category_name                             as subject,-->
-<!--               e.exhibition_name                             as title,-->
-<!--               e.type                                        as type,-->
-<!--               eh.science_center_name || ' ' || eh.hall_name as place,-->
-<!--               ARRAY_AGG(DISTINCT csc.sub_category_name)     as hashtags,-->
-<!--               e.latitude                                    as lat,-->
-<!--               e.longitude                                   as lng,-->
-<!--               &#45;&#45; ST_Distance로 실제 거리(km) 계산-->
-<!--               &#45;&#45; (ST_Distance(A, B)는 미터(m) 단위로 거리를 반환)-->
-<!--               (ST_Distance(-->
-<!--                        e.geog,-->
-<!--                        ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography-->
-<!--                ) / 1000.0)                                  AS distance_km-->
+        SELECT
+            sp.place_id as contentId,
+            sp.main_image_url as imageUrl,
+            sp.place_name as title,
+            NULL AS exhibitionLists,
+            cmc.category_name AS categoryName,
+            ARRAY_AGG(DISTINCT csc.sub_category_name) AS subCategoryName,
+            sp.place_type as type,
+            sp.address_detail AS place,
+            sp.latitude AS lat,
+            sp.longitude AS lng,
+            #{grade} AS gradeName,
+            'science_place' AS itemType,
+            -- 거리 계산 (km 단위)
+            (ST_Distance(
+                     sp.geog,
+                     ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography
+             ) / 1000.0) AS distance_km
+        FROM science_place AS sp
+                 JOIN place_curriculum_mapping AS pcm ON pcm.place_id = sp.place_id
+                 JOIN curriculum_sub_category AS csc ON csc.sub_category_id = pcm.sub_category_id
+                 JOIN curriculum_main_category AS cmc ON cmc.main_category_id = csc.main_category_id
+                 JOIN grade_category AS gc ON gc.grade_id = csc.grade_id
+        WHERE
+            cmc.category_name = #{subject}
+          AND gc.grade_name LIKE '%' || #{grade} || '%'
+          -- [!!] 과학 장소(sp.geog) 기준으로 반경 필터 적용
+          AND ST_DWithin(
+                sp.geog,
+                ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography,
+                #{radius} * 1000  -- km를 미터(m)로 변환
+              )
+        GROUP BY
+            sp.place_id,
+            sp.place_type,
+            cmc.category_name,
+            sp.geog  -- ST_Distance를 사용했으므로 GROUP BY에 geog 추가
 
-<!--        FROM exhibition e-->
-<!--                 JOIN exhibition_hall AS eh ON e.hall_id = eh.hall_id-->
-<!--                 JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id-->
-<!--                 JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id-->
-<!--                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id-->
-<!--                 JOIN grade_category gc ON csc.grade_id = gc.grade_id-->
-<!--        WHERE cmc.category_name = #{subject}-->
-<!--          AND gc.grade_name LIKE '%' || #{grade} || '%'-->
-
-<!--          &#45;&#45; PostGIS 반경 검색 (인덱스 활용)-->
-<!--          &#45;&#45; e.geog : 'geography' 타입 컬럼-->
-<!--          &#45;&#45; $radius_km : ST_DWithin은 '미터(m)' 단위로 비교-->
-<!--          AND ST_DWithin(-->
-<!--                e.geog,-->
-<!--                ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography,-->
-<!--                #{radius} * 1000-->
-<!--              )-->
-<!--        &#45;&#45; 여기까지 반경 검색 필터-->
-
-<!--        GROUP BY-->
-<!--            e.exhibition_id,-->
-<!--            e.main_image_url,-->
-<!--            cmc.category_name,-->
-<!--            e.exhibition_name,-->
-<!--            e.type,-->
-<!--            place,-->
-<!--            e.latitude,-->
-<!--            e.longitude,-->
-<!--            e.geog &#45;&#45; SELECT 절에서 ST_Distance를 사용했으므로 GROUP BY에 'geog' 컬럼 추가-->
-
-<!--        ORDER BY-->
-<!--            distance_km; &#45;&#45; 가까운 순서로 정렬-->
-<!--    </select>-->
-<!--    &lt;!&ndash; 콘텐츠 지역 필터  &ndash;&gt;-->
-<!--    <select id="findContentByRegion" resultType="com.example.demo.dto.ContentResultDTO">-->
-<!--        SELECT-->
-<!--            e.exhibition_id as id,-->
-<!--            e.exhibition_name as title,-->
-<!--            e.main_image_url as imageUrl,-->
-<!--            e.latitude as lat,-->
-<!--            e.longitude as lng,-->
-<!--            e.description,-->
-<!--            e.address_detail as place,-->
-<!--            cmc.category_name as subject,-->
-<!--            gc.grade_name as grade-->
-<!--        FROM exhibition e-->
-<!--                 JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id-->
-<!--                 JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id-->
-<!--                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id-->
-<!--                 JOIN grade_category gc ON csc.grade_id = gc.grade_id-->
-<!--        WHERE cmc.category_name = #{subject}-->
-<!--          AND gc.grade_name LIKE '%' || #{grade} || '%'-->
-<!--          AND e.address_detail LIKE #{regionPattern}-->
-<!--    </select>-->
+        ORDER BY
+            distance_km ASC;
+    </select>
 
     <!-- AI 추천 전시관 코스를 위한 후보군 추출   -->
     <resultMap id="innerCourseItemResultMap" type="com.example.demo.dto.CourseHallDTO">
@@ -269,189 +271,5 @@
         GROUP BY
             eh.hall_id, cmc.category_name, gc.grade_name;
     </select>
-
-<!--    &lt;!&ndash; 과학 장소 일반 필터  &ndash;&gt;-->
-<!--    <select id="findPlacesByFilter" resultMap="PlaceResultMap">-->
-<!--        SELECT-->
-<!--            sp.place_id as id,-->
-<!--            sp.main_image_url as imageUrl,-->
-<!--            MIN(gc.grade_name) as grade,-->
-<!--            cmc.category_name as subject,-->
-<!--            sp.place_name as title,-->
-<!--            sp.address_detail as place,-->
-<!--            ARRAY_AGG(DISTINCT csc.sub_category_name) as hashtags,-->
-<!--            sp.latitude as lat,-->
-<!--            sp.longitude as lng-->
-<!--        FROM science_place sp-->
-<!--                 JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id-->
-<!--                 JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id-->
-<!--                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id-->
-<!--                 JOIN grade_category gc ON csc.grade_id = gc.grade_id-->
-<!--        WHERE cmc.category_name = #{subject}-->
-<!--          AND gc.grade_name LIKE '%' || #{grade} || '%'-->
-<!--        GROUP BY-->
-<!--            sp.place_id,-->
-<!--            sp.main_image_url,-->
-<!--            cmc.category_name,-->
-<!--            sp.place_name,-->
-<!--            place,-->
-<!--            sp.latitude,-->
-<!--            sp.longitude-->
-<!--        ORDER BY-->
-<!--            sp.place_id;-->
-<!--    </select>-->
-<!--    &lt;!&ndash; 과학 장소 반경 필터   &ndash;&gt;-->
-<!--    <select id="findPlacesByRadius" resultMap="PlaceResultMap">-->
-<!--        &#45;&#45; ▼▼▼ 사용자 위치 및 반경 설정 (이 값들을 실제 값으로 대체) ▼▼▼-->
-<!--        &#45;&#45; $user_lat : 37.5665  (예: 사용자의 현재 위도)-->
-<!--        &#45;&#45; $user_lng : 126.9780 (예: 사용자의 현재 경도)-->
-<!--        &#45;&#45; $radius_km : 10       (예: 검색 반경 10km)-->
-
-<!--        &#45;&#45; (참고) 사용자의 위치를 geography 객체로 미리 생성-->
-<!--        &#45;&#45; ST_SetSRID(ST_MakePoint(경도, 위도), 4326)::geography-->
-<!--        &#45;&#45; $user_geog := ST_SetSRID(ST_MakePoint($user_lng, $user_lat), 4326)::geography-->
-
-<!--        SELECT-->
-<!--            sp.place_id as id,-->
-<!--            sp.main_image_url as imageUrl,-->
-<!--            MIN(gc.grade_name) as grade,-->
-<!--            cmc.category_name as subject,-->
-<!--            sp.place_name as title,-->
-<!--            sp.address_detail as place,-->
-<!--            ARRAY_AGG(DISTINCT csc.sub_category_name) as hashtags,-->
-<!--            sp.latitude as lat,-->
-<!--            sp.longitude as lng,-->
-<!--            &#45;&#45; ST_Distance로 실제 거리(km) 계산-->
-<!--            &#45;&#45; (ST_Distance(A, B)는 미터(m) 단위로 거리를 반환)-->
-<!--            (ST_Distance(-->
-<!--                     sp.geog,-->
-<!--                     ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography-->
-<!--             ) / 1000.0) AS distance_km-->
-
-<!--        FROM science_place sp-->
-<!--                 JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id-->
-<!--                 JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id-->
-<!--                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id-->
-<!--                 JOIN grade_category gc ON csc.grade_id = gc.grade_id-->
-<!--        WHERE cmc.category_name = #{subject}-->
-<!--          AND gc.grade_name LIKE '%' || #{grade} || '%'-->
-
-<!--          &#45;&#45; PostGIS 반경 검색 (인덱스 활용)-->
-<!--          &#45;&#45; e.geog : 'geography' 타입 컬럼-->
-<!--          &#45;&#45; $radius_km * 1000 : ST_DWithin은 '미터(m)' 단위로 비교-->
-<!--          AND ST_DWithin(-->
-<!--                sp.geog,-->
-<!--                ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography,-->
-<!--                #{radius} * 1000-->
-<!--              )-->
-<!--        &#45;&#45; 여기까지 반경 검색 필터-->
-
-<!--        GROUP BY-->
-<!--            sp.place_id,-->
-<!--            sp.main_image_url,-->
-<!--            cmc.category_name,-->
-<!--            sp.place_name,-->
-<!--            place,-->
-<!--            sp.latitude,-->
-<!--            sp.longitude,-->
-<!--            sp.geog &#45;&#45; (중요) SELECT 절에서 ST_Distance를 사용했으므로 GROUP BY에 'geog' 컬럼 추가-->
-
-<!--        ORDER BY-->
-<!--            distance_km; &#45;&#45; 가까운 순서로 정렬-->
-<!--    </select>-->
-<!--    &lt;!&ndash; 과학 장소 지역 필터   &ndash;&gt;-->
-<!--    <select id="findPlacesByRegion" resultType="com.example.demo.dto.ContentResultDTO">-->
-<!--        SELECT-->
-<!--            sp.place_id as id,-->
-<!--            sp.place_name as title,-->
-<!--            sp.main_image_url as imageUrl,-->
-<!--            sp.latitude as lat,-->
-<!--            sp.longitude as lng,-->
-<!--            sp.description,-->
-<!--            sp.address_detail as place,-->
-<!--            cmc.category_name as subject,-->
-<!--            gc.grade_name as grade-->
-<!--        FROM science_place sp-->
-<!--                 JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id-->
-<!--                 JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id-->
-<!--                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id-->
-<!--                 JOIN grade_category gc ON csc.grade_id = gc.grade_id-->
-<!--        WHERE cmc.category_name = #{subject}-->
-<!--          AND gc.grade_name LIKE '%' || #{grade} || '%'-->
-<!--          AND sp.address_detail LIKE #{regionPattern}-->
-<!--    </select>-->
-<!--    &lt;!&ndash; 과학 장소 AI 추천 검색  &ndash;&gt;-->
-<!--    <resultMap id="courseItemResultMap" type="com.example.demo.dto.CourseItemDTO">-->
-<!--        <result property="placeId"     column="place_id"/>-->
-<!--        <result property="placeName"   column="place_name"/>-->
-<!--        <result property="description" column="description"/>-->
-<!--        <result property="placeType"   column="place_type"/>-->
-<!--        <result property="subjectName" column="subject_name"/>-->
-<!--        <result property="gradeName"   column="grade_name"/>-->
-<!--        <result property="imageUrl"    column="main_image_url"/>-->
-<!--        <result property="address"     column="address_detail"/>-->
-<!--        <result property="latitude"    column="latitude"/>-->
-<!--        <result property="longitude"   column="longitude"/>-->
-<!--        <result property="hashtags" column="hashtags"-->
-<!--                jdbcType="ARRAY"-->
-<!--                javaType="java.util.List"-->
-<!--                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>-->
-<!--    </resultMap>-->
-<!--    <select id="findSimilarSciencePlace" resultMap="courseItemResultMap">-->
-<!--        WITH TargetGeom AS (-->
-<!--            SELECT geog FROM science_place WHERE place_id = #{currentId}-->
-<!--        )-->
-<!--        SELECT-->
-<!--            P.place_id,-->
-<!--            P.place_name,-->
-<!--            P.description,-->
-<!--            P.place_type,-->
-<!--            (SELECT cat.category_name-->
-<!--             FROM curriculum_main_category cat-->
-<!--                      JOIN curriculum_sub_category sub ON cat.main_category_id = sub.main_category_id-->
-<!--                      JOIN place_curriculum_mapping pcm_sub ON pcm_sub.sub_category_id = sub.sub_category_id-->
-<!--             WHERE pcm_sub.place_id = P.place_id-->
-<!--               AND cat.category_name = #{mainCategory}-->
-<!--                LIMIT 1) AS subject_name,-->
-<!--            (SELECT g.grade_name-->
-<!--             FROM grade_category g-->
-<!--             JOIN place_grade_mapping pgm_sub ON g.grade_id = pgm_sub.grade_id-->
-<!--             WHERE pgm_sub.place_id = P.place_id-->
-<!--               AND g.grade_name = #{grade}-->
-<!--             LIMIT 1) AS grade_name,-->
-<!--            P.main_image_url,-->
-<!--            P.address_detail,-->
-<!--            P.latitude,-->
-<!--            P.longitude,-->
-<!--            &#45;&#45; 해시태그(sub_category_name) 배열을 생성하는 서브쿼리 추가-->
-<!--            (SELECT ARRAY_AGG(DISTINCT csc.sub_category_name)-->
-<!--            FROM place_curriculum_mapping pcm-->
-<!--            JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id-->
-<!--            JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id-->
-<!--            WHERE pcm.place_id = P.place_id-->
-<!--            AND cmc.category_name = #{mainCategory}-->
-<!--            ) AS hashtags-->
-<!--        FROM science_place P-->
-<!--        WHERE EXISTS (-->
-<!--            SELECT 1-->
-<!--            FROM place_curriculum_mapping pcm-->
-<!--            INNER JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id-->
-<!--            INNER JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id-->
-<!--            WHERE pcm.place_id = P.place_id-->
-<!--          AND cmc.category_name = #{mainCategory}-->
-<!--            )-->
-<!--          AND EXISTS (-->
-<!--            SELECT 1-->
-<!--            FROM place_grade_mapping pgm-->
-<!--            INNER JOIN grade_category gc ON pgm.grade_id = gc.grade_id-->
-<!--            WHERE pgm.place_id = P.place_id-->
-<!--          AND gc.grade_name = #{grade}-->
-<!--            )-->
-<!--          AND P.place_id != #{currentId}-->
-<!--          AND ST_DWithin(P.geog, (SELECT geog FROM TargetGeom), 1000000)-->
-<!--        ORDER BY P.average_rating DESC, P.total_reviews DESC-->
-<!--            LIMIT 10-->
-
-<!--    </select>-->
 
 </mapper>

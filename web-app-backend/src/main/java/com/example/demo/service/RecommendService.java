@@ -56,7 +56,9 @@ public class RecommendService {
             }
             return finalResponseItems;
         } else {
-//            List<CourseItemDTO> candidates = contentMapper.findSimilarSciencePlace(currentId, mainCategory, grade);
+            // AI에게 추천할 과학 장소 '후보'
+            List<CourseItemDTO> candidates = contentMapper.findSimilarSciencePlace(currentId, mainCategory, grade);
+            // AI가 ㄱ추천
             return null;
         }
     }

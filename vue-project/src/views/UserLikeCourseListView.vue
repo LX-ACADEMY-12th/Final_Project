@@ -147,12 +147,14 @@ export default {
             lat: item.latitude,
             lng: item.longitude,
             type: null, // '상설', '기획'
+
             scienceCenter: item.scienceCenterName,                 // 과학관 이름
             hallName: item.hallName,                          // 전시관 이름
             subject: item.mainCategoryNames || [], // 과학 영역 배열
             grade: item.gradeNames || [],               // 학년 배열
             hashtags: item.subCategoryNames || [],   // 세부 카테고리 배열,
-            itemType: item.itemType
+            itemType: item.itemType,
+            exhibitionList: item.exhibitionList || []
           }));
 
           // UserScheduleDto를 상위 객체 구조로 변환
