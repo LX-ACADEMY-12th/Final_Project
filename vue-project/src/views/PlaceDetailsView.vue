@@ -240,6 +240,7 @@ export default {
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
+        exhibitionList: []
       },
       isLoading: false, // 중복 클릭 방지용
 
@@ -317,7 +318,7 @@ export default {
     const id = this.$route.params.id; // url에서 id를 가져와서 targetId로 사용!
     // ID를 data()에 저장
     this.currentId = id;
-    // URL 경로가 place 작인지 판별
+    // URL 경로가 place 인지 판별
     const isPlace = this.$route.path.startsWith('/place/'); // 1. URL 경로를 분석해서 'targetType'으로 사용
     this.pageType = isPlace ? 'science_place' : 'exhibition'
 
@@ -330,7 +331,7 @@ export default {
       this.fetchExhibitionData(id);
     }
 
-    // (디버깅) setup에서 가져온 currentUserId가 잘 찍히는지 확인
+    // setup에서 가져온 currentUserId가 잘 찍히는지 확인
     console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
   },
 
@@ -374,9 +375,9 @@ export default {
 
     /** DTO -> 프론트 상태 매핑 (Exhibition) */
     mapExhibitionDTO(dto) {
-      const title = dto.exhibitionName ?? '제목 없음';
-      const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
+      const title = dto.exhibitionHallName ?? '제목 없음';
       // URL 쿼리에서 원본 데이터 가져오기
+      const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
       const subCategoryData = this.$route.query.subCategoryTags;
       const grade = this.$route.query.gradeTags;
       // subCategoriesArray를 빈 배열로 초기화
@@ -387,14 +388,14 @@ export default {
           .split(',')
           .map(tag => tag.trim())
           .filter(Boolean);
-      } // 만약 subCategoryData가 이미 배열일 경우 처리
+      }
+      // 만약 subCategoryData가 이미 배열일 경우 처리
       else if (Array.isArray(subCategoryData)) {
         // 각 요소를 문자열로 변환하고 공백 제거 (안전 장치)
         subCategoriesArray = subCategoryData
           .map(tag => String(tag).trim())
           .filter(Boolean);
       }
-
       this.exhibition = {
         title,
         rating: dto.averageRating ?? 0,
@@ -406,6 +407,7 @@ export default {
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
+        exhibitionList: dto.exhibitionList
       };
 
       // LocationSection이 사용할 데이터
@@ -428,7 +430,6 @@ export default {
 
     /** DFile.save('PlaceDetailsView.vue');TO -> 프론트 상태 매핑 (Place) ★★★ 버그 수정 ★★★ */
     mapPlaceDTO(dto) {
-
       const title = dto.placeName ?? '제목 없음';
       const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
       // URL 쿼리에서 원본 데이터 가져오기
@@ -500,7 +501,7 @@ export default {
     },
 
 
-    // 🟢 6. [신규] 찜 상태만 별도로 조회하는 함수
+    // 🟢 찜 상태만 별도로 조회하는 함수
     async fetchWishStatus() {
       // targetId, targetType이 아직 없거나, 로그아웃 상태면(currentUserId가 없으면) 실행 안함
       if (!this.currentId || !this.pageType || !this.currentUserId) {
@@ -526,14 +527,16 @@ export default {
       }
     },
 
-    /** 전시 상세 - 백엔드 연동 */
+    /** 전시 상세 정보 가져오기 */
     async fetchExhibitionData(id) {
       try {
-
         const res = await axios.get(`/api/exhibitions`, {
           params: {
             exhibitionId: id,
-            userId: this.currentUserId // pinia 스토어의 Id를 파라미터로 추가
+            // pinia 스토어 userId를 파라미터로 추가
+            userId: this.currentUserId,
+            mainCategoryTags: this.$route.query.mainCategoryTags ?? '',       // 대분류
+            gradeTags: this.$route.query.gradeTags
           },
         });
 
@@ -546,7 +549,7 @@ export default {
         }
         this.mapExhibitionDTO(dto);
 
-        // 🟢 8. [추가] 찜 상태를 별도로 갱신
+        // 🟢 찜 상태를 별도로 갱신
         await this.fetchWishStatus();
 
       } catch (error) {
@@ -558,6 +561,7 @@ export default {
         });
       }
     },
+
     // 찜 기능 함수
     async handleToggleFavorite() {
       // 🟢 로그인 상태 확인 (Pinia 스토어)
@@ -574,7 +578,7 @@ export default {
       if (this.isLoading) return;
 
       const isExhibition = (this.pageType === 'exhibition');
-      // 🟢 9. [수정] 신뢰할 수 있는 'isWished' data를 기준으로 삼음
+      // 🟢 신뢰할 수 있는 'isWished' data를 기준으로 삼음
       let currentState = this.isWished;
       const currentItem = isExhibition ? this.exhibition : this.place;
 
@@ -588,7 +592,7 @@ export default {
       try {
         if (currentState) {
           // 1. 찜 취소 (DELETE)
-          // 🌟 [수정] data: deleteRequestData
+          // 🌟 data: deleteRequestData
           await axios.delete(`/api/wishlist`, {
             data: requestData
           });
@@ -756,14 +760,15 @@ export default {
 
     },
 
-    /** 장소 상세 - 백엔드 연동 ★★★ 버그 수정 ★★★ */
+    /** 장소 상세 - 백엔드 연동 **/
     async fetchPlaceData(id) {
       try {
         // API 호출
         const res = await axios.get(`api/place`, {
           params: {
             placeId: id,
-            userId: this.currentUserId // pinia 스토어의 Id를 파라미터로 추가
+            // pinia 스토어의 Id를 파라미터로 추가
+            userId: this.currentUserId
           },
         });
 
@@ -789,10 +794,6 @@ export default {
           type: 'error'
         });
       }
-
-      // ★ 수정: API 호출 후 Mock 데이터를 덮어쓰면 안되므로 삭제
-      // this.reviews = [ ... ];
-      // this.courseItems = [ ... ];
     },
 
     refreshData() {
@@ -903,6 +904,7 @@ export default {
             : (currentItemData.subCategories ? [currentItemData.subCategories] : []),  // ← 예외 처리
           type: currentItemData.type,
           place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation || '주소 정보 없음',  // ← null 체크 추가
+          exhibitionList: currentItemData.exhibitionList,
           lat: currentItemInfo.lat || 0,
           lng: currentItemInfo.lng || 0,
         };
@@ -920,6 +922,7 @@ export default {
             grade: item.gradeName,
             hashtags: item.hashtags,
             place: item.address || '주소 정보 없음',
+            exhibitionList: item.exhibitionList,
             // 지도(CourseMap)를 위한 2,3,4번 항목의 좌표
             lat: item.latitude,
             lng: item.longitude,

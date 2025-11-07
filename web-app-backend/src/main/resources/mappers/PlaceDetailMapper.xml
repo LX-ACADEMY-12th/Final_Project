@@ -5,27 +5,27 @@
 <mapper namespace="com.example.demo.mapper.PlaceDetailMapper">
 	<select id="findPlaceDetailDTO" parameterType="java.util.Map" resultType="com.example.demo.dto.PlaceDetailDTO">
 		SELECT
-	        p.place_id,
-	        p.place_name,
-	        p.description,
-	        p.main_image_url,
-	        p.address_detail,
-	        p.latitude,
-	        p.longitude,
-	        p.admission_fee,
-	        p.opening_hours,
-	        p.place_type,
-	        p.average_rating,
-	        p.total_reviews,
-	        
+	        sp.place_id,
+	        sp.place_name,
+	        sp.description,
+	        sp.main_image_url,
+	        sp.address_detail,
+	        sp.latitude,
+	        sp.longitude,
+	        sp.place_type,
+	        sp.opening_hours,
+	        sp.admission_fee,
+	        sp.average_rating,
+	        sp.total_reviews,
             (
-                SELECT COUNT(rp.photo_id)
+                SELECT
+                    COUNT(p.photo_id)
                 FROM review r
-                JOIN review_photo rp ON r.review_id = rp.review_id
-                WHERE r.target_id = p.place_id
-                  AND r.target_type = 'science_place'
+                    JOIN review_photo AS p ON r.review_id = p.review_id
+                WHERE
+                    r.target_id = sp.place_id
+                    AND r.target_type = 'science_place'
             ) AS totalPhotoReviews,
-	        
 	        -- 1. 메인 카테고리 태그 (버그 수정됨)
             array_to_string(
                 array_agg(
@@ -41,7 +41,6 @@
                 ),
                 ', '
             ) AS categoryName,
-
             -- 2. 서브 카테고리 태그 (버그 수정됨)
             array_to_string(
                 array_agg(
@@ -55,7 +54,6 @@
                 ),
                 ', '
             ) AS subCategoryName,
-
             -- 3. 학년 태그 (버그 수정됨)
             array_to_string(
                 array_agg(
@@ -69,22 +67,21 @@
                 ),
                 ', '
             ) AS grade
-	        
 	    FROM 
-	        science_place p
+	        science_place AS sp
 	    LEFT JOIN 
-	        place_curriculum_mapping pcm ON p.place_id = pcm.place_id
+	        place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
 	    LEFT JOIN 
 	        curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
 	    LEFT JOIN 
 	        curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
 	    LEFT JOIN 
-	        place_grade_mapping pgm ON p.place_id = pgm.place_id
+	        place_grade_mapping pgm ON sp.place_id = pgm.place_id
 	    LEFT JOIN 
 	        grade_category gc ON pgm.grade_id = gc.grade_id
 	    WHERE
-	        p.place_id = #{placeId}
+            sp.place_id = #{placeId}
 	    GROUP BY
-	        p.place_id
+            sp.place_id
 	</select>
 </mapper>

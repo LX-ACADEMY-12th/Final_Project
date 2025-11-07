@@ -3,7 +3,7 @@ package com.example.demo.dto;
 import lombok.Data;
 
 @Data
-public class PlaceSearchDTO {
+public class ContentSearchDTO {
     private String searchType; // "all", "radius", "region"
     private String itemType;   // "전시", "답사"
     private String subject;    // "물리", "화학", ...

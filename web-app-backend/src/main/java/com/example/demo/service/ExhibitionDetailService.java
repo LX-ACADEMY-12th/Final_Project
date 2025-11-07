@@ -23,27 +23,25 @@ public class ExhibitionDetailService {
 	
 	/**
      * 컨트롤러(Controller)가 호출할 메서드입니다.
-     * 전시 ID를 받아서 상세 정보를 반환합니다.
+     * 전시관 ID를 받아서 상세 정보를 반환합니다.
      */
 	public ExhibitionDetailDTO getfindExhibitionDetails(Long exhibitionId,String mainCategoryTags, String subCategoryTags,String gradeTags) {
 		
 		// 파라미터를 담을 Map 생성
 		Map<String, Object> params = new HashMap<>();
 		
-		// 2. (수정) Map에 파라미터를 "Key", "Value" 쌍으로 담습니다.
+		// 2. Map에 파라미터를 "Key", "Value" 쌍으로 담습니다.
         // 이 "Key" 이름(문자열)이 Mapper.xml의 #{...} 이름과 일치해야 합니다.
 		// 메인 / 서브 / 학년
-		params.put("exhibitionId", exhibitionId);
+		params.put("exhibitionHallId", exhibitionId);
 		params.put("mainCategoryTags", mainCategoryTags);
 		params.put("subCategoryTags", subCategoryTags);
 		params.put("gradeTags", gradeTags);
 
-		// 3. (수정) Mapper 메서드 호출 시, 3개의 값이 아닌 'Map' 객체 1개를 전달합니다.
+		// 3. Mapper 메서드 호출 시, 3개의 값이 아닌 'Map' 객체 1개를 전달합니다.
 		ExhibitionDetailDTO dto = exhibitionDetailMapper.findExhibitionById(params);
-		
-		// 4. (선택) 비즈니스 로직 ...
-		
-		// 5. 컨트롤러에게 결과 반환
+
+		// 4. 컨트롤러에게 결과 반환
 		return dto;
 	}
 }

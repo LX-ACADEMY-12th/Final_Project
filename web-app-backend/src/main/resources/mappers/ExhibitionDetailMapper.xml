@@ -7,107 +7,64 @@
 
     <select id="findExhibitionById" resultType="com.example.demo.dto.ExhibitionDetailDTO">
         SELECT
-            e.exhibition_id,
-            e.exhibition_name,
-            e.description,
-            e.main_image_url,
-            e.latitude,
-            e.longitude,
-            e.start_date,
-            e.end_date,
-            e.opening_hours,
-            e.admission_fee,
-            e.average_rating,
-            e.total_reviews,
-
+            eh.hall_id,
+            eh.hall_name AS exhibitionHallName,
+            eh.description,
+            eh.main_image_url,
+            eh.latitude,
+            eh.longitude,
+            eh.start_date,
+            eh.end_date,
+            eh.opening_hours,
+            eh.admission_fee,
+            eh.average_rating,
+            eh.total_reviews,
+            STRING_AGG(DISTINCT e.exhibition_name, '||') AS exhibitionListStr,
             (
-                SELECT COUNT(p.photo_id)
+                SELECT
+                    COUNT(p.photo_id)
                 FROM review r
-                JOIN review_photo p ON r.review_id = p.review_id
-                WHERE r.target_id = e.exhibition_id
+                         JOIN review_photo p ON r.review_id = p.review_id
+                WHERE
+                    r.target_id = eh.hall_id
                   AND r.target_type = 'exhibition'
             ) AS totalPhotoReviews,
-
-            e.hall_id,
-            e.type,
-            -- e.average_rating, (중복)
-            -- e.total_reviews,  (중복)
-
-            -- 1. 위치 정보 (DTO 필드명: location)
-            CONCAT_WS(' ', eh.science_center_name, eh.hall_name) AS location,
-
-            -- 2. 메인 카테고리 태그 (DTO 필드명: categoryName)
-            array_to_string(
-                array_agg(
-                    DISTINCT (CASE
-                        WHEN #{mainCategoryTags, jdbcType=VARCHAR} IS NULL OR cmc.category_name = #{mainCategoryTags, jdbcType=VARCHAR}
-                        THEN cmc.category_name
-                        ELSE NULL
-                    END)
-                ),
-                ', '
-            ) AS categoryName,
-
-            -- 3. 서브 카테고리 태그 (DTO 필드명: subCategoryName)
-            array_to_string(
-                array_agg(
-                    DISTINCT (CASE
-                        WHEN #{subCategoryTags, jdbcType=VARCHAR} IS NULL OR csc.sub_category_name = #{subCategoryTags, jdbcType=VARCHAR}
-                        THEN csc.sub_category_name
-                        ELSE NULL
-                    END)
-                ),
-                ', '
-            ) AS subCategoryName,
-
-            -- 4. 학년 태그 (DTO 필드명: grade)
-            array_to_string(
-                array_agg(
-                    DISTINCT (CASE
-                        WHEN #{gradeTags, jdbcType=VARCHAR} IS NULL OR gc.grade_name LIKE CONCAT(#{gradeTags, jdbcType=VARCHAR}, '%')
-                        THEN gc.grade_name
-                        ELSE NULL
-                    END)
-                ),
-                ', '
-            ) AS grade
-
+            -- 위치 정보
+            CONCAT_WS(' ', eh.science_center_name, eh.hall_name) AS location
         FROM
-            exhibition e
-        LEFT JOIN
-            exhibition_hall eh ON e.hall_id = eh.hall_id
-        -- 교과 과정 태그 JOIN
-        LEFT JOIN
-            exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
-        LEFT JOIN
-            curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
-        LEFT JOIN
-            curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
-        -- 학년 태그 JOIN
-        LEFT JOIN
-            exhibition_grade_mapping egm ON e.exhibition_id = egm.exhibition_id
-        LEFT JOIN
+            exhibition_hall AS eh
+                LEFT JOIN
+            exhibition AS e ON e.hall_id = eh.hall_id
+                LEFT JOIN
+            exhibition_curriculum_mapping AS ecm ON e.exhibition_id = ecm.exhibition_id
+                LEFT JOIN
+            curriculum_sub_category AS csc ON ecm.sub_category_id = csc.sub_category_id
+                LEFT JOIN
+            curriculum_main_category AS cmc ON csc.main_category_id = cmc.main_category_id
+                LEFT JOIN
+            exhibition_grade_mapping AS egm ON e.exhibition_id = egm.exhibition_id
+                LEFT JOIN
             grade_category gc ON egm.grade_id = gc.grade_id
         WHERE
-            e.exhibition_id = #{exhibitionId}
+            eh.hall_id = #{exhibitionHallId}
+            AND
+            cmc.category_name = #{mainCategoryTags}
+            AND
+            gc.grade_name = #{gradeTags}
         GROUP BY
-            e.exhibition_id,
-            e.exhibition_name,
-            e.description,
-            e.main_image_url,
-            e.latitude,
-            e.longitude,
-            e.start_date,
-            e.end_date,
-            e.opening_hours,
-            e.admission_fee,
-            e.average_rating,
-            e.total_reviews,
-            e.hall_id,
-            e.type,
             eh.hall_id,
-            eh.science_center_name,
-            eh.hall_name
+            eh.hall_name,
+            eh.description,
+            eh.main_image_url,
+            eh.latitude,
+            eh.longitude,
+            eh.start_date,
+            eh.end_date,
+            eh.opening_hours,
+            eh.admission_fee,
+            eh.average_rating,
+            eh.total_reviews,
+            eh.science_center_name;
     </select>
 
 </mapper>

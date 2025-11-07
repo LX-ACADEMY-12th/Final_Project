@@ -47,7 +47,7 @@ defineEmits(['navigate']);
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 96px;
+  width: 120px;
   gap: 2px;
   height: 61px;
   text-decoration: none;

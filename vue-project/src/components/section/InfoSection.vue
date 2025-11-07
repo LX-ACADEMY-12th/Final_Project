@@ -8,7 +8,7 @@
 
     <div class="content-body">
       <h2 class="title">
-        <TypeTag :text="item.type" class="flex-shrink-0" />{{ item.title }}
+        {{ item.title }}
       </h2>
       <div class="rating">
         <span class="stars">
@@ -39,15 +39,27 @@
           {{ isExpanded ? '접기' : '(더보기)' }}
         </button>
       </div>
+
+      <div class="floor-map-section" v-if="item.type === '전시'">
+        <div class="map-container">
+          <img :src="item.floorMapUrl" alt="층별 지도" class="img-fluid rounded-3 border" v-if="item.floorMapUrl" />
+          <div v-else class="map-placeholder">
+            층별 지도 이미지가 없습니다.
+          </div>
+        </div>
+      </div>
+
+
     </div>
   </section>
 </template>
 
 <script>
 // ✨ 1. SubjectTag 컴포넌트를 가져옵니다.
+import { ref, computed } from 'vue';
 import PillTag from '@/components/tag/PillTag.vue';
 import Hashtag from '@/components/tag/HashTag.vue';
-import TypeTag from '@/components/tag/TypeTag.vue';
+// import TypeTag from '@/components/tag/TypeTag.vue';
 
 // [!!] 1. 이미지 기본 URL 정의
 const IMAGE_BASE_URL = 'http://localhost:8080/images/';
@@ -117,7 +129,7 @@ export default {
         // 'exhibition/1.jpg' 같은 값이면 '앞주소'를 붙여줍니다.
         return IMAGE_BASE_URL + rawUrl;
       }
-      
+
       // 'http://...'로 시작하거나, null이거나, 'https://via.placeholder...' 같은 fallback이면
       // 그대로 반환합니다.
       return rawUrl || 'https://via.placeholder.com/600x400';

@@ -18,7 +18,7 @@
       </div>
       <div class="text-frame d-flex flex-column gap-1 min-w-0">
         <div class="d-flex align-items-center gap-1 min-w-0">
-          <TypeTag :text="item.type" class="flex-shrink-0" />
+          <!-- <TypeTag :text="item.type" class="flex-shrink-0" /> -->
           <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title }}</h5>
         </div>
         <div class="d-flex flex-row align-items-center gap-2 min-w-0">
@@ -38,7 +38,7 @@
 
 <script setup>
 import PillTag from '@/components/tag/PillTag.vue';
-import TypeTag from '@/components/tag/TypeTag.vue';
+// import TypeTag from '@/components/tag/TypeTag.vue';
 import HashTag from '@/components/tag/HashTag.vue';
 
 import { computed } from 'vue';
@@ -59,8 +59,8 @@ const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 const computedImageUrl = computed(() => {
   // MapView는 mainImageUrl을 수정해서 보내줍니다.
   // (혹시 모르니 imageUrl도 확인)
-  const url = props.item.mainImageUrl || props.item.imageUrl; 
-  
+  const url = props.item.mainImageUrl || props.item.imageUrl;
+
   if (url && !url.startsWith('http')) {
     return IMAGE_BASE_URL + url;
   }
@@ -120,9 +120,10 @@ const onItemClick = () => {
 .place-image {
   width: 100%;
   height: 100%;
-  
+
   /* [!!] --- 여기가 수정된 부분입니다 --- [!!] */
-  object-fit: cover; /* contain -> cover */
+  object-fit: cover;
+  /* contain -> cover */
 }
 
 /* 콘텐츠 영역 */

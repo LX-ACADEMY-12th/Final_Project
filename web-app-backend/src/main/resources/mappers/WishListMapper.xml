@@ -30,99 +30,73 @@
 	    )
 	</select>
 
-    <resultMap id="wishlistResultMap"
-               type="com.example.demo.dto.WishListResponseDTO"
-               autoMapping="true">
-
-        <result property="subCategories"
-                column="subCategories"
+    <resultMap id="WishlistResult" type="com.example.demo.dto.WishListResponseDTO">
+        <result property="subCategories" column="subCategories"
+                javaType="java.util.List"
+                jdbcType="ARRAY"
                 typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
     </resultMap>
-
 	<!-- 사용자가 찜을 누른 위시리스트를 조회 -->
-    <select id="findMyWishlistByUserId" resultMap="wishlistResultMap">
-        (
-            -- [파트 1: 전시 찜 목록]
-            SELECT
-                w.wishlist_id AS wishlistId,
-                w.target_type AS targetType,
-                w.target_id AS targetId,
-                w.category_name AS mainCategory,
-                w.grade_name AS gradeTag,
-                e.exhibition_name AS title,
-                e.main_image_url AS mainImageUrl,
-                e.average_rating AS averageRating,
-                e.total_reviews AS totalReviews,
-                ARRAY_REMOVE(ARRAY_AGG(DISTINCT csc.sub_category_name), NULL) AS subCategories,
-                w.created_at AS likedAt,
-                e.type AS type,
-                CONCAT_WS(' ', h.science_center_name, h.hall_name) AS place
-            FROM wishlist w
-                     JOIN exhibition e ON w.target_id = e.exhibition_id
-                     LEFT JOIN exhibition_hall h ON e.hall_id = h.hall_id
-                     LEFT JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
-                     LEFT JOIN curriculum_main_category cmc ON cmc.category_name = w.category_name
-                     LEFT JOIN curriculum_sub_category csc ON csc.main_category_id = cmc.main_category_id
-            WHERE w.user_id = #{userId}
-              AND w.target_type = 'exhibition'
-            GROUP BY
-                w.wishlist_id,
-                w.target_type,
-                w.target_id,
-                w.category_name,
-                w.grade_name,
-                e.exhibition_id,
-                e.exhibition_name,
-                e.main_image_url,
-                e.average_rating,
-                e.total_reviews,
-                w.created_at,
-                e.type,
-                h.science_center_name,
-                h.hall_name
-        ) -- 👈 [수정] 세미콜론(;) 삭제
-
+    <select id="findMyWishlistByUserId" resultMap="WishlistResult">
+        (SELECT
+            w.wishlist_id AS wishlistId,
+            w.target_type AS targetType,
+            w.target_id AS targetId,
+            eh.hall_name AS title,
+            eh.main_image_url AS mainImageUrl,
+            eh.average_rating AS averageRating,
+            eh.total_reviews AS totalReviews,
+            w.created_at AS likedAt,
+            CONCAT_WS(' ', eh.science_center_name, eh.hall_name) AS place,
+            cmc.category_name AS mainCategory,
+            gc.grade_name AS gradeTag,
+            ARRAY_AGG(DISTINCT csc.sub_category_name) AS subCategories
+        FROM wishlist w
+                 JOIN exhibition_hall AS eh ON w.target_id = eh.hall_id
+                 LEFT JOIN exhibition AS e ON e.hall_id = eh.hall_id
+                 LEFT JOIN exhibition_curriculum_mapping AS ecm ON ecm.exhibition_id = e.exhibition_id
+                 LEFT JOIN curriculum_sub_category AS csc ON csc.sub_category_id = ecm.sub_category_id
+                 LEFT JOIN curriculum_main_category AS cmc ON cmc.main_category_id = csc.main_category_id
+                 LEFT JOIN grade_category AS gc ON gc.grade_id = csc.grade_id
+        WHERE
+            w.user_id = #{userId}
+          AND w.target_type = 'exhibition'
+          AND cmc.category_name = w.category_name
+          AND gc.grade_name = w.grade_name
+        GROUP BY
+            w.wishlist_id,
+            eh.hall_id,
+            cmc.category_name,
+            gc.grade_name)
         UNION ALL
-
-        -- [파트 2: 과학 장소 찜 목록]
-        (
-            SELECT
-                w.wishlist_id AS wishlistId,
-                w.target_type AS targetType,
-                w.target_id AS targetId,
-                w.category_name AS mainCategory,
-                w.grade_name AS gradeTag,
-                sp.place_name AS title,
-                sp.main_image_url AS mainImageUrl,
-                sp.average_rating AS averageRating,
-                sp.total_reviews AS totalReviews,
-                ARRAY_REMOVE(ARRAY_AGG(DISTINCT csc.sub_category_name), NULL) AS subCategories,
-                w.created_at AS likedAt,
-                sp.place_type AS type,
-                sp.address_detail AS place
-            FROM wishlist w
-                     JOIN science_place sp ON w.target_id = sp.place_id
-                     LEFT JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
-                     LEFT JOIN curriculum_main_category cmc ON cmc.category_name = w.category_name
-                     LEFT JOIN curriculum_sub_category csc ON csc.main_category_id = cmc.main_category_id
-            WHERE w.user_id = #{userId}
-              AND w.target_type = 'science_place'
-            GROUP BY
-                w.wishlist_id,
-                w.target_type,
-                w.target_id,
-                w.category_name,  -- 👈 [수정] 누락된 컬럼 추가
-                w.grade_name,     -- 👈 [수정] 누락된 컬럼 추가
-                sp.place_id,
-                sp.place_name,
-                sp.main_image_url,
-                sp.average_rating,
-                sp.total_reviews,
-                w.created_at,
-                sp.place_type,
-                sp.address_detail
-        )
-        -- [정렬] 합쳐진 전체 결과를 찜한 날짜 최신순으로 정렬
+        (SELECT
+            w.wishlist_id AS wishlistId,
+            w.target_type AS targetType,
+            w.target_id AS targetId,
+            sp.place_name AS title,
+            sp.main_image_url AS mainImageUrl,
+            sp.average_rating AS averageRating,
+            sp.total_reviews AS totalReviews,
+            w.created_at AS likedAt,
+            sp.address_detail AS place,
+            cmc.category_name AS mainCategory,
+            gc.grade_name AS gradeTag,
+            ARRAY_AGG(DISTINCT csc.sub_category_name) AS subCategories
+        FROM wishlist w
+                 JOIN science_place sp ON w.target_id = sp.place_id
+                 LEFT JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
+                 LEFT JOIN curriculum_sub_category csc ON csc.sub_category_id = pcm.sub_category_id
+                 LEFT JOIN curriculum_main_category cmc ON cmc.main_category_id = csc.main_category_id
+                 LEFT JOIN grade_category AS gc ON gc.grade_id = csc.grade_id
+        WHERE w.user_id = #{userId}
+          AND w.target_type = 'science_place'
+          AND cmc.category_name = w.category_name
+          AND gc.grade_name = w.grade_name
+        GROUP BY
+            w.wishlist_id,
+            sp.place_id,
+            cmc.category_name,
+            gc.grade_name)
         ORDER BY
             likedAt DESC
     </select>

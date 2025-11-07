@@ -71,9 +71,9 @@
             COALESCE(e.main_image_url, sp.main_image_url) AS main_image_url,
             eh.hall_name,
             eh.science_center_name,
-            e.opening_hours AS exhibition_opening_hours,
+            eh.opening_hours AS exhibition_opening_hours,
             sp.opening_hours AS place_opening_hours,
-            e.admission_fee AS exhibition_admission_fee,
+            eh.admission_fee AS exhibition_admission_fee,
             sp.admission_fee AS place_admission_fee,
 
             -- [수정] VARCHAR 컬럼(category_name)은 ARRAY[]로 감싸고
@@ -85,8 +85,8 @@
         FROM
             final_schedule_item fsi
             -- [수정] 아이템의 '현재' 정보(이름, 이미지, 주소 등)만 가져오기 위해 JOIN
-            LEFT JOIN exhibition e ON fsi.item_type = 'exhibition' AND fsi.item_id1 = e.exhibition_id
-            LEFT JOIN exhibition_hall eh ON e.hall_id = eh.hall_id
+            LEFT JOIN exhibition_hall AS eh ON fsi.item_type = 'exhibition' AND fsi.item_id1 = e.exhibition_id
+            LEFT JOIN exhibition AS e ON e.hall_id = eh.hall_id
             LEFT JOIN science_place sp ON fsi.item_type = 'science_place' AND fsi.item_id1 = sp.place_id
         WHERE
             fsi.schedule_id = #{scheduleId}

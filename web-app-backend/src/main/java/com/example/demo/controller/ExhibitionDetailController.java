@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -17,13 +18,13 @@ import java.util.List;                             // (List import)
 
 @RestController
 @RequestMapping("/api/exhibitions")
-@CrossOrigin(origins = "http://localhost:5173") // [!!] 2. CORS 설정을 메서드가 아닌 클래스 레벨로 이동
+@Slf4j
 public class ExhibitionDetailController {
 
 	@Autowired
 	private ExhibitionDetailService exhibitionDetailService; // (기존 상세용 서비스)
 
-	// --- ▼ [!!] 3. '목록용 서비스'를 새로 주입받습니다. ▼ ---
+	// --- ▼ '목록용 서비스'
 	@Autowired
 	private ExhibitionService exhibitionService; 
 
@@ -54,7 +55,8 @@ public class ExhibitionDetailController {
 			@RequestParam(required = false) String mainCategoryTags,
 			@RequestParam(required = false) String subCategoryTags,
 			@RequestParam(required = false) String gradeTags) {
-		
+        log.info("Parameters - 조회하려는 전시관 id: {}, mainCategory: {}, grade: {}",
+                exhibitionId, mainCategoryTags, gradeTags);
 		ExhibitionDetailDTO dto = exhibitionDetailService.getfindExhibitionDetails(
 				exhibitionId,
 				mainCategoryTags,

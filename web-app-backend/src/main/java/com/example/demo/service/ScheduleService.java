@@ -12,5 +12,7 @@ public interface ScheduleService {
      * @param userId 사용자 ID
      * @return 계층 구조의 스케줄 DTO 리스트
      */
-    List<UserScheduleDTO> getSchedulesByUserId(Long userId);
+    List<UserScheduleDTO>
+
+    getSchedulesByUserId(Long userId);
 }

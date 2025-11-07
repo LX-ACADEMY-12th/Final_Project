@@ -3,16 +3,14 @@ package com.example.demo.dto;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 @Data
 public class ExhibitionDetailDTO {
-
-	private Long exhibitionId;
-	private String exhibitionName;
-	private Long hallId; // 전시관 아이디
+    private Long hallId;
+	private String exhibitionHallName;
 	private BigDecimal latitude;
 	private BigDecimal longitude;
-	private String type; // 상설 or 기획
 	private Date startDate;
 	private Date endDate;
 	private String admissionFee;
@@ -21,16 +19,23 @@ public class ExhibitionDetailDTO {
 	private String description;
 	private BigDecimal averageRating;
 	private Long totalReviews;
-	
-	// Join으로 나오는 값들
 	private String location; // ex) 국립과천과학관 + 미래전시관
-	private String categoryName; // 물,화,생,지
-	private String subCategoryName; // 빛과 파동 -- 이런식으로 중분류
-	private String grade; // 학년 태그
-	// ⭐️ [추가] 사진 리뷰 총 개수
+
+	//  사진 리뷰 총 개수
 	private Long totalPhotoReviews;
-	
+
 	// 찜 여부 필드 추가
 	private boolean isLiked;
-	
+
+    // MyBatis에서 받을 문자열 필드
+    private String exhibitionListStr;
+    // 실제 사용할 배열
+    private String[] exhibitionList;
+    // Getter에서 자동 변환
+    public String[] getExhibitionList() {
+        if (exhibitionListStr != null && !exhibitionListStr.isEmpty()) {
+            return exhibitionListStr.split("\\|\\|");
+        }
+        return new String[0];
+    }
 }

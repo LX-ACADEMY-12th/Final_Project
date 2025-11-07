@@ -1,46 +1,76 @@
 <template>
   <div class="d-flex flex-column h-100 bg-white" style="font-family: 'SUIT', sans-serif">
-    <div class="home-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
-      <h2 class="home-header-title h5 mb-0 fw-bold">교과서</h2>
-      <button class="ai-tutor-button btn p-0 border-0 d-flex flex-column align-items-center" @click="goToAiTutor">
-        <i class="bi bi-robot fs-5"></i>
+
+    <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-white"
+      style="flex-shrink: 0; position: sticky; top: 0; z-index: 1020;">
+      <div style="width: 24px; height: 24px;"></div>
+      <h2 class="h5 mb-0 fw-bold">교과서</h2>
+      <button class="btn p-0 border-0 d-flex flex-column align-items-center" style="font-size: 0.75rem; color: #4A7CEC;"
+        @click="goToAiTutor">
+        <i class="bi bi-robot"></i>
         AI튜터
       </button>
     </div>
+
     <div class="flex-grow-1" style="overflow-y: auto; min-height: 0;">
-      <div class="px-3 pt-3" @click="goToMyPage()">
-        <div class="profile-card d-flex align-items-center gap-3 p-3 rounded-4 shadow-sm" @click="goToMyPage()">
-          <div class="profile-avatar rounded-circle d-flex align-items-center justify-content-center flex-shrink-0">
-            <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필 이미지" class="profile-image" />
-            <div v-else>
-              <i class="bi bi-person-fill fs-2"></i>
-            </div>
+
+      <div class="p-3" @click="goToMyPage()()">
+        <div class="d-flex align-items-center gap-3 p-3 rounded-4 shadow-sm"
+          style="background-color: #4A7CEC; color: white;">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="
+     width: 48px;
+     height: 48px;
+     background-color: rgba(255, 255, 255, 0.3);
+     overflow: hidden;
+    ">
+            <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필 이미지" style="
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+     " />
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" class="bi bi-person-fill"
+              viewBox="0 0 16 16">
+              <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zM8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6" />
+            </svg>
           </div>
-          <div class="profile-info flex-grow-1">
+          <div class="flex-grow-1">
             <div class="fw-bold fs-6">안녕하세요</div>
             <div class="fw-bold fs-5">{{ userName }}</div>
           </div>
         </div>
       </div>
-      <div class="px-3 pt-3">
-        <p class="text-secondary mb-2 ms-1" style="font-size: 0.9rem;">학년을 선택하면 콘텐츠가 게시됩니다.</p>
+
+      <div class="p-3">
+        <p class="text-secondary" style="font-size: 0.9rem;">학년을 선택하면 콘텐츠가 게시됩니다.</p>
         <div class="fs-5 flex-wrap quick-badge-group"> <span>우리 아이는 </span>
           <a href="#" class="text-decoration fw-bold" style="color: #4A7CEC;" @click.prevent="isModalOpen = true">
             {{ selectedSubject }}
-            <i class="bi bi-chevron-down" style="width: 16px; height: 16px;"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+              class="bi bi-chevron-down" viewBox="0 0 16 16">
+              <path fill-rule="evenodd"
+                d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708 .708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708" />
+            </svg>
           </a>
           <span>가 궁금한 </span>
           <a href="#" class="text-decoration fw-bold" style="color: #4A7CEC;" @click.prevent="isModalOpen = true">
             {{ selectedGrade }}
-            <i class="bi bi-chevron-down" style="width: 16px; height: 16px;"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+              class="bi bi-chevron-down" viewBox="0 0 16 16">
+              <path fill-rule="evenodd"
+                d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708 .708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708" />
+            </svg>
           </a>
           <span>입니다.</span>
         </div>
       </div>
-      <div class="px-3 pt-3">
+
+
+
+      <div class="p-3">
         <div class="rounded-3 shadow-sm" style="background-color: #8B5A2B; padding: 10px; border-radius: 12px;">
           <div style="background-color: #2E4F2F; min-height: 180px; border-radius: 8px; position: relative;"
             class="p-3 chalkboard-text">
+
             <div class="chalkboard-tabs">
               <button type="button" class="chalkboard-tab-button" :class="{ 'active': selectedSemester === '1학기' }"
                 @click="selectedSemester = '1학기'">
@@ -51,10 +81,14 @@
                 2학기
               </button>
             </div>
+
             <div v-for="semesterData in chalkboardContent" :key="semesterData.semester">
+
               <div v-if="(selectedSemester === '1학기' && semesterData.semester.includes('1학기')) ||
                 (selectedSemester === '2학기' && semesterData.semester.includes('2학기'))">
+
                 <h6 class="fw-bold chalkboard-heading title mt-2">{{ semesterData.semester }}</h6>
+
                 <ul v-if="semesterData.units.length > 0" class="chalkboard-list">
                   <li v-for="(unit, index) in semesterData.units" :key="unit.title">
                     <span class="index">{{ index + 1 }}</span>
@@ -64,64 +98,83 @@
                     </div>
                   </li>
                 </ul>
+
                 <p v-else class="chalkboard-no-data">해당 학기에 연관된 단원이 없습니다.</p>
               </div>
             </div>
-            <div class="chalkboard-stand position-absolute w-100">
-              <div class="chalkboard-eraser position-absolute">
+
+            <div class="position-absolute w-100"
+              style="background-color: #D2B48C; height: 20px; bottom: -20px; left: 0; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+              <div class="position-absolute"
+                style="background-color: #fff; width: 30px; height: 10px; bottom: 5px; right: 20px; border-radius: 2px;">
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-0">
-        <h5 class="fw-bold fs-6 mb-0">:세계_지도: 과학관</h5>
+      <div class="d-flex justify-content-between align-items-center p-3 mt-3">
+        <h5 class="fw-bold fs-6 mb-3">추천 학습 장소</h5>
       </div>
+
       <div>
         <div class="card-carousel-container"
           style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-top: 1rem; padding-bottom: 1rem;">
+
           <div v-if="isSearching" class="d-flex justify-content-center align-items-center text-muted w-100"
             style="min-height: 350px;">
             <div class="spinner-border text-primary" role="status">
               <span class="visually-hidden">Loading...</span>
             </div>
           </div>
-          <div v-else-if="exhibitionItems.length === 0"
+          <div v-else-if="displayedItems.length === 0"
             class="d-flex justify-content-center align-items-center text-muted w-100" style="min-height: 350px;">
-            추천 과학관이 없습니다.
+            추천 장소가 없습니다.
           </div>
+
           <div v-else class="d-flex flex-row" style="gap: 16px; padding-left: 1rem; padding-right: 1rem;">
-            <PlaceReviewCard v-for="item in exhibitionItems" :key="item.id" :item="item" @add="goToDetail(item, '전시')"
-              @item-click="goToDetail(item, '전시')" />
+
+            <PlaceReviewCard v-for="item in displayedItems" :key="item.id" :item="item" @add="goToDetail(item)"
+              @item-click="goToDetail(item)" />
+
           </div>
+
         </div>
       </div>
-      <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-0">
-        <h5 class="fw-bold fs-6 mb-0">:전구: 과학 체험 학습</h5>
+
+      <!-- <div class="p-3 mt-3">
+        <h5 class="fw-bold fs-6 mb-3">최근 저장 경로</h5>
       </div>
-      <div>
-        <div class="card-carousel-container"
-          style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-top: 1rem; padding-bottom: 1rem;">
-          <div v-if="isSearching" class="d-flex justify-content-center align-items-center text-muted w-100"
-            style="min-height: 350px;">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-          <div v-else-if="fieldTripItems.length === 0"
-            class="d-flex justify-content-center align-items-center text-muted w-100" style="min-height: 350px;">
-            추천 현장학습이 없습니다.
-          </div>
-          <div v-else class="d-flex flex-row" style="gap: 16px; padding-left: 1rem; padding-right: 1rem;">
-            <PlaceReviewCard v-for="item in fieldTripItems" :key="item.id" :item="item" @add="goToDetail(item, '답사')"
-              @item-click="goToDetail(item, '답사')" />
-          </div>
+      <div class="px-3">
+        <div class="rounded-4 overflow-hidden shadow-sm">
+          <img src="https://via.placeholder.com/390x150/e9e9e0/aaa?text=Map+Image" class="img-fluid" alt="Map">
         </div>
       </div>
+      <div class="p-3 mt-3">
+        <div class="d-flex align-items-center p-3 bg-white rounded-4 shadow-sm gap-3">
+          <img src="https://via.placeholder.com/80/e9e9e0/aaa?text=Map" class="rounded-3"
+            style="width: 80px; height: 80px; flex-shrink: 0;">
+          <div class="flex-grow-1">
+            <span class="badge rounded-pill" style="background-color: #E0F1FF; color: #007AFF;">지구</span>
+            <h5 class="fw-bold m-0 mt-2">전시명</h5>
+            <span class="text-secondary" style="font-size: 0.9rem;">국립과천과학관</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="red" class="bi bi-heart-fill fs-4"
+            viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314" />
+            G
+          </svg>
+        </div>
+      </div> -->
+
+      <div style="height: 80px;"></div>
+
     </div>
+
     <BottomNavbar :selectedNavItem="selectedNavItem" @navigate="handleNavigation" style="flex-shrink: 0;" />
+
     <FilterModal v-if="isModalOpen" :initialSubject="selectedSubject" :initialGrade="selectedGrade"
       @close="isModalOpen = false" @complete="handleFilterComplete" :showLocationOptions="false" />
+
   </div>
 </template>
 
@@ -138,7 +191,6 @@ import axios from '@/api/axiosSetup';
 import FilterModal from '@/components/modal/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import PlaceReviewCard from '@/components/card/PlaceReviewCard.vue';
-import { curriculumData } from '@/data/scienceCurriculum';
 
 
 export default {
@@ -147,15 +199,10 @@ export default {
     BottomNavbar,
     PlaceReviewCard
   },
-  data() {
-    return {
-      allSubjects: curriculumData
-    }
-  },
 
   setup() {
     const authStore = useAuthStore();
-    const { user } = storeToRefs(authStore);
+    const { user } = storeToRefs(authStore); // 여기서 user를 갖고오고있음
     const userName = computed(() => {
       if (user.value?.name) {
         return `${user.value.name} 학부모님`;
@@ -175,28 +222,6 @@ export default {
     // 검색/데이터 상태
     const displayedItems = ref([]);
     const isSearching = ref(false);
-
-    const exhibitionItems = ref([]);
-    const fieldTripItems = ref([]);
-
-    /**
-     * 전시와 체험학습 분류
-     */
-    const categorizeItems = (items) => {
-      const exhibitions = [];
-      const fieldTrips = [];
-
-      items.forEach(item => {
-        if (item.itemType === 'exhibition') {
-          exhibitions.push(item);
-        } else if (item.itemType === 'science_place') {
-          fieldTrips.push(item);
-        }
-      });
-
-      exhibitionItems.value = exhibitions;
-      fieldTripItems.value = fieldTrips;
-    };
 
     /**
      * API 검색 실행 함수 - 장소 정보와 리뷰를 함께 가져옴
@@ -299,12 +324,6 @@ export default {
 
           displayedItems.value = itemsWithReviews;
           console.log('API 응답 결과 (리뷰 포함):', JSON.stringify(displayedItems.value, null, 2));
-
-          // 전시와 체험학습 분류
-          categorizeItems(itemsWithReviews);
-
-          console.log('전시 아이템:', exhibitionItems.value.length);
-          console.log('체험학습 아이템:', fieldTripItems.value.length);
 
         } else {
           console.error('API 응답 형식이 잘못되었습니다:', response.data);
@@ -611,8 +630,6 @@ export default {
       selectedSemester,
       displayedItems,
       isSearching,
-      exhibitionItems,
-      fieldTripItems,
       goToDetail,
       goToMyPage,
       handleFilterComplete,
@@ -627,21 +644,21 @@ export default {
 
 <style scoped>
 /* =============================
-    HomeView Polished Theme (layout untouched)
-    - Palette via CSS variables
-    - Subtle glass & depth
-    - Crisp typography & spacing
-    ============================= */
+   HomeView Polished Theme (layout untouched)
+   - Palette via CSS variables
+   - Subtle glass & depth
+   - Crisp typography & spacing
+   ============================= */
 :root {
-  --bg: #FFFFFF;
-  --ink: #1F2937;
-  --muted: #6B7280;
+  --bg: #ffffff;
+  --ink: #1f2937;
+  --muted: #6b7280;
   --brand: #4A7CEC;
-  --brand-ink: #0F172A;
-  --accent: #10B981;
-  --warn: #F59E0B;
-  --danger: #EF4444;
-  --card: #FFFFFF;
+  --brand-ink: #0f172a;
+  --accent: #10b981;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --card: #ffffff;
   --card-border: rgba(15, 23, 42, 0.08);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 8px 24px rgba(2, 6, 23, 0.08);
@@ -649,56 +666,40 @@ export default {
   --ring: 0 0 0 4px rgba(74, 124, 236, 0.14);
 }
 
-/* :흰색_확인_표시: [수정 후] 이렇게 바꿉니다. */
-.home-header {
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 1020;
-  /* 기존 스타일도 가져옵니다. */
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.66));
-  backdrop-filter: saturate(1.2) blur(10px);
-  border-bottom: 1px solid var(--card-border);
-  /* !important 제거 */
+/* Base */
+.d-flex.flex-column.h-100.bg-white {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'SUIT', sans-serif !important;
 }
 
-.home-header-title {
+/* Sticky top bar (keeps exact markup) */
+.d-flex.justify-content-between.align-items-center.p-3.border-bottom.bg-white {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.66));
+  backdrop-filter: saturate(1.2) blur(10px);
+  border-bottom: 1px solid var(--card-border) !important;
+}
+
+/* Header title */
+h2.h5.fw-bold {
   letter-spacing: 0.2px;
   color: var(--brand-ink);
 }
 
-.ai-tutor-button {
-  font-size: 0.75rem;
-  color: #4A7CEC;
+/* AI Tutor icon button */
+button.btn.p-0.border-0.d-flex.flex-column.align-items-center {
   gap: 2px;
   transition: transform .15s ease, opacity .2s ease;
 }
 
-.ai-tutor-button:hover {
+button.btn.p-0.border-0.d-flex.flex-column.align-items-center:hover {
   transform: translateY(-1px);
   opacity: .9;
 }
 
-.profile-card {
-  background-color: #4A7CEC;
-  color: white;
-  /* [추가] 기존 .rounded-4.shadow-sm 에 있던 스타일 */
+/* [추가] 프로필 카드 (기존 shadow-sm을 오버라이드) */
+.rounded-4.shadow-sm {
   box-shadow: 0 8px 24px rgba(74, 124, 236, 0.2) !important;
-  /* 이건 !important가 있어야겠네요 */
-  cursor: pointer;
-}
-
-.profile-avatar {
-  width: 48px;
-  height: 48px;
-  background-color: rgba(255, 255, 255, 0.3);
-  overflow: hidden;
-}
-
-.profile-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 /* [수정] 학년/과목 선택 영역 */
@@ -706,7 +707,7 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  background-color: #F8F9FA;
+  background-color: #f8f9fa;
   padding: 1rem;
   border-radius: 16px;
   /* 둥근 모서리 */
@@ -723,6 +724,7 @@ export default {
 .quick-badge-group .bi {
   vertical-align: -2px;
 }
+
 
 /* Section title */
 .section-title {
@@ -756,10 +758,10 @@ export default {
 
 /* Chalkboard section (keeps container & layout) */
 .chalkboard-text {
-  --chalkboard: #213A2A;
-  --chalk-stroke: #F0F7EE;
-  --chalk-green: #B6F2CF;
-  --chalk-yellow: #FFE19C;
+  --chalkboard: #213a2a;
+  --chalk-stroke: #f0f7ee;
+  --chalk-green: #b6f2cf;
+  --chalk-yellow: #ffe19c;
   color: var(--chalk-stroke);
   background: radial-gradient(120% 120% at 0% 0%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 40%), var(--chalkboard);
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
@@ -786,6 +788,11 @@ export default {
   font-size: 1.1rem;
   letter-spacing: .4px;
   text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
+}
+
+/* 칠판 받침대 (템플릿 인라인 스타일 제거) */
+div[style*="bottom: -20px"] {
+  background-color: #D2B48C !important;
 }
 
 /* Chalkboard tabs */
@@ -881,6 +888,7 @@ export default {
   /* (인덱스 너비 + 갭) */
 }
 
+
 .chalkboard-list li:nth-child(1) {
   animation-delay: .06s;
 }
@@ -911,10 +919,12 @@ export default {
   animation: fadeSlide .32s ease-out forwards;
 }
 
+
 /* ========================================
-    :작은_아래쪽_화살표: "추천 학습 장소" 이하 스타일 :작은_아래쪽_화살표:
+   🔽 [추가] "추천 학습 장소" 이하 기존 스타일 🔽
    ========================================
 */
+
 .card-carousel-container {
   scrollbar-width: none;
   /* Firefox */
@@ -927,14 +937,191 @@ export default {
   /* Chrome, Safari, Opera */
 }
 
-/* [삭제] 탭 버튼 스타일(.spec-button)은 더 이상 사용되지 않습니다. */
+/* Chalkboard section (keeps container & layout) */
+.chalkboard-text {
+  --chalkboard: #213a2a;
+  --chalk-stroke: #f0f7ee;
+  --chalk-green: #b6f2cf;
+  --chalk-yellow: #ffe19c;
+  color: var(--chalk-stroke);
+  background: radial-gradient(120% 120% at 0% 0%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 40%), var(--chalkboard);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, .2);
+  position: relative;
+  overflow: hidden;
+  /* [수정] 템플릿의 인라인 스타일을 CSS로 이동 */
+  min-height: 180px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.chalkboard-text::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.04), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.03), transparent 50%);
+  pointer-events: none;
+}
+
+.chalkboard-text .title {
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: .4px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
+}
+
+/* 칠판 받침대 (템플릿 인라인 스타일 제거) */
+div[style*="bottom: -20px"] {
+  background-color: #D2B48C !important;
+}
+
+/* Chalkboard tabs */
+.chalkboard-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chalkboard-tab-button {
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, .25);
+  background: rgba(0, 0, 0, .15);
+  color: var(--chalk-green);
+  font-weight: 700;
+  padding: 8px 10px;
+  transition: transform .12s ease, background .15s ease, border-color .15s ease;
+  font-family: 'SUIT', sans-serif;
+  font-size: 0.9rem;
+}
+
+.chalkboard-tab-button:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 0, 0, .22);
+  border-color: rgba(255, 255, 255, .35);
+}
+
+.chalkboard-tab-button.active {
+  background: rgba(255, 255, 255, .08);
+  color: var(--chalk-yellow);
+  border-color: rgba(255, 255, 255, .45);
+}
+
+/* Chalkboard list */
+.chalkboard-list {
+  list-style: none;
+  margin: 10px 0 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.chalkboard-list li {
+  display: flex;
+  flex-direction: column;
+  /* [수정] 세로 정렬 */
+  align-items: flex-start;
+  /* [수정] 좌측 정렬 */
+  gap: 4px;
+  /* [수정] 간격 조정 */
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .18);
+  border: 1px dashed rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  opacity: 0;
+  animation: fadeSlide .32s ease-out forwards;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* [수정] li > span (제목) */
+.chalkboard-list li>span {
+  font-weight: 600;
+  color: var(--chalk-stroke);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* [수정] 인덱스 번호 */
+.chalkboard-list li .index {
+  font-weight: 800;
+  width: 22px;
+  /* 살짝 줄임 */
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .08);
+  border-radius: 6px;
+  /* 모서리 */
+  color: var(--chalk-yellow);
+  border: 1px solid rgba(255, 255, 255, .22);
+  font-size: 0.85rem;
+}
+
+/* [수정] 설명 텍스트 */
+.chalkboard-description {
+  font-size: 0.9rem;
+  color: var(--chalk-green);
+  opacity: 0.9;
+  padding-left: 30px;
+  /* (인덱스 너비 + 갭) */
+}
+
+
+.chalkboard-list li:nth-child(1) {
+  animation-delay: .06s;
+}
+
+.chalkboard-list li:nth-child(2) {
+  animation-delay: .1s;
+}
+
+.chalkboard-list li:nth-child(3) {
+  animation-delay: .14s;
+}
+
+.chalkboard-list li:nth-child(4) {
+  animation-delay: .18s;
+}
+
+.chalkboard-list li:nth-child(5) {
+  animation-delay: .22s;
+}
+
+/* [추가] 데이터 없음 */
+.chalkboard-no-data {
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 1rem 0;
+  opacity: 0;
+  animation: fadeSlide .32s ease-out forwards;
+}
+
+
+/* ========================================
+   🔽 [추가] "추천 학습 장소" 이하 기존 스타일 🔽
+   ========================================
+*/
+
+.card-carousel-container {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+.card-carousel-container::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
 /* (스크롤바 스타일 ...) */
 .flex-grow-1[style*="overflow-y: auto"] {
   scrollbar-width: none;
   -ms-overflow-style: none;
-  /* ▼▼▼ [수정] 하단 네비바의 높이(63px) + 여유 공간만큼 패딩을 줍니다. ▼▼▼ */
-  padding-bottom: 90px;
-  /* ▲▲▲ [수정] ▲▲▲ */
 }
 
 [style*="overflow-x: auto"] {
@@ -952,26 +1139,6 @@ export default {
 
 .gap-6 {
   gap: 1.5rem;
-}
-
-/* :흰색_확인_표시: [수정 후] 이렇게 바꿉니다. */
-.chalkboard-stand {
-  background-color: #D2B48C;
-  /* !important 제거 */
-  height: 20px;
-  bottom: -20px;
-  left: 0;
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
-}
-
-.chalkboard-eraser {
-  background-color: #fff;
-  width: 30px;
-  height: 10px;
-  bottom: 5px;
-  right: 20px;
-  border-radius: 2px;
 }
 
 /* Focus ring for all interactive children */

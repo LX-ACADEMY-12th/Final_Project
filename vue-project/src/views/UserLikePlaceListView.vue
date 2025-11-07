@@ -1,6 +1,5 @@
 <template>
   <div class="page-container" style="font-family: 'SUIT', sans-serif">
-    <!-- 헤더 -->
     <div class="chat-header d-flex justify-content-between align-items-center p-3 bg-white border-bottom flex-shrink-0">
       <div class="header-left" style="flex: 1;">
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
@@ -12,16 +11,6 @@
       </div>
     </div>
 
-    <!-- 전시 / 답사 선택 토글-->
-    <div class="segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
-      <div class="segmented-control d-flex gap-3">
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-          @click="changeTab('전시')">전시</button>
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-          @click="changeTab('답사')">답사</button>
-      </div>
-    </div>
-
     <div class="user-like-course">
 
       <div v-if="isSearching" class="text-center p-5 text-muted w-100" style="margin-top: 20px;">
@@ -29,14 +18,13 @@
       </div>
       <div v-else-if="displayedItems.length === 0" class="text-center p-5 text-muted w-100" sytle="margin-top: 20px;">
         <div>표시할 장소가 없습니다.</div>
-        <!-- <div class="text-sm mt-2" style="font-size:  0.9rem; color: #888">
-          과목 : {{ selectedSubject }} / 학년: {{ selectedGrade.replace('초등 ', '') }}
-        </div> -->
       </div>
 
       <template v-else>
+
         <PlaceCard2 v-for="item in displayedItems" :key="item.id" :item="item" @add="goToDetail(item)"
           @item-click="handleItemClick(item)" />
+
       </template>
     </div>
 
@@ -68,8 +56,6 @@ export default {
   },
   data() {
     return {
-      selectedTab: '전시', // '전시' 또는 '답사'
-
       // API 원본 데이터를 저장할 배열
       allWishlistItems: [],
 
@@ -81,26 +67,10 @@ export default {
     };
   },
   computed: {
-    // 🌟 [추가] 학년 태그를 백엔드에서 쓰는 형태로 정제
-    gradeTag() {
-      // 예: '초등 3학년' -> '3학년' 또는 '초등3학년'
-      // 현재는 쿼리스트링에 전체를 사용하므로, 띄어쓰기만 제거합니다.
-      return this.selectedGrade.replace(/\s/g, '');
-    }
   },
   methods: {
-
-    // 탭 클릭 시 상태 변경 (API 재호출이 아닌 필터링만 실행)
-    changeTab(tabName) {
-      this.selectedTab = tabName;
-      this.$router.replace({ query: { tab: tabName } });
-      // API 재호출 대신, 이미 로드된 데이터로 필터링만 수행
-      this.applyFilters();
-    },
-
     // 장소 상세페이지 이동 함수 (기존 로직 유지)
     goToDetail(item) {
-      //
       const queryParams = {
         mainCategoryTags: item.subject, // 👈 [수정] 아이템의 카테고리를 사용
         subCategoryTags: item.hashtags,
@@ -125,38 +95,6 @@ export default {
     goBack() {
       this.$router.back();
     },
-
-    // 로드된 데이터를 필터 조건에 맞게 거르는 함수
-    applyFilters() {
-      // 1. 탭 필터: '전시' -> 'exhibition' / '답사' -> 'science_place'
-      const typeFilter = this.selectedTab === '전시' ? 'exhibition' : 'science_place';
-
-      // '답사' 탭이 선택되었는지 확인
-      const isSciencePlaceTab = (this.selectedTab === '답사');
-
-      // 2. 최종 필터링된 배열 생성
-      this.displayedItems = this.allWishlistItems.filter(item => {
-        // item.itemType는 백엔드에서 받은 실제 타입입니다. (exhibition 또는 science_place)
-        const typeMatch = item.itemType === typeFilter;
-
-        return typeMatch
-      })
-        .map(item => {
-          // '답사' 탭일 경우, item.type을 빈 문자열로 덮어쓴 '새 객체'를 반환
-          if (isSciencePlaceTab) {
-            return {
-              ...item, // item의 모든 기존 속성을 그대로 복사
-              type: ''   // 'type' 속성만 빈 문자열로 덮어쓰기
-            };
-          }
-
-          // '전시' 탭일 경우, item을 수정없이 그대로 반환
-          return item;
-        });
-      // 결과 콘솔 출력
-      console.log(`[필터링 완료] 표시 ${this.displayedItems.length}개`)
-    },
-
 
     // 🟢 찜 목록을 최초에 한 번만 가져오는 함수
     async performSearch() {
@@ -209,9 +147,8 @@ export default {
           });
 
           console.log('API 응답 결과 (원본): ', this.allWishlistItems.length, '개');
-
-          // 모든 데이터를 가져온 후, 현재 선택된 필터로 즉시 필터링
-          this.applyFilters();
+          this.displayedItems = this.allWishlistItems;
+          console.log(`[표시 완료] 전체 ${this.displayedItems.length}개`)
 
         } else {
           console.error('API 응답 형식이 잘못되었습니다.', response.data);

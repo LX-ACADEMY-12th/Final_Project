@@ -25,7 +25,4 @@ public interface FinalScheduleMapper {
      */
     void insertFinalScheduleItems(List<FinalScheduleItemDto> items);
 
-    // --- 이전 대화에서 이미 존재할 수 있는 메소드들 ---
-    // void deleteItemsByScheduleId(Long scheduleId);
-    // void insertScheduleItems(List<com.example.demo.dto.ScheduleItemDto> items); // 주의: 파라미터 타입 다름
 }

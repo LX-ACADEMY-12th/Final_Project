@@ -216,7 +216,7 @@
     	</when>
 
 	    <when test="targetType == 'exhibition'">
-	      UPDATE exhibition e
+	      UPDATE exhibition_hall AS eh
 	      SET
 	        total_reviews = (
 	          SELECT COUNT(*) FROM review r
@@ -230,7 +230,7 @@
 	            AND r.target_id   = #{targetId}
 	        ), 0),
             
-          -- ⭐️ [추가] 사진 리뷰 개수 집계
+          -- 사진 리뷰 개수 집계
           total_photo_reviews = (
             SELECT COUNT(DISTINCT r.review_id)
             FROM review r
@@ -239,7 +239,7 @@
               AND r.target_id = #{targetId}
           )
             
-	      WHERE e.exhibition_id = #{targetId}
+	      WHERE eh.hall_id = #{targetId}
     	</when>
   	</choose>
 	</update>

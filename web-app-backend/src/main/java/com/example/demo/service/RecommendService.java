@@ -1,22 +1,25 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.CourseHallDTO;
 import com.example.demo.dto.CourseItemDTO; // [!!] DTO만 import
 import com.example.demo.mapper.ExhibitionMapper;
-import com.example.demo.mapper.PlaceMapper;
+import com.example.demo.mapper.ContentMapper;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-// [!!] Entity, Collectors import가 필요 없어짐
+import java.util.Map;
 
 @Service
 public class RecommendService {
 
-    private final PlaceMapper placeMapper;
+    private final ContentMapper contentMapper;
 
     private final LlmApiService llmApiService; //
 
-    public RecommendService(ExhibitionMapper exhibitionMapper, PlaceMapper placeMapper, LlmApiService llmApiService) {
-        this.placeMapper = placeMapper;
+    public RecommendService(ExhibitionMapper exhibitionMapper, ContentMapper contentMapper, LlmApiService llmApiService) {
+        this.contentMapper = contentMapper;
         this.llmApiService = llmApiService;
     }
 
@@ -25,11 +28,36 @@ public class RecommendService {
     ) {
 
         if ("exhibition".equals(type)) {
-            List<CourseItemDTO> candidates = placeMapper.findSimilarExhibition(currentId, mainCategory, grade);
-            return llmApiService.getAiRecommendations(currentId, candidates);
+            // AI에게 추천할 전시관 '후보'
+            List<CourseHallDTO> candidates = contentMapper.findSimilarExhibition(currentId, mainCategory, grade);
+            // AI가 추천한 전시관
+            List<CourseHallDTO> recommendations = llmApiService.getAiRecommendations(currentId, candidates);
+            // AI가 추천한 '전시관 ID' 목록만 추출
+            List<Long> recommendedHallIds = recommendations.stream()
+                    .map(CourseHallDTO::getHallId) // (CourseHallDTO에 getHallId()가 있다고 가정)
+                    .toList();
+            // (예외처리)
+            if (recommendedHallIds.isEmpty()) {
+                return List.of(); // Collections.emptyList()
+            }
+            // '전시관 ID 목록'대로 DB에서 하나씩 호출
+            List<CourseItemDTO> finalResponseItems = new ArrayList<>();
+
+            for (Long hallId : recommendedHallIds) {
+                // '전시관' 조회
+                // 이 쿼리는 'hall_id' 하나에 해당하는 '전시관' 반환
+                List<CourseItemDTO> exhibitionsInThisHall = contentMapper.findExhibitionsByHallIdAndCriteria(
+                        hallId,
+                        mainCategory,
+                        grade
+                );
+                // AI가 추천한 순서대로 리스트에 추가
+                finalResponseItems.addAll(exhibitionsInThisHall);
+            }
+            return finalResponseItems;
         } else {
-            List<CourseItemDTO> candidates = placeMapper.findSimilarSciencePlace(currentId, mainCategory, grade);
-            return llmApiService.getAiRecommendations(currentId, candidates); // AI 호출 -> ID 3개 값 배열을 리턴
+//            List<CourseItemDTO> candidates = contentMapper.findSimilarSciencePlace(currentId, mainCategory, grade);
+            return null;
         }
     }
 

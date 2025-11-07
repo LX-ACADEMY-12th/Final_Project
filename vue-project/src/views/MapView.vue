@@ -39,9 +39,9 @@
     </div>
     <div class="position-absolute d-flex flex-row" style="z-index: 10; top: 104px; left: 18px; gap: 8px;">
       <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-        @click="changeTab('전시')">전시</button>
+        @click="changeTab('전시')">과학관 전시</button>
       <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-        @click="changeTab('답사')">답사</button>
+        @click="changeTab('답사')">과학 여행</button>
     </div>
 
     <div class="position-absolute d-flex flex-column" style="
@@ -112,8 +112,7 @@ import axios from '@/api/axiosSetup';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import FilterModal from '@/components/modal/FilterModal.vue';
 import PlaceCard from '@/components/card/PlaceCard.vue';
-import eventBus
-  from '@/utils/eventBus';
+import eventBus from '@/utils/eventBus';
 // 🟢 Pinia 스토어 관련 import 추가
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
@@ -126,7 +125,7 @@ const DEMO_LOCATION = { lat: 36.3504119, lng: 127.3845475 };
 // 🟢 [추가] Pinia 스토어 초기화 및 상태 가져오기
 const authStore = useAuthStore();
 // user 객체와 isLoggedIn 상태를 반응형으로 가져옵니다.
-const { user, isLoggedIn } = storeToRefs(authStore);
+const { user } = storeToRefs(authStore);
 
 const selectedTab = ref('전시');
 const selectedNavItem = ref('지도');
@@ -135,6 +134,23 @@ const mapContainer = ref(null);
 const map = ref(null);
 const markers = ref([]);
 const currentLocationMarker = ref(null);
+
+const infoOverlay = ref(null); // :왼쪽_화살표: [유지] 호버 시 열릴 오버레이를 추적할 ref
+// 1. 마커 이미지 크기/옵션 설정 (핀 크기에 맞게 조절하세요)
+const imageSize = new window.kakao.maps.Size(32, 37); // 예: 32x37px 핀
+const imageOption = { offset: new window.kakao.maps.Point(16, 37) }; // 핀의 하단 중앙
+// 2. '전시' (과학관) 핀 이미지 객체 생성
+const exhibitionMarkerImage = new window.kakao.maps.MarkerImage(
+  '/museum.png', // :왼쪽_화살표: public 폴더의 '전시' 핀 이미지 경로
+  imageSize,
+  imageOption
+);
+// 3. '답사' (현장학습) 핀 이미지 객체 생성
+const fieldTripMarkerImage = new window.kakao.maps.MarkerImage(
+  '/experiment.png', // :왼쪽_화살표: public 폴더의 '답사' 핀 이미지 경로
+  imageSize,
+  imageOption
+);
 
 // 🟢 user 상태에 따라 화면에 표시할 이름을 계산하는 computed 속성
 const userName = computed(() => {
@@ -291,28 +307,75 @@ const moveMapToItem = (lat, lng) => {
   }
 };
 
-// 마커 모두 제거
-const clearMarkers = () => {
+// 마커/오버레이 초기화
+const clearMapElements = () => {
   markers.value.forEach(marker => marker.setMap(null));
   markers.value = [];
+  if (infoOverlay.value) {
+    infoOverlay.value.setMap(null);
+    infoOverlay.value = null;
+  }
 };
-
-// 아이템들을 지도에 마커로 표시
+// 아이템들을 '커스텀 핀'과 '호버 오버레이'로 표시
 const drawMarkers = (items) => {
   if (!map.value || !items.length) return;
-
+  clearMapElements();
   items.forEach(item => {
+    const markerImage = (item.itemType === 'exhibition')
+      ? exhibitionMarkerImage
+      : fieldTripMarkerImage;
     const markerPosition = new window.kakao.maps.LatLng(item.lat, item.lng);
     const marker = new window.kakao.maps.Marker({
       position: markerPosition,
-      title: item.title
+      title: item.title,
+      image: markerImage
     });
     marker.setMap(map.value);
     markers.value.push(marker);
-
-    // 마커 클릭 이벤트
+    // 3. [신규] 'mouseover' (마우스 올리기) 이벤트 리스너
+    window.kakao.maps.event.addListener(marker, 'mouseover', () => {
+      if (infoOverlay.value) {
+        infoOverlay.value.setMap(null);
+      }
+      // ▼▼▼▼▼ [수정] HTML 컨텐츠를 새 이미지 스타일로 변경 ▼▼▼▼▼
+      const content = `
+        <div class="info-window">
+          <div class="info-title">${item.title}</div>
+          <div class="info-line info-rating">
+            <span class="star">:별:</span>
+            <span>${item.rating || 'N/A'} 점 (${item.reviewCount || 0}개)</span>
+          </div>
+          <div class="info-line">
+            <span class="icon"><i class="bi bi-info-circle-fill"></i></span>
+            <span>${item.subject || '분류 없음'}</span>
+          </div>
+          <div class="info-line">
+            <span class="icon"><i class="bi bi-info-circle-fill"></i></span>
+            <span>${item.grade || '학년 없음'}</span>
+          </div>
+        </div>
+      `;
+      // ▲▲▲▲▲ [수정] HTML 컨텐츠 끝 ▲▲▲▲▲
+      const overlay = new window.kakao.maps.CustomOverlay({
+        map: map.value,
+        position: markerPosition,
+        content: content,
+        xAnchor: 0.5,
+        yAnchor: 1.5, // 핀(37px)보다 위로 띄우기 (값 조절 필요)
+        zIndex: 3
+      });
+      infoOverlay.value = overlay;
+    });
+    // 4. [신규] 'mouseout' (마우스 내리기) 이벤트 리스너
+    window.kakao.maps.event.addListener(marker, 'mouseout', () => {
+      if (infoOverlay.value) {
+        infoOverlay.value.setMap(null);
+        infoOverlay.value = null;
+      }
+    });
+    // 5. [신규] 'click' (마커 클릭) 이벤트 리스너
     window.kakao.maps.event.addListener(marker, 'click', () => {
-      handleItemClick(item);
+      goToDetail(item); // :왼쪽_화살표: 상세 페이지로 이동
     });
   });
 };
@@ -327,6 +390,8 @@ const performSearch = async () => {
 
   isSearching.value = true;
   displayedItems.value = []; // 검색 시작 시 목록 초기화
+
+  const currentItemType = (selectedTab.value === '전시') ? 'exhibition' : 'science_place';
 
   // 1. API 요청 파라미터 준비
   const params = {
@@ -369,7 +434,12 @@ const performSearch = async () => {
 
     // 3. 결과 처리
     if (response.data && Array.isArray(response.data)) {
-      displayedItems.value = response.data;
+      displayedItems.value = response.data.map(item => {
+        return {
+          ...item,
+          itemType: currentItemType
+        };
+      });
       console.log('API 응답 결과:', displayedItems.value.length, '개');
       console.log(displayedItems.value)
     } else {
@@ -439,7 +509,6 @@ onMounted(async () => {
 watch(displayedItems, (newItems) => {
   if (!map.value) return;
 
-  clearMarkers();
   drawMarkers(newItems);
 
   // === 줌 레벨 로직 (기존 로직 유지) ===
@@ -500,6 +569,87 @@ const handleNavigation = (navItemName) => {
   /* 오버레이 위치 보정 (핀 중심 맞추기) */
   transform: translate(-50%, -50%);
 }
+
+.info-window {
+  position: relative;
+  background: rgba(255, 255, 255, 0.55);
+  ;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  width: 220px;
+  /* 정보창 너비 */
+  z-index: 1;
+  /* 말풍선 꼬리 */
+  transform: translateY(-10px);
+}
+
+.info-window::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  /* 꼬리 위치 */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0 10px;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
+}
+
+.info-window::before {
+  /* 꼬리 테두리 */
+  content: '';
+  position: absolute;
+  bottom: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 11px 11px 0 11px;
+  border-style: solid;
+  border-color: #ccc transparent transparent transparent;
+  z-index: -1;
+}
+
+.info-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-line {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.info-line:last-child {
+  margin-bottom: 0;
+}
+
+.info-line .icon,
+.info-line .star {
+  margin-right: 8px;
+  font-size: 16px;
+  color: #4A7CEC;
+  /* 'i' 아이콘 */
+}
+
+.info-line .star {
+  color: #FFC107;
+  /* 별점 색상 */
+}
+
+.info-rating {
+  font-size: 13px;
+  color: #666;
+}
 </style>
 
 <style scoped>
@@ -538,6 +688,7 @@ const handleNavigation = (navItemName) => {
   padding: 5px 16px;
   gap: 8px;
   position: relative;
+  width: 140px;
   height: 38px;
   border-radius: 20px;
   background: #FFFFFF;

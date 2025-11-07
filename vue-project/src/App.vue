@@ -157,12 +157,15 @@ body {
 
 <style scoped>
 #app-container {
-  width: 480px;
-  height: 100%;
+  max-width: 450px;
+  width: 100%;
+  height: calc(100vh - 40px);
+  margin: 20px auto;
   position: relative;
   background-color: #f0f0f0;
   border: 1px solid #ccc;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   /* 문서의 흐름에 따라 요소 배치 */

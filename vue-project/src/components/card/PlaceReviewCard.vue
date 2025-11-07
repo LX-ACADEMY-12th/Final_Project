@@ -18,7 +18,7 @@
         </div>
         <div class="text-frame d-flex flex-column gap-1 min-w-0">
           <div class="d-flex align-items-center gap-1 min-w-0">
-            <TypeTag :text="item.type" class="flex-shrink-0" />
+            <!-- <TypeTag :text="item.type" class="flex-shrink-0" /> -->
             <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title }}</h5>
           </div>
           <div class="d-flex flex-row align-items-center gap-2 min-w-0">
@@ -44,7 +44,7 @@
               class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
           </div>
 
-          <div class="flex-grow-1 min-w-0">
+          <div class="flex-grow-1 min-w-0 overflow-hidden">
             <div class="fw-bold">{{ item.latestReview.authorName }}님</div>
 
             <div class="d-flex align-items-center mb-2" style="color: #FFC107;">
@@ -60,8 +60,7 @@
           <div v-for="i in 5" :key="i" class="rounded-3 d-flex align-items-center justify-content-center text-secondary"
             style="background-color: #e0e0e0; height: 60px; /* 높이 살짝 줄임 */ flex-basis: 0; flex-grow: 1; overflow: hidden;">
 
-            <img v-if="computedReviewPhotos[i - 1]"
-              :src="computedReviewPhotos[i - 1]" alt="리뷰 사진"
+            <img v-if="computedReviewPhotos[i - 1]" :src="computedReviewPhotos[i - 1]" alt="리뷰 사진"
               style="width: 100%; height: 100%; object-fit: cover;">
           </div>
         </div>
@@ -132,7 +131,7 @@ const remainingHashtagsCount = computed(() => {
 });
 
 const onItemClick = () => {
-  emit('item-click', props.item); 
+  emit('item-click', props.item);
 }
 </script>
 
@@ -141,6 +140,7 @@ const onItemClick = () => {
 .border.rounded-4.shadow-sm.p-3 {
   background-color: var(--bs-body-bg, #fff);
 }
+
 .btn-add-new {
   width: 28px;
   height: 28px;
@@ -148,35 +148,42 @@ const onItemClick = () => {
   padding: 0;
   background-color: white;
 }
+
 .place-card-content {
   z-index: 1;
   overflow: hidden;
   cursor: pointer;
   transition: background-color 0.15s ease-out;
 }
+
 .place-card-content:hover {
   background-color: #f8f9fa !important;
 }
+
 .image-frame {
   width: 80px;
   height: 80px;
   overflow: hidden;
   background-color: #f0f0f0;
 }
+
 .place-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .content-frame {
   min-width: 0;
   max-width: calc(100% - 80px - 12px);
   min-height: 0;
 }
+
 .text-frame {
   min-width: 0;
   min-height: 0;
 }
+
 .hashtag-container {
   display: flex;
   flex-direction: row;
@@ -185,10 +192,18 @@ const onItemClick = () => {
   overflow: hidden;
   min-width: 0;
 }
+
 .more-tags {
   font-size: 0.7rem;
   color: #6c757d;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.text-truncate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

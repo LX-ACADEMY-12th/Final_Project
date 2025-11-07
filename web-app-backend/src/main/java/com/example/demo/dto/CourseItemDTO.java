@@ -11,22 +11,18 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CourseItemDTO {
-    // AI + UI 공통
-    private Long placeId;         // (place_id)
-    private String placeName;     // (place_name)
-    private String subjectName;   // (subject_name)
-    private String gradeName;     // (grade_name)
-
-    // AI가 주로 사용
-    private String description;   // (description)
-    private String placeType;     // (place_type)
-
-    // UI가 주로 사용
+    private Long placeId;          // (place_id)
+    private String placeName;      // (place_name)
+    private String subjectName;    // (subject_name)
+    private String gradeName;      // (grade_name)
+    private String description;    // (description)
+    private String placeType;      // (place_type)
     private String imageUrl;
     private String address;
-    private String type;          // 전시 타입 (상설 or 기획)
+    private String type;           // 전시 타입 (상설 or 기획)
     private Double latitude;
     private Double longitude;
     private List<String> hashtags;
+    private List<String> exhibitionList; // 전시관 내부 전시 목록들
 
 }

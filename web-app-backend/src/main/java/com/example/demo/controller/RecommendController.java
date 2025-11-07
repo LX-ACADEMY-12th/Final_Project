@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.CourseHallDTO;
 import com.example.demo.dto.CourseItemDTO;
 import com.example.demo.service.RecommendService;
 import org.springframework.http.ResponseEntity;

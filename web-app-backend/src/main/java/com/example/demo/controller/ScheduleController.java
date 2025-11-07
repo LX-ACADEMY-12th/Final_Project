@@ -50,7 +50,7 @@ public class ScheduleController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 토큰입니다.");
         }
 
-        // [보안 검사] 경로의 userId와 토큰의 authUserId가 일치하는지 확인
+        // 경로의 userId와 토큰의 authUserId가 일치하는지 확인
         if (!userId.equals(authUserId)) {
             log.warn("FORBIDDEN: 인증된 사용자(ID:{})가 다른 사용자(ID:{})의 일정 조회를 시도했습니다.", authUserId, userId);
             // 403 Forbidden (권한 없음) 반환
