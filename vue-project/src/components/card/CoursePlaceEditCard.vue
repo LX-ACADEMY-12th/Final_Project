@@ -103,8 +103,8 @@ export default {
       const IMAGE_BASE_URL = 'http://localhost:8080/images/';
       // 이 카드는 UserLikeCourseDetailView에서 옴
       // UserLikeCourseDetailView가 이미 imageUrl을 만들어줌
-      const url = this.item.imageUrl; 
-      
+      const url = this.item.imageUrl;
+
       if (url && !url.startsWith('http')) {
         return IMAGE_BASE_URL + url;
       }
@@ -183,11 +183,12 @@ export default {
 <style scoped>
 /* (스타일은 변경사항 없습니다) */
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css");
+
 .timeline-item-container {
   display: flex;
   position: relative;
-  max-width: 360px;
 }
+
 .timeline-marker-wrapper {
   display: flex;
   flex-direction: column;
@@ -196,6 +197,7 @@ export default {
   flex-shrink: 0;
   margin-right: 12px;
 }
+
 .timeline-marker-svg {
   width: 24px;
   height: 35px;
@@ -204,6 +206,7 @@ export default {
   background-position: center;
   z-index: 2;
 }
+
 .timeline-marker {
   width: 24px;
   height: 35px;
@@ -220,14 +223,17 @@ export default {
   font-weight: normal;
   font-size: 0;
 }
+
 .timeline-line {
   width: 2px;
   flex-grow: 1;
   background-color: #e0e0e0;
 }
+
 .timeline-item-container:last-child .timeline-line {
   display: none;
 }
+
 .content-card {
   position: relative;
   flex-grow: 1;
@@ -239,6 +245,7 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   min-width: 0;
 }
+
 .icon-buttons {
   position: absolute;
   top: 16px;
@@ -247,20 +254,25 @@ export default {
   gap: 12px;
   z-index: 3;
 }
+
 .icon-buttons i {
   font-size: 18px;
   color: #888;
   cursor: pointer;
 }
+
 .icon-buttons i:hover {
   color: #333;
 }
+
 .icon-buttons .bi-trash:hover {
   color: #e53e3e;
 }
+
 .card-body {
   display: flex;
 }
+
 .card-image img {
   width: 60px;
   height: 60px;
@@ -268,6 +280,7 @@ export default {
   margin-right: 16px;
   object-fit: cover;
 }
+
 .card-text {
   display: flex;
   flex-direction: column;
@@ -276,32 +289,38 @@ export default {
   gap: 8px;
   min-width: 0;
 }
+
 .category {
   font-size: 12px;
   font-weight: bold;
 }
+
 .place-name {
   font-size: 16px;
   font-weight: 600;
   margin: 2px 0;
   margin-bottom: 4px;
 }
+
 .description {
   font-size: 14px;
   color: #777;
   margin: 2px 0 0 0;
 }
+
 .address {
   font-size: 14px;
   color: #555;
   margin: 0;
 }
+
 .hr {
   border: none;
   height: 1px;
   background-color: rgb(0, 0, 0);
   margin: 12px 0;
 }
+
 .location-label {
   display: flex;
   align-items: center;

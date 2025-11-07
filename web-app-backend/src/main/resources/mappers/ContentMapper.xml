@@ -221,6 +221,7 @@
             LIMIT 5;
     </select>
 
+    <!-- AI가 추천한 전시관 ID와 기타 정보로 전시관 정보 가져오기    -->
     <resultMap id="CourseResultMap" type="com.example.demo.dto.CourseItemDTO">
         <id property="placeId" column="placeId"/>
         <result property="placeName" column="placeName"/>
@@ -242,7 +243,6 @@
                 javaType="java.util.List"
                 typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
     </resultMap>
-    <!-- AI가 추천한 전시관 ID와 기타 정보로 전시관 정보 가져오기    -->
     <select id="findExhibitionsByHallIdAndCriteria" resultMap="CourseResultMap">
         SELECT
             eh.hall_id AS placeId,
@@ -270,6 +270,88 @@
           AND gc.grade_name = #{grade}
         GROUP BY
             eh.hall_id, cmc.category_name, gc.grade_name;
+    </select>
+
+    <!-- AI 추천 과학장소 코스를 위한 후보군 추출   -->
+    <resultMap id="outerCourseItemResultMap" type="com.example.demo.dto.CourseItemDTO">
+        <id property="placeId" column="place_id"/>
+        <result property="placeName" column="place_name"/>
+        <result property="subjectName" column="subjectName"/>
+        <result property="gradeName" column="gradeName"/>
+        <result property="description" column="description"/>
+        <result property="imageUrl" column="imageUrl"/>
+        <result property="address" column="address"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+        <result property="placeType" column="placeType"/>
+
+        <result property="hashtags" column="hashtags"
+                jdbcType="ARRAY"
+                javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+    </resultMap>
+    <select id="findSimilarSciencePlace" resultMap="outerCourseItemResultMap">
+        WITH TargetGeom AS (
+            SELECT geog
+            FROM science_place
+            WHERE place_id = #{currentId}
+        )
+        SELECT
+            sp.place_id,
+            sp.place_name,
+            ARRAY_AGG(DISTINCT csc.sub_category_name) AS hashtags,
+            ST_Distance(sp.geog, (SELECT geog FROM TargetGeom)) AS distance_meters,
+            sp.description
+        FROM
+            science_place AS sp
+                JOIN place_curriculum_mapping AS pcm ON pcm.place_id = sp.place_id
+                JOIN curriculum_sub_category AS csc ON csc.sub_category_id = pcm.sub_category_id
+                JOIN curriculum_main_category AS cmc ON cmc.main_category_id = csc.main_category_id
+                JOIN grade_category AS gc ON gc.grade_id = csc.grade_id
+        WHERE
+            -- 1. 현재 위치 제외
+            sp.place_id != #{currentId}
+            AND
+            -- 2. 사용자의 관심사와 일치
+            gc.grade_name = #{grade}
+            AND
+            cmc.category_name = #{mainCategory}
+            AND
+        -- 3. 과학장소 위치 근방 (예: 30000m 이내)
+        ST_DWithin(sp.geog, (SELECT geog FROM TargetGeom), 30000)
+        GROUP BY
+            sp.place_id, sp.place_name, sp.geog
+        ORDER BY
+            distance_meters ASC -- 가까운 순서대로 정렬 (AI에게 1차 정렬된 후보를 줌)
+            LIMIT 5;
+    </select>
+
+    <!-- AI가 추천한 과학장소 ID와 기타 정보로 과학장소 정보 가져오기   -->
+    <select id="findSciencePlaceByPlaceIdAndCriteria" resultType="com.example.demo.dto.CourseItemDTO">
+    SELECT
+        sp.place_id AS placeId,
+        sp.place_name AS placeName,
+        cmc.category_name AS subjectName,
+        gc.grade_name AS gradeName,
+        sp.description,
+        'science_place' AS placeType,
+        sp.main_image_url AS imageUrl,
+        sp.address_detail AS address,
+        sp.latitude,
+        sp.longitude,
+        ARRAY_AGG(DISTINCT csc.sub_category_name) AS hashtags
+    FROM
+        science_place AS sp
+        JOIN place_curriculum_mapping AS pcm ON pcm.place_id = sp.place_id
+        JOIN curriculum_sub_category AS csc ON csc.sub_category_id = pcm.sub_category_id
+        JOIN curriculum_main_category AS cmc ON cmc.main_category_id = csc.main_category_id
+        JOIN grade_category AS gc ON gc.grade_id = csc.grade_id
+    WHERE
+        sp.place_id = #{placeId}
+        AND cmc.category_name = #{mainCategory}
+        AND gc.grade_name = #{grade}
+    GROUP BY
+        sp.place_id, cmc.category_name, gc.grade_name;
     </select>
 
 </mapper>

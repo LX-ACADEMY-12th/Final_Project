@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,71 +31,26 @@ public class LlmApiService {
     }
 
     /**
-     * AI 모델에게 '후보 전시관 리스트'를 보내고 최종 추천을 받는 메소드
+     * AI 모델에게 '프롬프트'를 보내고 추천 'ID 목록'을 받는 핵심 메소드
      */
-    public List<CourseHallDTO> getAiRecommendations(Long currentHallId, List<CourseHallDTO> candidates) {
-
-        // DB에서 추려온 후보가 없으면 AI를 호출할 필요가 없습니다.
-        if (candidates == null || candidates.isEmpty()) {
-            return List.of();
-        }
-
-        // 1. AI에게 보낼 프롬프트(지시서) 생성
-        String prompt = buildPrompt(currentHallId, candidates);
-
+    public List<Long> getAiRecommendedIds(String prompt) {
+        // 후보가 없는 경우의 처리는 RecommendService가 담당 (프롬프트가 비어있지 않다고 가정)
         try {
-            // 2. Vertex AI Gemini 모델 호출 (동기 방식)
+            // 1. Vertex AI Gemini 모델 호출
             GenerateContentResponse response = generativeModel.generateContent(prompt);
 
-            // 3. AI의 텍스트 응답 파싱
+            // 2. AI의 텍스트 응답 파싱
             String aiResponseText = ResponseHandler.getText(response);
             log.info("AI 응답 수신: {}", aiResponseText);
 
-            // 4. AI가 추천한 ID 목록 파싱 (예: "12, 5, 7")
-            List<Long> recommendedIds = parseAiResponse(aiResponseText);
-
-            // 5. AI가 추천한 ID 순서대로 원본 리스트 재정렬
-            return reorderList(candidates, recommendedIds);
+            // 3. AI가 추천한 ID 목록 파싱 (예: "12, 5, 7")
+            return parseAiResponse(aiResponseText);
 
         } catch (IOException e) {
             log.error("Vertex AI 호출 실패:", e);
-            // AI 호출 실패 시, DB에서 가져온 후보군 중 2개를 그대로 반환 (Fallback)
-            // (사용자에게 추천이 아예 안 나가는 것보다 좋음)
-            return candidates.stream().limit(2).toList();
+            // AI 호출 실패 시, 빈 리스트 반환 (Fallback 처리는 RecommendService가 담당)
+            return List.of();
         }
-    }
-
-    /**
-     * AI에게 지시할 프롬프트를 만드는 메소드 ('전시관' 추천용)
-     */
-    // [!!] DTO 타입 변경 및 프롬프트 내용 전면 수정
-    private String buildPrompt(Long currentHallId, List<CourseHallDTO> candidates) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("당신은 과학관의 동선을 추천하는 AI 도슨트입니다.\n");
-        sb.append("현재 사용자는 ID " + currentHallId + " 전시관에 있습니다.\n");
-        sb.append("사용자는 '초등 3학년', '물리' 교과 과정에 관심이 있습니다.\n");
-        sb.append("아래는 현재 위치에서 가깝고, 이 관심사에 맞는 '다음 추천 전시관' 후보 목록입니다.\n\n");
-
-        for (CourseHallDTO hall : candidates) {
-            sb.append(String.format("- ID: %d, 전시관 이름: %s\n", hall.getHallId(), hall.getHallName()));
-            sb.append(String.format("  - 관련 전시 개수: %d개\n", hall.getRelevantExhibitionCount()));
-            sb.append(String.format("  - 관련 교과 주제: %s\n",
-                    (hall.getSubCategories() != null) ? String.join(", ", hall.getSubCategories()) : "정보 없음"));
-
-            String desc = (hall.getCombinedDescriptions() != null) ? hall.getCombinedDescriptions() : "설명 없음";
-            // [!!] 설명이 너무 길면 AI가 힘들어하므로 요약
-            String truncatedDesc = desc.length() > 500 ? desc.substring(0, 500) + "..." : desc;
-            sb.append(String.format("  - 관련 전시 설명 요약: %s\n\n", truncatedDesc.trim()));
-        }
-
-        sb.append("\n[미션]\n");
-        sb.append("이 후보 '전시관' 중에서, 사용자가 다음으로 방문하기에 가장 교육적이고 흥미로운 순서로 2개만 골라주세요.\n");
-        sb.append("순서를 정할 때는 (1)관련 전시 설명 요약, (2)관련 전시 개수를 중점적으로 고려해야 합니다.\n");
-        sb.append("최종 응답은 추천하는 전시관의 ID 2개를 쉼표(,)로 구분해서 순서대로 알려주세요.");
-        sb.append("오직 ID와 쉼표 외에는 아무런 설명도 붙이지 마세요.");
-        sb.append("예시: 5,2");
-
-        return sb.toString();
     }
 
     /**
@@ -104,38 +60,46 @@ public class LlmApiService {
         if (aiResponseText == null || aiResponseText.isBlank()) {
             return List.of();
         }
-
         try {
-            // "12, 5, 7" -> ["12", " 5", " 7"] -> [12L, 5L, 7L]
             return Arrays.stream(aiResponseText.split(","))
-                    .map(String::trim)      // " 5 " -> "5"
-                    .filter(s -> !s.isEmpty()) // 빈 문자열 제거
-                    .map(Long::parseLong)   // "5" -> 5L
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty() &&
+                            !s.equalsIgnoreCase("null") && s.matches("\\d+"))
+                    .map(Long::parseLong)
                     .toList();
         } catch (NumberFormatException e) {
             log.error("AI 응답(ID) 파싱 실패: {}", aiResponseText, e);
-            return List.of(); // 파싱 실패 시 빈 리스트 반환
+            return List.of();
         }
     }
 
     /**
-     * AI가 추천한 ID 순서대로 원본 후보 '전시관' 리스트를 재정렬
+     * AI가 추천한 ID 순서대로 원본 리스트를 재정렬하는 '범용(Generic)' 메소드
+     *
+     * @param <T>           재정렬할 객체 타입 (예: CourseHallDTO, CourseItemDTO)
+     * @param candidates    원본 후보 리스트
+     * @param recommendedIds AI가 추천한 ID 순서
+     * @param idExtractor   후보 객체에서 ID(Long)를 추출하는 람다 함수
+     * @return 재정렬된 리스트
      */
-    // DTO 타입 변경 및 Map의 Key 추출 로직 수정
-    private List<CourseHallDTO> reorderList(
-            List<CourseHallDTO> candidates, List<Long> recommendedIds) {
+    public <T> List<T> reorderListByIds(
+            List<T> candidates, List<Long> recommendedIds, Function<T, Long> idExtractor) {
+
+        // AI가 추천을 못했거나, 파싱에 실패한 경우 Fallback
         if (recommendedIds.isEmpty()) {
+            // 원본 후보 중 2개만 반환 (기존 로직 유지)
             return candidates.stream().limit(2).toList();
         }
 
-        // Map의 Key가 'hallId'가 되도록 수정 (getHallId() 사용)
-        Map<Long, CourseHallDTO> candidateMap = candidates.stream()
-                .collect(Collectors.toMap(CourseHallDTO::getHallId, item -> item));
+        // 원본 후보 리스트를 Map으로 변환 (검색 속도 향상)
+        Map<Long, T> candidateMap = candidates.stream()
+                .collect(Collectors.toMap(idExtractor, item -> item, (first, second) -> first)); // [!!] 중복 키의 경우 첫 번째 항목 사용
 
+        // AI가 추천한 ID 순서대로 Map에서 객체를 찾아 새 리스트 생성
         return recommendedIds.stream()
-                .map(candidateMap::get)
-                .filter(item -> item != null)
-                .distinct()
+                .map(candidateMap::get) // ID에 해당하는 객체 찾기
+                .filter(item -> item != null) // Map에 없는 ID(잘못된 ID)가 온 경우 필터링
+                .distinct() // 혹시 모를 중복 ID 추천 제거
                 .toList();
     }
 }

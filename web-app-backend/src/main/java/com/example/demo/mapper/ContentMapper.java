@@ -37,6 +37,12 @@ public interface ContentMapper {
                 @Param("mainCategory") String mainCategory,
                 @Param("grade") String grade
         );
+        // 장소 id로 정보 가져오기 -> 추천 아이템으로 사용할거임.
+        List<CourseItemDTO> findSciencePlaceByPlaceIdAndCriteria (
+                @Param("placeId") Long placeId,
+                @Param("mainCategory") String mainCategory,
+                @Param("grade") String grade
+        );
 
         // ID 목록으로 장소 정보 리스트 조회 (목록 카드용)
         List<LikedCourseListDTO> findPlacesForLikedList(@Param("ids") List<Long> ids);
