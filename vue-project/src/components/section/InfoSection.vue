@@ -3,12 +3,23 @@
     <div class="top-meta">
       <div class="image-area">
         <img :src="mainImageSrc" alt="메인 이미지" class="main-image">
+
+        <div v-if="item.isVisited" class="visit-stamp">
+            <i class="bi bi-postage-heart-fill"></i>
+            <span>방문 인증</span>
+        </div>
+
+        <div v-else class="visit-stamp inactive">
+          <i class="bi bi-postage-heart"></i>
+          <span>방문 인증</span>
+        </div>
       </div>
+      
     </div>
 
     <div class="content-body">
       <h2 class="title">
-        <TypeTag :text="item.type" class="flex-shrink-0" />{{ item.title }}
+        {{ item.title }}
       </h2>
       <div class="rating">
         <span class="stars">
@@ -33,141 +44,133 @@
         <Hashtag v-for="tag in subCategories" :key="tag" :text="tag" />
       </div>
 
-      <div class="description" :class="{ 'expanded': isExpanded }">
-        {{ displayedDescription }}
-        <button v-if="isLongText" @click="toggleDescription" class="btn btn-white">
-          {{ isExpanded ? '접기' : '(더보기)' }}
-        </button>
+        <div class="description" :class="{ 'expanded': isExpanded }">
+          {{ displayedDescription }}
+          <button v-if="isLongText" @click="toggleDescription" class="btn btn-white">
+            {{ isExpanded ? '접기' : '(더보기)' }}
+          </button>
+        </div>
+
+      <div class="floor-map-section" v-if="item.type === '전시'"> 
+        <div class="map-container">
+          <img :src="item.floorMapUrl" alt="층별 지도" class="img-fluid rounded-3 border" 
+            v-if="item.floorMapUrl" />
+          <div v-else class="map-placeholder">
+          층별 지도 이미지가 없습니다.
+          </div>
+        </div>
       </div>
     </div>
   </section>
 </template>
 
-<script>
-// ✨ 1. SubjectTag 컴포넌트를 가져옵니다.
+<script setup>
+import { ref, computed } from 'vue';
+
+// (1) 컴포넌트 임포트 (기존 UI용)
 import PillTag from '@/components/tag/PillTag.vue';
 import Hashtag from '@/components/tag/HashTag.vue';
-import TypeTag from '@/components/tag/TypeTag.vue';
 
-// [!!] 1. 이미지 기본 URL 정의
-const IMAGE_BASE_URL = 'http://localhost:8080/images/';
-
-export default {
-  name: 'InfoSection',
-
-  // ✨ 2. components에 SubjectTag를 등록하여 템플릿에서 사용할 수 있게 합니다.
-  components: {
-    PillTag,
-    Hashtag,
-    TypeTag,
+// (2) Props 정의 (부모로부터 모든 데이터를 받음)
+const props = defineProps({
+  // 'item' 객체는 API 응답의 핵심 데이터를 포함
+  item: {
+    type: Object,
+    required: true,
+    default: () => ({})
   },
-
-  // 컴포넌트 생성 시 props 확인
-  created() {
-    console.log('✅ [InfoSection] created - 전달받은 Props:', {
-      mainCategory: this.mainCategory,
-      subCategories: this.subCategories,
-      gradeTag: this.gradeTag
-    });
+  // 'mainCategory', 'gradeTag', 'subCategories'는
+  // 부모(PlaceDetailView)가 $route.query에서 추출하여 넘겨줌
+  mainCategory: {
+    type: String,
+    default: ''
   },
-  // isExpanded: 전시 소개 글이 펼쳐져있나 확인하는 변수
-  data() {
-    return {
-      isExpanded: false, // 기본값은 '접힌' 상태
-    };
+  gradeTag: {
+    type: String,
+    default: ''
   },
-
-  // 부모 컴포넌트로부터 exhibition과 place 객체를 props로 받습니다.
-  props: {
-    // 전시 상세화면에서 사용
-    exhibition: {
-      type: Object,
-      required: false, // 장소 상세화면에서는 이 props를 넘기지 않아도 되므로 false로 설정합니다.
-      default: () => null, // 기본값을 null로 설정하여 데이터가 없는 상태를 명확히 합니다.
-    },
-    // 장소 상세화면에서 사용
-    place: {
-      type: Object,
-      required: false,
-      default: () => null,
-    },
-    mainCategory: {
-      type: String,
-      default: '' // HashTag용
-    },
-    subCategories: {
-      type: Array,
-      default: () => [] // HashTag용
-    },
-    gradeTag: {
-      type: String,
-      default: ''
-    }
-  },
-
-  // 계산된 속성(Computed Properties)을 사용하여 템플릿에서 사용할 데이터를 통합합니다.
-  computed: {
-    // 1. 실제로 화면에 표시할 메인 이미지 URL을 결정합니다.
-    mainImageSrc() {
-      // [!!] 2. PlaceCard2.vue와 동일한 로직 적용
-      // 부모(PlaceDetailsView)가 DTO를 매핑하며 'mainImage' 필드에 넣어준 값을 가져옵니다.
-      const rawUrl = this.exhibition?.mainImage || this.place?.mainImage;
-
-      if (rawUrl && !rawUrl.startsWith('http')) {
-        // 'exhibition/1.jpg' 같은 값이면 '앞주소'를 붙여줍니다.
-        return IMAGE_BASE_URL + rawUrl;
-      }
-      
-      // 'http://...'로 시작하거나, null이거나, 'https://via.placeholder...' 같은 fallback이면
-      // 그대로 반환합니다.
-      return rawUrl || 'https://via.placeholder.com/600x400';
-    },
-    // 2. 실제로 화면에 표시할 핵심 데이터를 결정합니다.
-    // 이렇게 하면 템플릿 코드가 훨씬 단순해집니다.
-    item() {
-      // exhibition 데이터가 있다면, exhibition 객체를 사용하고,
-      // 없다면 place 객체를 사용합니다.
-      return this.exhibition || this.place || {};
-    },
-    // 3. 현재 표시하는 정보가 '전시 정보'인지 판단합니다.
-    isExhibition() {
-      // exhibition props가 null이 아닌 경우 true를 반환합니다.
-      return !!this.exhibition;
-    },
-    // ✨ 4. 현재 표시하는 정보가 '장소 정보'인지 판단하는 속성을 추가합니다.
-    isPlace() {
-      return !!this.place;
-    },
-    // ✨ 5. 태그를 표시해야 하는지 판단하는 새로운 속성을 추가합니다.
-    shouldShowTags() {
-      // 전시 정보이거나 OR 장소 정보일 때 true를 반환합니다.
-      return this.isExhibition || this.isPlace;
-    },
-
-    // 원본 텍스트가 150자봗 긴지 확인하는 computed
-    isLongText() {
-      return this.item.description && this.item.description.length > 150;
-    },
-
-    // 화면에 표시될 텍스트를 결정하는 computed
-    displayedDescription() {
-      // 텍스트가 짧거나(isLongText: false),
-      // 또는 "더보기"가 눌린 상태(isExpanded: true)라면 원본 텍스트 반환
-      if (!this.isLongText || this.isExpanded) {
-        return this.item.description;
-      }
-
-      // 텍스트가 길고 "더보기"가 안 눌린 상태면 150자까지 자르고 "..." 붙이기
-      return this.item.description.substring(0, 150) + '...';
-    }
-  },
-
-  methods: {
-    toggleDescription() {
-      this.isExpanded = !this.isExpanded;
-    }
+  subCategories: {
+    type: Array,
+    default: () => []
   }
+});
+
+
+// (3) 기존 로직: 메인 이미지 URL 계산 (변수명 유지)
+const mainImageSrc = computed(() => {
+  const BASE_URL = 'http://localhost:8080/images/';
+  
+  // ▼▼▼▼▼ [여기 수정!] ▼▼▼▼▼
+  // props.item.mainImageUrl (X) -> props.item.mainImage (O)
+  const imageUrl = props.item.mainImage;
+
+  if (imageUrl && !imageUrl.startsWith('http')) {
+    // URL이 있고, http로 시작하지 않으면 (예: 'exhibition/1.jpg')
+    return BASE_URL + imageUrl;
+  }
+  
+  // URL이 http로 시작하거나(https://via.placeholder...), 
+  // URL이 없으면(null) 그대로 반환
+  return imageUrl; 
+  // ▲▲▲▲▲ [여기 수정!] ▲▲▲▲▲
+});
+
+
+// (4) 신규 로직: 맞춤형 팁 + 더보기/접기
+
+// '맞춤 팁' 계산 (내부 임시 변수)
+const personalizedTip = computed(() => {
+  // [API 필요] item.viewingTips 배열이 API 응답에 포함되어야 함
+  // (예: [{ grade: '초등 5학년', subject: '지구', tip: '...' }])
+  if (!props.item.viewingTips || !Array.isArray(props.item.viewingTips)) {
+    return null;
+  }
+  
+  // 부모에게서 받은 과목/학년과 일치하는 팁 찾기
+  const foundTip = props.item.viewingTips.find(tip =>
+    tip.grade === props.gradeTag && tip.subject === props.mainCategory
+  );
+  
+  return foundTip ? foundTip.tip : null; // 찾으면 팁 텍스트, 못찾으면 null
+});
+
+// [핵심] '기본 설명'과 '맞춤 팁'을 하나로 합친 텍스트 (내부 임시 변수)
+const fullText = computed(() => {
+  // [API 필요] item.description 필드
+  let baseDesc = props.item.description || "제공된 설명이 없습니다.";
+  
+  if (personalizedTip.value) {
+    // 팁이 존재하면, 기본 설명 뒤에 예쁘게 붙여줍니다.
+    baseDesc += `\n\n✨ ${props.gradeTag} ${props.mainCategory} 맞춤 팁!\n${personalizedTip.value}`;
+  }
+  
+  return baseDesc;
+});
+
+// --- 요청하신 변수명 사용 ---
+const isExpanded = ref(false);
+const TRUNCATE_LENGTH = 100; // '더보기' 기준 글자 수 (이 값은 조절하셔도 됩니다)
+
+// '더보기' 버튼이 필요한지 계산
+const isLongText = computed(() => {
+  return fullText.value.length > TRUNCATE_LENGTH;
+});
+
+// '더보기' 상태에 따라 표시할 텍스트 계산
+const displayedDescription = computed(() => {
+  if (isExpanded.value || !isLongText.value) {
+    return fullText.value; // 전체 텍스트
+  }
+  // 접힌 상태면, 자르고 '...' 추가
+  return fullText.value.substring(0, TRUNCATE_LENGTH) + '... ';
+});
+
+// '더보기'/'접기' 버튼 클릭 시
+const toggleDescription = () => {
+  isExpanded.value = !isExpanded.value;
 };
+// --- 요청하신 변수명 끝 ---
+
 </script>
 
 <style scoped>
@@ -181,13 +184,67 @@ export default {
 
 .image-area {
   position: relative;
-  height: 194px;
+  height: 250px;
+  width: 100%;
+  aspect-ratio: 16 /9;
+  background-color: #f0f0f0;
 }
 
 .main-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; /*컨테이너에 꽉차게*/
+}
+
+/* (3) 방문 인증 스탬프 (활성/비활성 공통) */
+.visit-stamp {
+  position: absolute;
+  /* ▼▼▼ [수정] 정중앙 배치 ▼▼▼ */
+  top: 18%;
+  left: 11%;
+  /* ▲▲▲ [수정] 정중앙 배치 ▲▲▲ */
+  transform: translate(-50%, -50%); 
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; 
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: rgba(230, 255, 230, 0.8); 
+  
+  /* 텍스트에도 공통 스타일 적용 (필요시) */
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.visit-stamp i {
+  font-size: 28px; /* 아이콘 크기 (bi-클래스는 font-size로 조절) */
+  margin-bottom: 4px;
+  color: #008a00; /* 활성 아이콘 색 */
+}
+/* ▲▲▲ [수정] img -> i (아이콘) ▲▲▲ */
+
+/* span (텍스트) */
+.visit-stamp span {
+  color: #008a00; /* 활성 텍스트 색 */
+}
+
+/* (4) 미인증 스탬프 (회색 처리) */
+.visit-stamp.inactive {
+  background-color: rgba(238, 238, 238, 0.8);
+}
+
+/* ▼▼▼ [수정] img -> i (비활성 아이콘) ▼▼▼ */
+.visit-stamp.inactive i {
+  color: #9e9e9e; /* 비활성 아이콘 색 */
+}
+/* ▲▲▲ [수정] img -> i (비활성 아이콘) ▲▲▲ */
+
+.visit-stamp.inactive span {
+  color: #9e9e9e; /* 비활성 텍스트 색 */
 }
 
 .content-body {
@@ -211,9 +268,7 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 16px;
-  /* ✨ 태그와 별점/점수 영역 사이에 공간이 필요하다면 gap을 활용합니다. */
   gap: 8px;
-  /* flex-wrap: wrap; 을 추가하면 화면이 좁아질 때 태그들이 자동으로 다음 줄로 넘어갑니다. */
   flex-wrap: wrap;
 }
 
@@ -231,36 +286,94 @@ export default {
 }
 
 .hashtags-area {
-  /* 해시태그가 여러 줄로 표시될 수 있도록 flex-wrap을 적용합니다. */
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  /* 해시태그 사이 간격 추가 */
   margin-bottom: 16px;
 }
 
 
-.description {
-  font-size: 14px;
-  font-weight: 700;
-  color: #333;
-  line-height: 1.4;
-  /* 줄바꿈 문자 처리 */
-  white-space: pre-line;
-}
-
-/* ✨ 태그들을 감싸는 컨테이너 스타일 */
+/* 태그들을 감싸는 컨테이너 스타일 */
 .subject-tags-container {
-  /* 태그들이 여러 개일 때 옆으로 나란히 배치되도록 합니다. */
   display: flex;
-  /* 태그들 사이에 간격을 줍니다. */
   gap: 8px;
-  /* 태그 컨테이너가 별점/점수 영역에서 너무 멀리 떨어지지 않도록 마진을 조정할 수 있습니다. */
   margin-left: 10px;
 }
 
 .btn {
   font-size: 13px;
   padding: 0px;
+}
+
+/* ======================================= */
+/* ▼▼▼ [신규] 층별 지도 + 맞춤 설명 스타일 ▼▼▼ */
+/* ======================================= */
+
+/* 신규 섹션을 기존 콘텐츠와 구분하기 위한 여백 */
+.floor-map-section {
+  margin-top: 8px; 
+  padding-top: 8px; 
+  border-top: 1px solid #f0f0f0; /* 연한 구분선 */
+}
+
+/* 층별 지도 컨테이너 */
+.map-container img {
+  width: 100%;
+  object-fit: contain; /* 이미지 비율 유지 */
+  max-height: 400px;
+  border-radius: 8px; /* 부트스트랩 rounded-3와 유사 */
+}
+
+/* 지도 이미지가 없을 때의 플레이스홀더 */
+.map-placeholder {
+  width: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  color: #aaa;
+  font-weight: 500;
+}
+
+/* [유지] 설명 + 팁이 들어갈 텍스트 영역 (새 버전) */
+.description {
+  font-size: 0.95rem; /* 15px */
+  line-height: 1.7; /* 줄 간격을 넉넉하게 */
+  color: #333;
+  
+  /* [중요] \n 줄바꿈 문자를 CSS에서 그대로 표시 */
+  white-space: pre-wrap; 
+  
+  transition: max-height 0.3s ease-out;
+  position: relative;
+  word-break: keep-all; /* 단어 단위로 줄바꿈 */
+}
+
+/* (접힌 상태) '더보기' 상태일 때 */
+.description:not(.expanded) {
+  /* 약 4줄 높이 (1.7 * 15px * 4줄 = 약 102px) */
+  max-height: 102px; 
+  overflow: hidden;
+}
+
+/* '더보기'/'접기' 버튼 스타일 (요청하신 .btn-white 클래스) */
+.description .btn-white {
+  background: none;
+  border: none;
+  color: #888;
+  font-weight: bold;
+  padding: 0 0 0 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline; 
+}
+
+/* 부트스트랩 'row' 사용 시 모바일에서 여백 제거 */
+.row {
+  margin-left: 0;
+  margin-right: 0;
 }
 </style>

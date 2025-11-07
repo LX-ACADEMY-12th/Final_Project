@@ -18,7 +18,6 @@
         </div>
         <div class="text-frame d-flex flex-column gap-1 min-w-0">
           <div class="d-flex align-items-center gap-1 min-w-0">
-            <TypeTag :text="item.type" class="flex-shrink-0" />
             <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title }}</h5>
           </div>
           <div class="d-flex flex-row align-items-center gap-2 min-w-0">
@@ -44,7 +43,7 @@
               class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
           </div>
 
-          <div class="flex-grow-1 min-w-0">
+          <div class="flex-grow-1 min-w-0 overflow-hidden">
             <div class="fw-bold">{{ item.latestReview.authorName }}님</div>
 
             <div class="d-flex align-items-center mb-2" style="color: #FFC107;">
@@ -78,7 +77,6 @@
 
 <script setup>
 import PillTag from '@/components/tag/PillTag.vue';
-import TypeTag from '@/components/tag/TypeTag.vue';
 import HashTag from '@/components/tag/HashTag.vue';
 import { computed } from 'vue';
 
@@ -190,5 +188,12 @@ const onItemClick = () => {
   color: #6c757d;
   white-space: nowrap;
   flex-shrink: 0;
+}
+.text-truncate {
+  min-width: 0;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

@@ -13,8 +13,11 @@
 
       <!--전시일때-->
       <div v-if="pageType === 'exhibition'">
-        <InfoSection :exhibition="exhibition" imageTag="전시 태그" :mainCategory="exhibition.mainCategory"
-          :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag" />
+        <InfoSection
+        :item="exhibition"
+        :mainCategory="exhibition.mainCategory"
+        :subCategories="exhibition.subCategories" 
+        :gradeTag="exhibition.gradeTag" />
         <hr class="divider" />
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
@@ -87,7 +90,7 @@
 
       <!--장소일때-->
       <div v-else-if="pageType === 'science_place'">
-        <InfoSection :exhibition="place" imageTag="장소 태그" :mainCategory="place.mainCategory"
+        <InfoSection :exhibition="place" :item="place" imageTag="장소 태그" :mainCategory="place.mainCategory"
           :subCategories="place.subCategories" :gradeTag="place.gradeTag" />
         <hr class="divider" />
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
@@ -372,6 +375,31 @@ export default {
 
   methods: {
 
+    // 임시 목업데이터
+    getMockExhibitionDto() {
+      return {
+        // --- (기존 DTO 필드) ---
+        exhibitionName: '국립중앙과학관 생활과학체험관',
+        type: '전시',
+        averageRating: 4.71,
+        totalReviews: 7,
+        mainImageSrc: 'hall.png', // ⬅ 메인 이미지
+        location: '대전 유성구 대덕대로 481',
+        // ... (기타 DTO 필드들) ...
+
+        // --- (InfoSection이 사용할 신규 필드) ---
+        
+        // ▼▼▼▼▼ 2. 바로 여기에 임시 이미지를 넣으세요 ▼▼▼▼▼
+        floorMapUrl: '/hall.png', 
+        // ▲▲▲▲▲ 2. 바로 여기에 임시 이미지를 넣으세요 ▲▲▲▲▲
+        
+        description: '6가지 테마로 만나는 생활 속 과학...',
+        viewingTips: [
+          { grade: '초등 3학년', subject: '물리', tip: '맞춤형 팁 예시입니다...' }
+        ]
+      };
+    },
+
     /** DTO -> 프론트 상태 매핑 (Exhibition) */
     mapExhibitionDTO(dto) {
       const title = dto.exhibitionName ?? '제목 없음';
@@ -406,6 +434,10 @@ export default {
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
+        // ▼▼▼▼▼ [이 2줄을 추가하세요] ▼▼▼▼▼
+        floorMapUrl: dto.floorMapUrl,
+        viewingTips: dto.viewingTips ?? []
+        // ▲▲▲▲▲ [이 2줄을 추가하세요] ▲▲▲▲▲
       };
 
       // LocationSection이 사용할 데이터
@@ -461,6 +493,10 @@ export default {
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
         type: dto.type ?? 'science_place',
+        // ▼▼▼▼▼ [이 2줄을 추가하세요] ▼▼▼▼▼
+        floorMapUrl: dto.floorMapUrl,
+        viewingTips: dto.viewingTips ?? []
+        // ▲▲▲▲▲ [이 2줄을 추가하세요] ▲▲▲▲▲
       };
 
       // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
@@ -528,17 +564,26 @@ export default {
 
     /** 전시 상세 - 백엔드 연동 */
     async fetchExhibitionData(id) {
+      console.log(`전시 id: ${id}`);
       try {
 
-        const res = await axios.get(`/api/exhibitions`, {
-          params: {
-            exhibitionId: id,
-            userId: this.currentUserId // pinia 스토어의 Id를 파라미터로 추가
-          },
-        });
+        // API 수정 예정!!
+        // const res = await axios.get(`/api/exhibitions`, {
+        //   params: {
+        //     exhibitionId: id,
+        //     userId: this.currentUserId // pinia 스토어의 Id를 파라미터로 추가
+        //   },
+        // });
 
-        const dto = res.data;
-        console.log('✅ [PlaceDetailsView] API 원본 응답 (exhibition dto):', dto);
+        // const dto = res.data;
+        // console.log('✅ [PlaceDetailsView] API 원본 응답 (exhibition dto):', dto);
+
+        // ▼▼▼ 2. Mock DTO를 강제로 주입합니다 ▼▼▼
+        console.warn("백엔드 API 없음. Mock 데이터를 사용합니다.");
+        const dto = this.getMockExhibitionDto(); // ⬅ (이 함수는 methods에 있어야 함)
+        // ▲▲▲ 2. Mock DTO 주입 ▲▲▲
+        
+        console.log('✅ [PlaceDetailsView] Mock DTO (exhibition dto):', dto);
 
         if (!dto || Object.keys(dto).length === 0) {
           console.warn('전시 데이터가 비어 있습니다.');

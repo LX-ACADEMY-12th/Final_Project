@@ -1,6 +1,5 @@
 <template>
   <div class="page-container" style="font-family: 'SUIT', sans-serif">
-    <!-- 헤더 -->
     <div class="chat-header d-flex justify-content-between align-items-center p-3 bg-white border-bottom flex-shrink-0">
       <div class="header-left" style="flex: 1;">
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
@@ -12,36 +11,30 @@
       </div>
     </div>
 
-    <!-- 전시 / 답사 선택 토글-->
-    <div class="segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
-      <div class="segmented-control d-flex gap-3">
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-          @click="changeTab('전시')">전시</button>
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-          @click="changeTab('답사')">답사</button>
-      </div>
-    </div>
-
     <div class="user-like-course">
 
       <div v-if="isSearching" class="text-center p-5 text-muted w-100" style="margin-top: 20px;">
         가져오는 중...
       </div>
+      
       <div v-else-if="displayedItems.length === 0" class="text-center p-5 text-muted w-100" sytle="margin-top: 20px;">
         <div>표시할 장소가 없습니다.</div>
-        <!-- <div class="text-sm mt-2" style="font-size:  0.9rem; color: #888">
-          과목 : {{ selectedSubject }} / 학년: {{ selectedGrade.replace('초등 ', '') }}
-        </div> -->
       </div>
 
-      <template v-else>
-        <PlaceCard2 v-for="item in displayedItems" :key="item.id" :item="item" @add="goToDetail(item)"
+      <div v-else>
+        <PlaceCard2 v-for="item in displayedItems" :key="item.id" :item="item"  
+          :iconType="'heart'"
+          @toggle-favorite="removeFromFavorites(item)"
+          @add="goToDetail(item)"
           @item-click="handleItemClick(item)" />
-      </template>
+      </div>
+      
     </div>
 
   </div>
 </template>
+
+
 <script>
 import PlaceCard2 from '@/components/card/PlaceCard2.vue';
 import eventBus from '@/utils/eventBus';
@@ -54,13 +47,9 @@ export default {
   components: {
     PlaceCard2,
   },
-  // 컴포넌트가 생성되기 전에 실행되는 진입점
   setup() {
     const authStore = useAuthStore();
-    // 1. 두 값을 모두 꺼냅니다.
     const { isLoggedIn, currentUserId } = storeToRefs(authStore);
-
-    // 2. 두 값 모두 반환합니다.
     return {
       isLoggedIn: isLoggedIn,
       currentUserId: currentUserId
@@ -68,209 +57,163 @@ export default {
   },
   data() {
     return {
-      selectedTab: '전시', // '전시' 또는 '답사'
+      // [삭제] allWishlistItems는 더 이상 필요 없습니다.
+      // allWishlistItems: [], 
 
-      // API 원본 데이터를 저장할 배열
-      allWishlistItems: [],
-
-      // 화면에 실제로 표시할 데이터 (필터링 결과)
-      displayedItems: [],
+      // 화면에 실제로 표시할 데이터
+      displayedItems: [], // ⬅ API 결과를 여기에 바로 담습니다.
 
       // 로딩 상태
       isSearching: false,
     };
   },
   computed: {
-    // 🌟 [추가] 학년 태그를 백엔드에서 쓰는 형태로 정제
-    gradeTag() {
-      // 예: '초등 3학년' -> '3학년' 또는 '초등3학년'
-      // 현재는 쿼리스트링에 전체를 사용하므로, 띄어쓰기만 제거합니다.
-      return this.selectedGrade.replace(/\s/g, '');
-    }
+    // [삭제] computed 섹션 전체가 필요 없습니다.
+    // gradeTag() { ... }
   },
   methods: {
 
-    // 탭 클릭 시 상태 변경 (API 재호출이 아닌 필터링만 실행)
-    changeTab(tabName) {
-      this.selectedTab = tabName;
-      this.$router.replace({ query: { tab: tabName } });
-      // API 재호출 대신, 이미 로드된 데이터로 필터링만 수행
-      this.applyFilters();
-    },
-
-    // 장소 상세페이지 이동 함수 (기존 로직 유지)
+    // [수정 없음] goToDetail은 item.itemType을 사용하므로 그대로 작동합니다.
     goToDetail(item) {
-      //
       const queryParams = {
-        mainCategoryTags: item.subject, // 👈 [수정] 아이템의 카테고리를 사용
+        mainCategoryTags: item.subject, 
         subCategoryTags: item.hashtags,
-        gradeTags: item.grade,     // 👈 [수정] 아이템의 학년 태그를 사용
+        gradeTags: item.grade,
       };
-
-      // item.itemType (exhibition/science_place)에 따라 경로 설정
       const typePath = item.itemType === 'exhibition' ? '/exhibition' : '/place';
-
       this.$router.push({
         path: `${typePath}/${item.id}`,
         query: queryParams
       });
     },
 
-    // 아이템 클릭 핸들러 (기존 로직 유지)
+    // [수정 없음]
     handleItemClick(item) {
       this.goToDetail(item);
     },
 
-    // 뒤로가기 함수 (기존 로직 유지)
+    // [수정 없음]
     goBack() {
       this.$router.back();
     },
 
-    // 로드된 데이터를 필터 조건에 맞게 거르는 함수
-    applyFilters() {
-      // 1. 탭 필터: '전시' -> 'exhibition' / '답사' -> 'science_place'
-      const typeFilter = this.selectedTab === '전시' ? 'exhibition' : 'science_place';
-
-      // '답사' 탭이 선택되었는지 확인
-      const isSciencePlaceTab = (this.selectedTab === '답사');
-
-      // 2. 최종 필터링된 배열 생성
-      this.displayedItems = this.allWishlistItems.filter(item => {
-        // item.itemType는 백엔드에서 받은 실제 타입입니다. (exhibition 또는 science_place)
-        const typeMatch = item.itemType === typeFilter;
-
-        return typeMatch
-      })
-        .map(item => {
-          // '답사' 탭일 경우, item.type을 빈 문자열로 덮어쓴 '새 객체'를 반환
-          if (isSciencePlaceTab) {
-            return {
-              ...item, // item의 모든 기존 속성을 그대로 복사
-              type: ''   // 'type' 속성만 빈 문자열로 덮어쓰기
-            };
-          }
-
-          // '전시' 탭일 경우, item을 수정없이 그대로 반환
-          return item;
-        });
-      // 결과 콘솔 출력
-      console.log(`[필터링 완료] 표시 ${this.displayedItems.length}개`)
-    },
+    // [삭제] applyFilters 메서드 전체를 삭제합니다.
+    // applyFilters() { ... },
 
 
-    // 🟢 찜 목록을 최초에 한 번만 가져오는 함수
+    // 🟢 찜 목록을 가져오는 함수 (수정됨)
     async performSearch() {
+      console.log('performSearch 함수 시작');
 
-      console.log('performSearch 함수 시작')
-
-      // 로그인 상태 확인 (setup에서 반환된 isLoggedIn 사용)
       if (!this.isLoggedIn) {
         console.warn('로그인 상태가 아니므로 찜 목록을 로드하지 않습니다.');
-        eventBus.emit('show-global-confirm', {
-          message: '로그인이 필요한 기능입니다.',
-          onConfirm: () => {
-            this.$router.push({ name: 'login' });
-          }
-        });
+        eventBus.emit('show-global-confirm', { /* ... */ });
         return;
       }
 
       this.isSearching = true;
-      this.allWishlistItems = [];
-      this.displayedItems = []; // 화면 목록 초기화
+      this.displayedItems = []; // [수정] displayedItems를 초기화
 
       try {
-        console.log('🔵 API 호출 시작: /api/wishlist/my-list'); // 디버깅용
-        // 백엔드 API 호출
+        console.log('🔵 API 호출 시작: /api/wishlist/my-list');
         const response = await axios.get(`/api/wishlist/my-list`);
-
-        console.log('🟢 API 응답 받음:', response); // 전체 응답 확인
-        console.log('🟢 response.data:', response.data); // 데이터 확인
+        console.log('🟢 API 응답 받음:', response.data);
 
         if (response.data && Array.isArray(response.data)) {
-          // API 응답을 원본 데이터 배열에 저장
-          this.allWishlistItems = response.data.map(item => {
+          
+          // ▼▼▼▼▼ [핵심 수정] ▼▼▼▼▼
+          // allWishlistItems 대신 displayedItems에 바로 매핑합니다.
+          this.displayedItems = response.data.map(item => {
+            // PlaceCard2가 뱃지를 표시할 수 있도록 badgeLabel을 추가합니다.
+            const badgeLabel = item.targetType === 'exhibition' ? '과학관' : null;
+
             return {
               // PlaceCard2 컴포넌트에 필요한 필드 매핑
               id: item.targetId,
               title: item.title,
               imageUrl: item.mainImageUrl,
-
               subject: item.mainCategory,
               grade: item.gradeTag,
               hashtags: item.subCategories,
-
-              type: item.type,                    // 기획 OR 상설
+              type: item.type, // '상설', '기획' 등
               place: item.place,
 
-              // 필터링을 위한 내부 데이터
-              itemType: item.targetType,
+              // 필터링 및 뱃지용 내부 데이터
+              itemType: item.targetType, // 'exhibition' or 'science_place'
+              badgeLabel: badgeLabel   // ⬅ '과학관' or null
             };
           });
+          // ▲▲▲▲▲ [핵심 수정] ▲▲▲▲▲
 
-          console.log('API 응답 결과 (원본): ', this.allWishlistItems.length, '개');
+          console.log('API 응답 결과 (표시용): ', this.displayedItems.length, '개');
 
-          // 모든 데이터를 가져온 후, 현재 선택된 필터로 즉시 필터링
-          this.applyFilters();
+          // [삭제] applyFilters() 호출을 삭제합니다.
+          // this.applyFilters(); 
 
         } else {
           console.error('API 응답 형식이 잘못되었습니다.', response.data);
-          this.allWishlistItems = [];
           this.displayedItems = [];
         }
       } catch (error) {
         console.error("찜 목록 조회 중 오류 발생", error.response ? error.response.data : error.message);
-        eventBus.emit("show-global-alert", {
-          message: '찜 목록을 불러오는 중 오류가 발생했습니다.',
-          type: 'error'
-        });
-        this.allWishlistItems = [];
+        eventBus.emit("show-global-alert", { /* ... */ });
         this.displayedItems = [];
       } finally {
         this.isSearching = false;
       }
     },
+
+    async removeFromFavorites(item) {
+      console.log('찜 삭제 시도:', item.title);
+
+      // 1. API에 삭제 요청 (PlaceDetailView의 찜삭제 로직과 동일)
+      try {
+        const requestData = {
+          targetId: item.id,
+          targetType: item.itemType,
+          mainCategory: item.subject,
+          gradeTag: item.grade
+        };
+        
+        // 🌟 axios.delete는 { data: ... }로 body를 보내야 합니다.
+        await axios.delete('/api/wishlist', { data: requestData });
+        
+        // 2. (성공 시) UI에서 즉시 제거
+        // 	  (API를 다시 호출하는 것보다 빠르고 효율적입니다)
+        this.displayedItems = this.displayedItems.filter(
+          displayItem => displayItem.id !== item.id
+        );
+        
+        eventBus.emit('show-global-alert', {
+          message: '찜 목록에서 삭제되었습니다.',
+          type: 'success'
+        });
+
+      } catch (error) {
+        console.error("찜 삭제 실패:", error);
+        eventBus.emit('show-global-alert', {
+          message: '삭제에 실패했습니다. 다시 시도해 주세요.',
+          type: 'error'
+        });
+      }
+    }
   },
 
   created() {
-    // URL에서 탭 상태 로드 (기존 로직 유지)
-    const tabFromQuery = this.$route.query.tab;
-    if (tabFromQuery === '답사') {
-      this.selectedTab = '답사';
-    } else {
-      this.selectedTab = '전시';
-    }
-    // 컴포넌트 생성 시 (최초 로드 시) API 호출
+    // [삭제] URL에서 탭 상태를 로드하는 로직 전체를 삭제합니다.
+    // const tabFromQuery = this.$route.query.tab;
+    // if (tabFromQuery === '답사') { ... } ...
+    
+    // [수정 없음] 컴포넌트 생성 시 API 호출은 그대로 둡니다.
     this.performSearch();
   }
 }
 </script>
 <style scoped>
-/* 상단 필터 버튼 (전시, 탐험) */
-.spec-button {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  padding: 5px 16px;
-  gap: 8px;
-  position: relative;
-  height: 38px;
-  border-radius: 20px;
-  background: #FFFFFF;
-  color: #333;
-  border: 1px solid #ddd;
-  transition: background-color 0.2s, color 0.2s;
-  font-family: 'SUIT', sans-serif;
-  font-weight: 500;
-}
-
-.spec-button.active {
-  background: #4A7CEC;
-  color: white;
-  border: none;
-  font-weight: 700;
-}
+/* [삭제]
+  .spec-button과 .spec-button.active 스타일은
+  더 이상 사용되지 않으므로 삭제합니다.
+*/
 
 /* 페이지 전체 컨테이너 */
 .page-container {

@@ -155,7 +155,7 @@ export default {
 .timeline-item-container {
   display: flex;
   position: relative;
-  max-width: 360px;
+  
 }
 .timeline-marker-wrapper {
   display: flex;
@@ -184,6 +184,7 @@ export default {
 .content-card {
   position: relative;
   flex-grow: 1;
+  width: 100%;
   background-color: white;
   border-radius: 12px;
   border: 1px solid #eee;

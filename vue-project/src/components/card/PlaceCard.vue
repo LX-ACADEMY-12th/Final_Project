@@ -18,7 +18,6 @@
       </div>
       <div class="text-frame d-flex flex-column gap-1 min-w-0">
         <div class="d-flex align-items-center gap-1 min-w-0">
-          <TypeTag :text="item.type" class="flex-shrink-0" />
           <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title }}</h5>
         </div>
         <div class="d-flex flex-row align-items-center gap-2 min-w-0">
@@ -38,7 +37,6 @@
 
 <script setup>
 import PillTag from '@/components/tag/PillTag.vue';
-import TypeTag from '@/components/tag/TypeTag.vue';
 import HashTag from '@/components/tag/HashTag.vue';
 
 import { computed } from 'vue';

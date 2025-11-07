@@ -14,15 +14,6 @@
       </div>
     </div>
 
-    <div class="segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
-      <div class="segmented-control d-flex gap-3">
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-          @click="changeTab('전시')">전시</button>
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-          @click="changeTab('답사')">답사</button>
-      </div>
-    </div>
-
     <div class="user-like-course">
 
       <div v-if="isSearching" class="text-center p-5 text-muted w-100" style="margin-top: 20px;">
@@ -61,7 +52,6 @@ export default {
   },
   data() {
     return {
-      selectedTab: '전시',
       isModalOpen: false,
       // 필터 상태를 data에 추가
       selectedSubject: '물리',
@@ -76,15 +66,6 @@ export default {
   },
   methods: {
 
-    // 탭 클릭 시 URL과 상태를 함께 변경하는 메서드
-    changeTab(tabName) {
-      this.selectedTab = tabName;
-      // 브라우저 히스토리에 쌓이지 않도록 'replace'를 사용
-      this.$router.replace({ query: { tab: tabName } });
-      // 탭 변경 시 API 호출
-      this.performSearch();
-    },
-
     // 장소 상세페이지 이동 함수
     goToDetail(item) {
       console.log(`상세 페이지로 이동:`, item.title);
@@ -96,7 +77,7 @@ export default {
         gradeTags: this.selectedGrade,          // data의 selectedGrade
       };
 
-      if (this.selectedTab === '전시') {
+      if (item.itemType === '전시') {
         // '전시' 탭이면 /exhibition/ID 로 이동
         console.log(`전시 상세로 이동 (ID: ${item.id}):`, item.title);
         // push하여 query 전달
@@ -139,8 +120,7 @@ export default {
     },
 
     async performSearch() {
-      console.log(`검색 실행:`, {
-        itemType: this.selectedTab,
+      console.log(`전체 목록 검색 실행:`, {
         subject: this.selectedSubject,
         grade: this.selectedGrade
       });
@@ -149,26 +129,50 @@ export default {
       this.isSearching = true;
       this.displayedItems = []; // 목록 초기화
 
-      const params = {
+      const baseParams = {
         // PlaceList.vue는 위치 필터를 사용하지 않으므로 'all'로 고정
         searchType: 'all',
-        itemType: this.selectedTab,
         subject: this.selectedSubject,
         grade: this.selectedGrade
       };
 
-      try {
-        // API 엔드포인트는 Map과 동일하게 설정
-        const response = await axios.get('http://localhost:8080/api/places/search', { params });
+      const fetchScienceHalls = axios.get('http://localhost:8080/api/places/search', {
+        params: { ...baseParams, itemType:'전시'}
+      });
 
-        if (response.data && Array.isArray(response.data)) {
-          this.displayedItems = response.data;
-          console.log('API 응답 결과: ', this.displayedItems.length, '개');
-          console.log(response.data);
-        } else {
-          console.error('API 응답 형식이 잘못되었습니다.', response.data);
-          this.displayedItems = [];
+      const fetchPlaceField = axios.get('http://localhost:8080/api/places/search', {
+        params: { ...baseParams, itemType:'답사'}
+      });
+
+      try {
+        // 3. 두 API를 병렬로 동시에 호출
+        const [responseScienceHall, responsePlaceField] = await Promise.all([
+          fetchScienceHalls,
+          fetchPlaceField
+        ]);
+
+        // 과학관 결과 처리: itemType과 badgeLabel 추가
+        let scienceHallResults = [];
+        if (responseScienceHall.data && Array.isArray(responseScienceHall.data)) {
+          scienceHallResults = responseScienceHall.data.map(item => ({
+            ...item,
+            itemType: '전시',
+            badgeLabel: '과학관' // 뱃지에 표시할 텍스트
+          }));
         }
+
+        // 답사 결과 처리: badgeLabel 추가
+        let placeFieldResults = [];
+        if (responsePlaceField.data && Array.isArray(responsePlaceField.data)) {
+          placeFieldResults = responsePlaceField.data.map(item => ({
+            ...item,
+            itemType: '전시',
+          }));
+        }
+
+        // 두 결과를 하나의 배열로 합치기 (과학관 먼저, 그 다음 답사)
+        this.displayedItems = [...scienceHallResults, ...placeFieldResults];
+        console.log('API 통합 결과 ', this.displayedItems.length, '개');
       } catch (error) {
         console.error("API 검색 중 오류 발생", error.response ? error.response.data : error.message);
         eventBus.emit('show-global-alert', {
@@ -182,16 +186,6 @@ export default {
     },
   },
   created() {
-    // URL 에서 ?tab= ... 값을 읽어온다.
-    const tabFromQuery = this.$route.query.tab;
-
-    // 쿼리 값이 '답사' 이면 '답사' 탭을, 그 외에는 '전시'를 기본으로 선택
-    if (tabFromQuery === '답사') {
-      this.selectedTab = '답사';
-    } else {
-      this.selectedTab = '전시';
-    }
-
     // 컴포넌트 생성 시(최초 로드 시) API 호출
     this.performSearch();
   }
@@ -270,6 +264,5 @@ export default {
   display: flex;
   flex-direction: column;
   /* 카드 아이템 간 간격 */
-  gap: 16px;
 }
 </style>

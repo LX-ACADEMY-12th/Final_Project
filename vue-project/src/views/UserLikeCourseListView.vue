@@ -11,15 +11,6 @@
       </div>
     </div>
 
-    <div class="segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
-      <div class="segmented-control d-flex gap-3">
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-          @click="changeTab('전시')">전시</button>
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-          @click="changeTab('답사')">답사</button>
-      </div>
-    </div>
-
     <div v-if="loading" class="content-container status-container">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
@@ -76,7 +67,6 @@ export default {
 
   data() {
     return {
-      selectedTab: '전시',
       // API 응답을 저장할 배열
       userLikeCourseCardItem: [],
       loading: true,
@@ -104,11 +94,6 @@ export default {
 
   // 라이프사이클 훅
   created() {
-    // 탭 설정 로직
-    const tabFromQuery = this.$route.query.tab;
-    if (tabFromQuery === '답사') {
-      this.selectedTab = '답사';
-    }
     // API 호출 함수 실행 -> 사용자 ID로 저장한 코스 아이템 가져오기
     this.fetchUserLikeCourse();
   },
@@ -205,11 +190,6 @@ export default {
           fromList: true
         }
       });
-    },
-
-    changeTab(tabName) {
-      this.selectedTab = tabName;
-      this.$router.replace({ query: { tab: tabName } });
     },
 
     goBack() {
