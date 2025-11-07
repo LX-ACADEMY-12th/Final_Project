@@ -205,47 +205,44 @@ export default {
       console.log('==== Home API 검색 실행 시작 ====');
       isSearching.value = true;
       displayedItems.value = [];
+      exhibitionItems.value = []; // 초기화
+      fieldTripItems.value = [];  // 초기화
 
       const params = {
-        searchType: 'all', // Home은 위치기반이 아니므로 'all'
+        searchType: 'all',
         subject: selectedSubject.value,
         grade: selectedGrade.value,
       };
 
       try {
         console.log('API 요청 파라미터:', params);
-
-        // 1. 콘텐츠 정보 가져오기
         const response = await axios.get('/api/content/search', { params });
 
         if (response.data && Array.isArray(response.data)) {
-
-          // 2. 각 콘텐츠에 대해 최신 리뷰와 사진 요약 정보 가져오기
+          // 더 많은 아이템 가져오기 (20개로 증가)
           const itemsWithReviews = await Promise.all(
-            response.data.slice(0, 10).map(async (item) => {
+            response.data.slice(0, 20).map(async (item) => {
               try {
-                // 각 콘텐츠의 targetType
                 const targetType = item.itemType;
-                // item.itemType이 null이나 undefined로 올 경우를 대비
+
+                // 타입 로깅 추가
+                console.log(`아이템 타입: ${item.itemType}, ID: ${item.id}, 제목: ${item.title}`);
+
                 if (!targetType) {
-                  console.warn(`item.itemType이 비어있습니다. (ID: ${item.id}). 리뷰 조회가 실패할 수 있습니다.`);
+                  console.warn(`item.itemType이 비어있습니다. (ID: ${item.id})`);
                 }
 
-                // 2-1. 리뷰 API 호출 (ReviewSection과 동일한 구조)
                 const reviewParams = {
                   targetId: item.id,
                   targetType: targetType,
                   page: 1,
-                  size: 1 // 최신 리뷰 1개만
+                  size: 1
                 };
 
                 const reviewResponse = await axios.get('/api/reviews', { params: reviewParams });
-
-                // 페이징 응답에서 content 추출
                 const reviewPage = reviewResponse.data;
                 const latestReview = reviewPage?.content?.[0] || null;
 
-                // 2-2. 사진 썸네일 정보 가져오기 (선택사항)
                 let photoThumbnails = [];
                 try {
                   const photoParams = {
@@ -256,40 +253,31 @@ export default {
                   const { data: thumbs } = await axios.get('/api/reviews/photos-summary', { params: photoParams });
                   photoThumbnails = Array.isArray(thumbs) ? thumbs : [];
                 } catch (photoErr) {
-                  console.warn(`사진 썸네일 로드 실패 (장소 ID: ${item.id}):`, photoErr);
+                  console.warn(`사진 썸네일 로드 실패:`, photoErr);
                 }
 
-                // 최종 데이터 구조
                 return {
                   ...item,
-                  // 리뷰 페이징 정보
                   totalReviews: reviewPage?.totalElements || 0,
                   totalPages: reviewPage?.totalPages || 0,
-                  // 최신 리뷰 정보
                   latestReview: latestReview ? {
                     reviewId: latestReview.reviewId,
-                    authorId: latestReview.authorId,
                     authorName: latestReview.authorName,
                     authorProfileImageUrl: latestReview.authorProfileImageUrl,
                     rating: latestReview.rating,
                     content: latestReview.content,
                     createdAt: latestReview.createdAt,
-                    photoUrls: latestReview.photoUrls || [],
-                    likeCount: latestReview.likeCount || 0
+                    photoUrls: latestReview.photoUrls || []
                   } : null,
-                  // 사진 썸네일 정보
                   photoThumbnails: photoThumbnails,
-                  // 평균 평점 (API에서 제공한다면)
                   averageRating: item.averageRating || 0
                 };
               } catch (reviewError) {
-                console.warn(`리뷰 로드 실패 (장소 ID: ${item.id}):`, reviewError);
-                // 리뷰 로드 실패해도 장소 정보는 표시
+                console.warn(`리뷰 로드 실패:`, reviewError);
                 return {
                   ...item,
                   latestReview: null,
                   totalReviews: 0,
-                  totalPages: 0,
                   photoThumbnails: [],
                   averageRating: item.averageRating || 0
                 };
@@ -298,25 +286,47 @@ export default {
           );
 
           displayedItems.value = itemsWithReviews;
-          console.log('API 응답 결과 (리뷰 포함):', JSON.stringify(displayedItems.value, null, 2));
 
-          // 전시와 체험학습 분류
-          categorizeItems(itemsWithReviews);
+          // 전시와 체험학습 분류 - 로깅 추가
+          console.log('분류 전 전체 아이템:', itemsWithReviews.length);
 
-          console.log('전시 아이템:', exhibitionItems.value.length);
-          console.log('체험학습 아이템:', fieldTripItems.value.length);
+          const exhibitions = [];
+          const fieldTrips = [];
+
+          itemsWithReviews.forEach(item => {
+            console.log(`분류 중 - ID: ${item.id}, Type: ${item.itemType}, Title: ${item.title}`);
+
+            if (item.itemType === 'exhibition') {
+              exhibitions.push(item);
+            } else if (item.itemType === 'science_place') {
+              fieldTrips.push(item);
+            } else {
+              console.warn(`알 수 없는 itemType: ${item.itemType}`);
+            }
+          });
+
+          exhibitionItems.value = exhibitions;
+          fieldTripItems.value = fieldTrips;
+
+          console.log('=== 분류 결과 ===');
+          console.log('전시 아이템:', exhibitions.length, exhibitions);
+          console.log('체험학습 아이템:', fieldTrips.length, fieldTrips);
 
         } else {
           console.error('API 응답 형식이 잘못되었습니다:', response.data);
           displayedItems.value = [];
+          exhibitionItems.value = [];
+          fieldTripItems.value = [];
         }
       } catch (error) {
-        console.error("Home API 검색 중 오류:", error.response ? error.response.data : error.message);
+        console.error("Home API 검색 중 오류:", error);
         eventBus.emit('show-global-alert', {
           message: '추천 장소를 불러오는 중 오류가 발생했습니다.',
           type: 'error'
         });
         displayedItems.value = [];
+        exhibitionItems.value = [];
+        fieldTripItems.value = [];
       } finally {
         isSearching.value = false;
         console.log('==== Home API 검색 완료 ====');
@@ -537,10 +547,12 @@ export default {
         eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
           onConfirm: () => {
-            router.push({ name: 'login' }); // 👈 this.$router 대신 router 사용
+            // this.$router 대신 router 사용
+            router.push({ name: 'login' });
           }
         });
-        return; // 페이지 이동 중단
+        // 페이지 이동 중단
+        return;
       }
 
       console.log('마이페이지로 이동');

@@ -71,7 +71,7 @@ export default {
   components: {
     PillTag,
     Hashtag,
-    TypeTag,
+    // TypeTag,
   },
 
   // 컴포넌트 생성 시 props 확인
