@@ -60,8 +60,9 @@
         <!-- <i class="bi bi-plus-lg fs-5"></i> -->
       </button>
       <ul class="list-group list-group-flush">
-        <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
-          <div class="d-flex align-items-center" @click="goToLikePlace()">
+        <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0"
+          @click="goToLikePlace()">
+          <div class="d-flex align-items-center">
             <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
             <span>관심 목록</span>
           </div>

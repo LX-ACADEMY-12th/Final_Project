@@ -5,7 +5,7 @@
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
       </div>
       <div class="header-center fw-bold fs-6" style="flex: 1; text-align: center;">
-        추천 장소 목록
+        추천 목록
       </div>
       <div class="header-right" style="flex: 1; text-align: right;">
         <i class="bi bi-sliders fs-5" style="cursor: pointer;" @click.prevent="isModalOpen = true">
@@ -78,7 +78,7 @@ export default {
     };
   },
   computed: {
-    // [!!] 4. 'filteredItems' computed 속성 추가
+    // 'filteredItems' computed 속성 추가
     filteredItems() {
       if (this.selectedTab === '전시') {
         // 백엔드 API 응답의 itemType이 'exhibition'인 경우 필터링
@@ -133,7 +133,7 @@ export default {
       this.$router.back();
     },
 
-    // 필터 완료 핸들러 (수정 없음, performSearch() 호출 유지)
+    // 필터 완료 핸들러
     handleFilterComplete(filterData) {
       console.log(`필터 선택 완료:`, filterData);
       this.selectedSubject = filterData.subject;
@@ -142,7 +142,7 @@ export default {
       this.performSearch(); // [!!] 필터 변경 시에는 API 다시 호출
     },
 
-    // [!!] 6. performSearch 로직 수정
+    // performSearch 로직 수정
     async performSearch() {
       console.log(`검색 실행 (모든 타입):`, {
         subject: this.selectedSubject,
@@ -163,8 +163,28 @@ export default {
         const response = await axios.get('/api/content/search', { params }); // [!!] URL 경로 수정 (MapComponent와 동일하게)
 
         if (response.data && Array.isArray(response.data)) {
-          // [!!] API 응답(전체)을 'allFetchedItems'에 저장
+          // API 응답(전체)을 'allFetchedItems'에 저장
           this.allFetchedItems = response.data;
+
+          const processedItems = response.data.map(item => {
+
+            // 1. 'exhibition' (과학관/전시) 타입인 경우
+            if (item.itemType === 'exhibition') {
+              return {
+                ...item,
+                // 'item.type' ('상설'/'기획') 대신 '과학관' 텍스트를 뱃지로 사용
+                badgeLabel: '과학관'
+              };
+            }
+            // 2. 'science_place' (답사/과학장소) 타입인 경우
+            // 뱃지 없이 그대로 반환합니다.
+            else {
+              return item;
+            }
+          });
+
+          // 처리된 아이템을 최종 목록으로 저장
+          this.allFetchedItems = processedItems;
           console.log('API 응답 결과 (전체): ', this.allFetchedItems.length, '개');
         } else {
           console.error('API 응답 형식이 잘못되었습니다.', response.data);
@@ -208,6 +228,7 @@ export default {
   padding: 5px 16px;
   gap: 8px;
   position: relative;
+  width: 115px;
   height: 38px;
   border-radius: 20px;
   background: #FFFFFF;
