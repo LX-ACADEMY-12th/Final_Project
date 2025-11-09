@@ -20,6 +20,7 @@
 	        r.like_count AS likeCount,
             -- user 테이블에서 photo_url을 authorProfileImageUrl로 가져옵니다.
             u.photo_url AS authorProfileImageUrl
+	        r.status
         FROM
 	        review r
 	    LEFT JOIN
@@ -40,6 +41,7 @@
             target_id = #{targetId}
         AND 
             target_type = #{targetType}
+            AND status = 'ACTIVE'
     </select>
 
 	<!-- 리뷰에 있는 사진 불러오기 -->
@@ -61,6 +63,7 @@
 	        r.target_id = #{targetId}
 	    AND 
 	        r.target_type = #{targetType}
+        AND r.status = 'ACTIVE'
 	    ORDER BY 
 	        r.created_at DESC,  p.sequence ASC      
     </select>
@@ -73,7 +76,7 @@
         keyColumn="review_id">
 	  INSERT INTO review (
 	    user_id, target_type, target_id,
-	    content, rating, created_at, updated_at, like_count
+	    content, rating, created_at, updated_at, like_count, status
 	  ) VALUES (
 	    #{userId},
 	    #{dto.targetType},
@@ -82,7 +85,8 @@
 	    #{dto.rating},
 	    CURRENT_TIMESTAMP,
 	    CURRENT_TIMESTAMP,
-	    0
+	    0,
+        'ACTIVE'
 	  )
 	  RETURNING review_id
 	</insert>
@@ -133,6 +137,7 @@
 	      updated_at = CURRENT_TIMESTAMP
 	  WHERE review_id = #{reviewId}
 	    AND user_id   = #{userId}
+	    AND status = 'ACTIVE'
 	</update>
 	
 	<!-- 리뷰 수정시 사진 관련 -->
@@ -150,8 +155,10 @@
 	
 	<!-- (관리자/시스템용) 사용자 체크 없이 리뷰 삭제 -->
 	<delete id="adminDeleteReview" parameterType="long">
-	  DELETE FROM review
+	  UPDATE review
+	  SET status = 'DELETED_BY_ADMIN', updated_at = CURRENT_TIMESTAMP
 	  WHERE review_id = #{reviewId}
+	    AND status = 'ACTIVE'
 	</delete>
 	
 	<!-- 다른 사용자 후기 신고 -->
@@ -164,16 +171,21 @@
 	
 	<!-- 신고 수가 임계치 이상일 때만 리뷰 삭제 (자식은 FK CASCADE로 자동) -->
 	<!-- 자동으로 삭제됨 -->
-	<delete id="adminDeleteReviewIfReportedAtLeast" parameterType="map">
-	  DELETE FROM review r
+	<update id="adminDeleteReviewIfReportedAtLeast" parameterType="map">
+	  UPDATE review r
+	  SET status = 'BLOCKED', updated_at = CURRENT_TIMESTAMP
 	  WHERE r.review_id = #{reviewId}
-	    AND (
+	    AND r.status = 'ACTIVE' AND (
 	      SELECT COUNT(*) FROM review_report rr
 	      WHERE rr.review_id = r.review_id
 	    ) >= #{threshold}
-	</delete>
-	
-    
+	</update>
+
+    <delete id="deleteReviewReportByReviewId" parameterType="long">
+        DELETE FROM review_report
+        WHERE review_id = #{reviewId}
+    </delete>
+
     <!-- 리뷰 메타 조회 -->
 	<select id="findReviewMeta" parameterType="long" resultType="map">
 	  SELECT
@@ -182,6 +194,7 @@
 	    r.target_type AS "targetType"    <!-- ★ 따옴표 -->
 	  FROM review r
 	  WHERE r.review_id = #{reviewId}
+	    AND r.status != 'DELETED_BY_USER'
 	</select>
 
 	
@@ -195,12 +208,14 @@
 	          SELECT COUNT(*) FROM review r
 	          WHERE r.target_type = 'science_place'
 	            AND r.target_id   = #{targetId}
+	            AND r.status = 'ACTIVE'
 	        ),
 	        average_rating = COALESCE((
 	          SELECT ROUND(AVG(r.rating)::numeric, 2)
 	          FROM review r
 	          WHERE r.target_type = 'science_place'
 	            AND r.target_id   = #{targetId}
+                AND r.status = 'ACTIVE'
 	        ), 0),
           
           -- ⭐️ [추가] 사진 리뷰 개수 집계
@@ -210,6 +225,7 @@
             JOIN review_photo rp ON r.review_id = rp.review_id
             WHERE r.target_type = 'science_place'
               AND r.target_id = #{targetId}
+              AND r.status = 'ACTIVE'
           )
           
 	      	WHERE sp.place_id = #{targetId}
@@ -222,12 +238,14 @@
 	          SELECT COUNT(*) FROM review r
 	          WHERE r.target_type = 'exhibition'
 	            AND r.target_id   = #{targetId}
+                AND r.status = 'ACTIVE'
 	        ),
 	        average_rating = COALESCE((
 	          SELECT ROUND(AVG(r.rating)::numeric, 2)
 	          FROM review r
 	          WHERE r.target_type = 'exhibition'
 	            AND r.target_id   = #{targetId}
+                AND r.status = 'ACTIVE'
 	        ), 0),
             
           -- 사진 리뷰 개수 집계
@@ -237,6 +255,7 @@
             JOIN review_photo rp ON r.review_id = rp.review_id
             WHERE r.target_type = 'exhibition'
               AND r.target_id = #{targetId}
+              AND r.status = 'ACTIVE'
           )
             
 	      WHERE eh.hall_id = #{targetId}
@@ -253,6 +272,7 @@
 	  WHERE r.target_type = #{targetType}
 	    AND r.target_id   = #{targetId}
 	    AND rl.user_id    = #{userId}
+        AND r.status = 'ACTIVE'
 	</select>
 
 	
@@ -282,11 +302,54 @@
 	    WHERE 
 	        R.target_id = #{targetId} 
 	        AND R.target_type = #{targetType}
+            AND r.status = 'ACTIVE'
 	    ORDER BY 
 	        R.created_at DESC  LIMIT #{limit}
 	</select>
-	
-	
+
+    <select id="findReportedReviews"
+            resultType="com.example.demo.dto.ReportedReviewDTO">
+        SELECT
+            r.review_id AS reviewId,
+            r.target_type AS targetType,
+            r.target_id AS targetId,
+            r.content,
+            r.rating,
+            r.created_at AS createdAt,
+            r.user_id AS authorId,
+            u.name AS authorName, -- 작성자 이름
+            -- 신고 횟수 집계 (핵심 로직)
+            COUNT(rr.review_id) AS reportCount,
+            -- 대상 이름 조회 (전시 또는 답사 장소 이름)
+            CASE r.target_type
+                WHEN 'exhibition' THEN e.exhibition_name
+                WHEN 'science_place' THEN sp.place_name
+                ELSE '알 수 없음'
+                END AS targetName
+        FROM
+            review r
+                -- 1. 작성자 정보 JOIN
+                INNER JOIN
+            "user" u ON r.user_id = u.user_id
+                -- 2. 신고 기록 정보 JOIN
+                INNER JOIN
+            review_report rr ON r.review_id = rr.review_id
+                -- 3. 대상 이름 조회를 위한 LEFT JOIN (전시 테이블)
+                LEFT JOIN
+            exhibition e ON r.target_type = 'exhibition' AND r.target_id = e.exhibition_id
+                -- 4. 대상 이름 조회를 위한 LEFT JOIN (답사 장소 테이블)
+                LEFT JOIN
+            science_place sp ON r.target_type = 'science_place' AND r.target_id = sp.place_id
+        WHERE
+            r.status = 'ACTIVE' GROUP BY
+                                    r.review_id, u.name, e.exhibition_name, place_name
+        -- 신고 횟수가 1회 이상인 것만 필터링
+        HAVING
+            COUNT(rr.review_id) > 0
+        -- 가장 최근에 신고된 리뷰가 위로 오도록 정렬
+        ORDER BY
+            MAX(rr.created_at) DESC
+    </select>
 	
 	
 

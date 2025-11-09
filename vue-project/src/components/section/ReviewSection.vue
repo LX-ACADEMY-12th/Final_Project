@@ -32,51 +32,56 @@
 
     <div class="review-list" v-else>
       <div class="review-item" v-for="review in reviews" :key="review.reviewId" :data-review-id="review.reviewId">
-        <div class="reviewer-profile">
-          <img :src="review.authorProfileImageUrl || 'https://via.placeholder.com/40'" alt="프로필 이미지" class="avatar" />
-          <span class="name">{{ review.authorName }}</span>
-          <span class="stars" v-html="getFilledStars(review.rating)"></span>
-        </div>
 
-        <p class="review-content">{{ review.content }}</p>
-
-        <div v-if="Array.isArray(review.photoUrls) && review.photoUrls.length" class="review-photos-grid">
-          <button v-for="(url, idx) in review.photoUrls" :key="idx" class="photo-cell"
-            :style="{ backgroundImage: `url(${url})` }" @click="openPhotoViewer(review, idx)"
-            :aria-label="`리뷰 ${review.reviewId} 사진 ${idx + 1}`"></button>
-        </div>
-
-        <div class="review-meta">
-          <span class="date">{{ formatReviewDate(review.createdAt) }}</span>
-          <span class="likes" :class="{ active: likedStatus[review.reviewId] }" @click="toggleLike(review.reviewId)">
-            <i :class="getLikeIcon(review.reviewId)"></i> 도움됐어요 {{ review.likeCount }}
-          </span>
-        </div>
-
-        <button class="more-options" @click="toggleReportMenu(review.reviewId)">
-          <i class="bi bi-three-dots"></i>
-        </button>
-
-        <div class="report-menu" v-if="openReportMenuId === review.reviewId">
-          <div v-if="String(review.authorId) === String(currentUserId)">
-            <button class="edit-btn" @click="$emit('edit-review', review)">
-              <i class="bi bi-pencil"></i>
-              수정하기
-            </button>
-            <button class="edit-btn-delete" @click="onClickDelete(review.reviewId)">
-              <i class="bi bi-trash3"></i>
-              삭제하기
-            </button>
+        <template v-if="review.status !== 'DELETED_BY_ADMIN'">
+          <div class=" reviewer-profile">
+            <img :src="review.authorProfileImageUrl || 'https://via.placeholder.com/40'" alt="프로필 이미지" class="avatar" />
+            <span class="name">{{ review.authorName }}</span>
+            <span class="stars" v-html="getFilledStars(review.rating)"></span>
           </div>
-          <div v-else>
-            <button class="report-btn" @click="reportReview(review.reviewId)">
-              <i class="bi bi-bell"></i> 신고하기
-            </button>
+
+          <p class="review-content">{{ review.content }}</p>
+
+          <div v-if="Array.isArray(review.photoUrls) && review.photoUrls.length" class="review-photos-grid">
+            <button v-for="(url, idx) in review.photoUrls" :key="idx" class="photo-cell"
+              :style="{ backgroundImage: `url(${url})` }" @click="openPhotoViewer(review, idx)"
+              :aria-label="`리뷰 ${review.reviewId} 사진 ${idx + 1}`"></button>
           </div>
+
+          <div class="review-meta">
+            <span class="date">{{ formatReviewDate(review.createdAt) }}</span>
+            <span class="likes" :class="{ active: likedStatus[review.reviewId] }" @click="toggleLike(review.reviewId)">
+              <i :class="getLikeIcon(review.reviewId)"></i> 도움됐어요 {{ review.likeCount }}
+            </span>
+          </div>
+
+          <button class="more-options" @click="toggleReportMenu(review.reviewId)">
+            <i class="bi bi-three-dots"></i>
+          </button>
+
+          <div class="report-menu" v-if="openReportMenuId === review.reviewId">
+            <div v-if="String(review.authorId) === String(currentUserId)">
+              <button class="edit-btn" @click="$emit('edit-review', review)">
+                <i class="bi bi-pencil"></i>
+                수정하기
+              </button>
+              <button class="edit-btn-delete" @click="onClickDelete(review.reviewId)">
+                <i class="bi bi-trash3"></i>
+                삭제하기
+              </button>
+            </div>
+            <div v-else>
+              <button class="report-btn" @click="reportReview(review.reviewId)">
+                <i class="bi bi-bell"></i> 신고하기
+              </button>
+            </div>
+          </div>
+        </template>
+        <div v-else class="deleted-message">
+          <i class="bi bi-info-circle"></i>관리자에 의해 삭제된 게시물입니다.
         </div>
       </div>
     </div>
-
     <div class="pagination" v-if="totalPages > 1 && !isLoading">
       <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="page-btn">&lt; 이전</button>
 
@@ -94,6 +99,7 @@
     <ReportModal :show="reportModal.visible" @close="reportModal.visible = false" @submit="handleReportSubmit" />
   </section>
 </template>
+
 <script>
 import axios from '@/api/axiosSetup' // ✅ axiosSetup 고정 사용
 import PhotoModal from '../modal/PhotoModal.vue'

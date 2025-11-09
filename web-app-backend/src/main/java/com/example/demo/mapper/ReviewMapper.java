@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import com.example.demo.dto.PhotoThumbDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
 import com.example.demo.dto.ReviewResponseDTO;
+import com.example.demo.dto.ReportedReviewDTO;
 
 @Mapper
 public interface ReviewMapper {
@@ -56,6 +57,10 @@ public interface ReviewMapper {
     int insertReviewReport(@Param("reviewId") Long reviewId,
                            @Param("reporterUserId") Long reporterUserId);
 
+    // 관리자용 : 신고 반려 시 신고 기록 삭제 (review_report 테이블)
+    int deleteReviewReportByReviewId(@Param("reviewId") Long reviewId);
+
+
     int adminDeleteReviewIfReportedAtLeast(@Param("reviewId") Long reviewId,
                                            @Param("threshold") int threshold);
 
@@ -65,4 +70,10 @@ public interface ReviewMapper {
             @Param("targetId") Long targetId,
             @Param("userId") Long userId
         );
+
+    // 관리자용: 신고된 리뷰 목록 조회
+    List<ReportedReviewDTO> findReportedReviews();
+
+
+
 }

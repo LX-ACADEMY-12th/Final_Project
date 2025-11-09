@@ -83,7 +83,9 @@ public class SecurityConfig {
                 // 3. 🟢 요청별 접근 권한 설정
                 .authorizeHttpRequests(authz -> authz
                         // 공지사항 호출
-                        .requestMatchers("/api/notices/**").permitAll()
+                        .requestMatchers("/api/notices/**",
+                                "/api/admin/reviews/**").permitAll()
+
                         // 1. User 컨트롤러 공개 API
                         .requestMatchers(
                                 "/api/user/login",
@@ -137,11 +139,10 @@ public class SecurityConfig {
     }
 
     // 🟢 CORS 설정 Bean
-    // 이 Bean을 추가하여 'http://localhost:5173' (Vue.js)로부터의 요청을 허용합니다.
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173","http://localhost:5174" ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

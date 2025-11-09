@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.demo.dto.PageResponseDTO;
 import com.example.demo.dto.PhotoThumbDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
+
 import com.example.demo.dto.ReviewResponseDTO;
 import com.example.demo.service.ReviewService;
 
@@ -253,7 +254,9 @@ public class ReviewController {
 		 List<PhotoThumbDTO> thumbnails = reviewService.findPhotoThumbnailsByTarget(targetType, targetId, limit);
 		 return ResponseEntity.ok(thumbnails);
 	 }
-	 
+
+
+
 	 
 	 // 현재 로그인한 사용자 ID를 추출하는 역할
 	 private Long getUserIdFromAuthentication(Authentication authentication) {

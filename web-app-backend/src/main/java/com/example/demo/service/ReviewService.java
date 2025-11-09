@@ -28,6 +28,7 @@ import com.example.demo.dto.PageResponseDTO;
 import com.example.demo.dto.PhotoThumbDTO;
 import com.example.demo.dto.ReviewCreatedDTO;
 import com.example.demo.dto.ReviewResponseDTO;
+import com.example.demo.dto.ReportedReviewDTO;
 import com.example.demo.mapper.ReviewMapper;
 
 @Slf4j
@@ -363,5 +364,58 @@ public class ReviewService {
             System.err.println("Signed URL 생성 실패 (Object: " + objectName + "): " + e.getMessage());
             return null; // 실패 시 null 반환
         }
+    }
+    
+    // 관리자용
+    // =======================================================
+    // =======================================================
+    /**
+     * 1. 신고된 리뷰 목록 조회 (관리자 대시보드)
+     */
+    @Transactional(readOnly = true)
+    public List<ReportedReviewDTO> findReportedReviews() {
+        // Mapper에서 신고 횟수가 1회 이상이고, 상태가 ACTIVE인 리뷰만 조회합니다.
+        log.info("[ADMIN] 신고된 리뷰 목록을 조회합니다.");
+        return reviewMapper.findReportedReviews();
+    }
+    /**
+     * 2. 신고된 리뷰 삭제 처리 (Soft Delete)
+     * (관리자 버튼: "삭제")
+     * - review 테이블의 status를 'DELETED_BY_ADMIN'으로 변경 (Soft Delete)
+     * - review_report 테이블의 모든 신고 기록 삭제
+     */
+    @Transactional
+    public int processReportedReviewDeletion(Long reviewId) {
+        // 1. review 테이블의 상태를 관리자 삭제(DELETED_BY_ADMIN)로 변경
+        int reviewUpdateCount = reviewMapper.adminDeleteReview(reviewId);
+        if (reviewUpdateCount > 0) {
+            log.info("[ADMIN] 리뷰 ID {}가 관리자에 의해 삭제(Soft Delete) 처리되었습니다.", reviewId);
+            // 2. 신고 기록(review_report) 삭제
+            int reportDeleteCount = reviewMapper.deleteReviewReportByReviewId(reviewId);
+            log.info("[ADMIN] 리뷰 ID {}의 신고 기록 {}건이 삭제되었습니다.", reviewId, reportDeleteCount);
+            // 3. 통계 재계산
+            Map<String, Object> meta = reviewMapper.findReviewMeta(reviewId);
+            if (meta != null) {
+                Long targetId = ((Number) meta.get("targetId")).longValue();
+                String targetType = (String) meta.get("targetType");
+                reviewMapper.recomputeTargetStats(targetId, targetType);
+            }
+        }
+        return reviewUpdateCount;
+    }
+    /**
+     * 3. 신고 반려 처리
+     * (관리자 버튼: "신고 반려")
+     * - review_report 테이블의 모든 신고 기록 삭제
+     * - review 테이블은 건드리지 않음 (status = 'ACTIVE' 유지)
+     */
+    @Transactional
+    public int rejectReportedReview(Long reviewId) {
+        // 1. 신고 기록(review_report) 삭제
+        // 신고 반려 처리는 해당 신고 기록만 지우고, 리뷰는 ACTIVE 상태를 유지합니다.
+        int reportDeleteCount = reviewMapper.deleteReviewReportByReviewId(reviewId);
+        log.info("[ADMIN] 리뷰 ID {}에 대한 신고 기록 {}건이 반려 처리되어 삭제되었습니다.", reviewId, reportDeleteCount);
+        // 2. 이 경우 리뷰 상태나 통계 재계산은 불필요합니다.
+        return reportDeleteCount;
     }
 }

@@ -30,5 +30,8 @@ public class ReviewResponseDTO {
     // --- 5. (현재 로그인한 유저 기준) ---
     private boolean likedByCurrentUser; // 현재 유저가 좋아요 눌렀는지 여부
     
-    private Long authorId; 
+    private Long authorId;
+
+    // 리뷰 상태 필드
+    private String status;
 }
