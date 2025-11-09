@@ -19,7 +19,7 @@
 	        -- "review" 테이블의 'like_count' 컬럼
 	        r.like_count AS likeCount,
             -- user 테이블에서 photo_url을 authorProfileImageUrl로 가져옵니다.
-            u.photo_url AS authorProfileImageUrl
+            u.photo_url AS authorProfileImageUrl,
 	        r.status
         FROM
 	        review r
