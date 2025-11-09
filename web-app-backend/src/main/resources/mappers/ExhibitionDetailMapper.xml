@@ -67,4 +67,15 @@
             eh.science_center_name;
     </select>
 
+    <select id="findHallCoordinates" parameterType="long"
+            resultType="com.example.demo.dto.ExhibitionDetailDTO">
+        SELECT
+            latitude,
+            longitude
+        FROM
+            exhibition_hall
+        WHERE
+            hall_id = #{hallId}
+    </select>
+
 </mapper>

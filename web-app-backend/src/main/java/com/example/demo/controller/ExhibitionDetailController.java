@@ -3,7 +3,8 @@ package com.example.demo.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -52,13 +53,19 @@ public class ExhibitionDetailController {
 	@GetMapping(params = "exhibitionId")
 	public ResponseEntity<ExhibitionDetailDTO> getExhibitionById(
 			@RequestParam Long exhibitionId, // (required=true가 기본값)
+            Authentication authentication,
 			@RequestParam(required = false) String mainCategoryTags,
 			@RequestParam(required = false) String subCategoryTags,
 			@RequestParam(required = false) String gradeTags) {
+
         log.info("Parameters - 조회하려는 전시관 id: {}, mainCategory: {}, grade: {}",
                 exhibitionId, mainCategoryTags, gradeTags);
+
+        Long userId = getUserIdFromAuthentication(authentication);
+
 		ExhibitionDetailDTO dto = exhibitionDetailService.getfindExhibitionDetails(
 				exhibitionId,
+                userId,
 				mainCategoryTags,
 				subCategoryTags,
 				gradeTags
@@ -68,6 +75,36 @@ public class ExhibitionDetailController {
 			return ResponseEntity.ok(dto);
 		} else {
 			return ResponseEntity.notFound().build();
-	}
+	    }
+    }
+
+    // 현재 로그인한 사용자 ID를 추출하는 역할
+    private Long getUserIdFromAuthentication(Authentication authentication) {
+        if (authentication == null) {
+            return null; // 인증 객체가 없으면 (토큰이 없거나 유효하지 않아 필터에서 걸러진 경우) null 반환
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetails) {
+            // JwtTokenProvider가 토큰의 'subject'에 userId를 (String으로) 저장했습니다.
+            String userIdStr = ((UserDetails) principal).getUsername();
+            try {
+                return Long.parseLong(userIdStr);
+            } catch (NumberFormatException e) {
+                log.error("Authentication principal이 Long 타입으로 변환 불가: {}", userIdStr, e);
+                return null;
+            }
+        } else if (principal instanceof String) {
+            // (대체 케이스)
+            try {
+                return Long.parseLong((String) principal);
+            } catch (NumberFormatException e) {
+                log.error("Authentication principal이 Long 타입으로 변환 불가: {}", principal, e);
+                return null;
+            }
+        }
+
+        log.warn("알 수 없는 Principal 타입: {}", principal.getClass().getName());
+        return null;
+    }
 }
-	}

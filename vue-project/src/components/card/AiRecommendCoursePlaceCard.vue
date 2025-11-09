@@ -31,8 +31,6 @@
         상세주소
         <span class="address">{{ item.place }}</span>
       </span>
-
-
     </div>
   </div>
 </template>
@@ -147,7 +145,6 @@ export default {
 </script>
 
 <style scoped>
-/* (스타일은 변경사항 없습니다) */
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css");
 
 .timeline-item-container {
@@ -156,8 +153,10 @@ export default {
 }
 
 .timeline-marker-svg {
-  width: 24px;
-  height: 35px;
+  /* 24px → 28px로 약간 크게 */
+  width: 28px;
+  /* 35px → 40px로 약간 크게 */
+  height: 40px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -170,13 +169,16 @@ export default {
   align-items: center;
   width: 40px;
   flex-shrink: 0;
-  margin-right: 12px;
+  /* 12px → 16px로 여유 증가 */
+  margin-right: 16px;
 }
 
 .timeline-line {
   width: 2px;
   flex-grow: 1;
   background-color: #e0e0e0;
+  /* 마커와 선 사이 간격 추가 */
+  margin-top: 4px;
 }
 
 .timeline-item-container:last-child .timeline-line {
@@ -189,21 +191,40 @@ export default {
   background-color: white;
   border-radius: 12px;
   border: 1px solid #eee;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 20px;
+  /* 16px → 20px로 내부 여백 증가 */
+  margin-bottom: 20px;
+  /* 16px → 20px로 카드 간 간격 증가 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   min-width: 0;
+  /* 호버 효과를 위한 트랜지션 추가 */
+  transition: box-shadow 0.3s ease;
+}
+
+.content-card:hover {
+  /* 호버시 그림자 강조 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-body {
   display: flex;
+  /* 수직 중앙 정렬 추가 */
+  align-items: center;
+  /* flex gap 사용으로 간격 일관성 개선 */
+  gap: 16px;
+}
+
+.card-image {
+  /* 이미지 크기 고정 */
+  flex-shrink: 0;
 }
 
 .card-image img {
-  width: 60px;
-  height: 60px;
+  /* 60px → 80px로 이미지 크기 증가 */
+  width: 80px;
+  /* 60px → 80px로 이미지 크기 증가 */
+  height: 80px;
   border-radius: 8px;
-  margin-right: 16px;
   object-fit: cover;
 }
 
@@ -216,16 +237,30 @@ export default {
   min-width: 0;
 }
 
+.d-flex {
+  display: flex;
+  /* 태그들 수직 정렬 */
+  align-items: center;
+}
+
+.gap-1 {
+  /* 태그 간 간격 명확히 */
+  gap: 8px;
+}
+
 .category {
   font-size: 12px;
   font-weight: bold;
 }
 
 .place-name {
-  font-size: 16px;
+  /* 16px → 18px로 제목 크기 증가 */
+  font-size: 18px;
   font-weight: 600;
-  margin: 2px 0;
-  margin-bottom: 4px;
+  /* 마진 정리 */
+  margin: 0 0 8px 0;
+  /* 색상 명확히 */
+  color: #333;
 }
 
 .description {
@@ -234,17 +269,13 @@ export default {
   margin: 2px 0 0 0;
 }
 
-.address {
-  font-size: 14px;
-  color: #555;
-  margin: 0;
-}
-
 .hr {
   border: none;
   height: 1px;
-  background-color: rgb(0, 0, 0);
-  margin: 12px 0;
+  /* rgb(0,0,0) → #e0e0e0로 연하게 */
+  background-color: #e0e0e0;
+  /* 12px → 16px로 여백 증가 */
+  margin: 16px 0;
 }
 
 .location-label {
@@ -252,8 +283,48 @@ export default {
   align-items: center;
   gap: 10px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  /* 500 → 600으로 굵게 */
   color: #4A7CEC;
-  flex-shrink: 0;
+}
+
+.address {
+  font-size: 14px;
+  color: #666;
+  /* #555 → #666으로 약간 연하게 */
+  font-weight: 400;
+  /* 일반 굵기 명시 */
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  /* 남은 공간 차지 */
+}
+
+.more-tags {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+  padding: 2px 6px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+/* 반응형 디자인 추가 */
+@media (max-width: 768px) {
+  .card-image img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .place-name {
+    font-size: 16px;
+  }
+
+  .content-card {
+    padding: 16px;
+  }
 }
 </style>

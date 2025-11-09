@@ -15,8 +15,9 @@ public interface ExhibitionDetailMapper {
      * * ExhibitionDetailDTO를 반환하는
      * 메서드를 '정의'합니다.
      */
-	
 	// 아이디를 통해 전시 상세정보를 가져올 메서드
 	public ExhibitionDetailDTO findExhibitionById(Map<String, Object> params);
+
+    public ExhibitionDetailDTO findHallCoordinates(Long hallId);
 
 }

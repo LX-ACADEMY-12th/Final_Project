@@ -49,4 +49,9 @@ public class PlaceDetailDTO {
     
  	// 찜 여부 필드 추가
  	private boolean isLiked;
+
+    private boolean visited;
+
+    private long userId;
+
 }

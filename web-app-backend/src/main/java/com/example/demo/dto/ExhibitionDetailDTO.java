@@ -38,4 +38,9 @@ public class ExhibitionDetailDTO {
         }
         return new String[0];
     }
+
+    private boolean visited;
+
+    private long userId;
+
 }

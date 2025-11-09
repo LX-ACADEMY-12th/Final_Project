@@ -24,5 +24,4 @@ public class CourseItemDTO {
     private Double longitude;
     private List<String> hashtags;
     private List<String> exhibitionList; // 전시관 내부 전시 목록들
-
 }

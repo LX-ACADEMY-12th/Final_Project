@@ -14,7 +14,8 @@
       <!--전시일때-->
       <div v-if="pageType === 'exhibition'">
         <InfoSection :exhibition="exhibition" imageTag="전시 태그" :mainCategory="exhibition.mainCategory"
-          :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag" />
+          :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag"
+          @authenticate-visit="handleVisitAuthentication" />
         <hr class="divider" />
         <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
@@ -88,7 +89,8 @@
       <!--장소일때-->
       <div v-else-if="pageType === 'science_place'">
         <InfoSection :exhibition="place" imageTag="장소 태그" :mainCategory="place.mainCategory"
-          :subCategories="place.subCategories" :gradeTag="place.gradeTag" />
+          :subCategories="place.subCategories" :gradeTag="place.gradeTag"
+          @authenticate-visit="handleVisitAuthentication" />
         <hr class="divider" />
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
 
@@ -240,7 +242,8 @@ export default {
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
-        exhibitionList: []
+        exhibitionList: [],
+        isVisited: false
       },
       isLoading: false, // 중복 클릭 방지용
 
@@ -266,6 +269,7 @@ export default {
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
+        isVisited: false
       },
       // (LocationSection이 'placeAddress'를 사용)
       placeInformation: {
@@ -407,7 +411,8 @@ export default {
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
-        exhibitionList: dto.exhibitionList
+        exhibitionList: dto.exhibitionList,
+        isVisited: dto.isVisited ?? false
       };
 
       // LocationSection이 사용할 데이터
@@ -462,6 +467,7 @@ export default {
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
         type: dto.type ?? 'science_place',
+        isVisited: dto.isVisited ?? false
       };
 
       // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
@@ -954,7 +960,100 @@ export default {
           console.log('🏁 fetchRecommendedCourse 완료. isRecommending:', this.isRecommending);
         }, 300);
       }
+    },
+
+    async handleVisitAuthentication() {
+      console.log('PlaceDetailView: 신호 받음! 인증을 시작합니다.');
+      try {
+        // A. [핵심] Pinia 스토어에서 가져온 ID 사용
+        const userId = this.currentUserId;
+        // B. [방어 코드] 로그인이 안 되어있으면 중단
+        // (setup()에서 isLoggedIn도 가져왔으므로 this.isLoggedIn 사용 가능)
+        if (!this.isLoggedIn) {
+          console.warn('스탬프 인증 실패: 로그인이 필요합니다.');
+          // (기존에 사용하시던 eventBus 로직 재활용)
+          eventBus.emit('show-global-confirm', {
+            message: '로그인이 필요한 기능입니다.',
+            onConfirm: () => {
+              this.$router.push({ name: 'login' });
+            }
+          });
+          return; // 함수 종료
+        }
+        // C. [수정] data()에 이미 저장된 pageType과 currentId 사용
+        // (created 훅에서 이미 'science_place' 또는 'exhibition'으로 설정해 둠)
+        const targetType = this.pageType;
+        const targetId = this.currentId;
+        if (!targetType || !targetId) {
+          throw new Error('인증 대상(targetId/targetType)을 식별할 수 없습니다.');
+        }
+        // D. GPS 좌표 가져오기
+        console.log('PlaceDetailView: GPS 좌표를 요청합니다...');
+        const coords = await this.getUserCoordinates(); // (아래에 추가한 헬퍼 함수)
+        // E. 백엔드에 보낼 DTO 준비
+        const requestDTO = {
+          userId: userId,
+          targetType: targetType,
+          targetId: targetId,
+          latitude: coords.latitude,
+          longitude: coords.longitude
+        };
+        // F. API 호출
+        console.log('PlaceDetailView: 스탬프 인증 API 호출', requestDTO);
+        const response = await axios.post('/api/stamps', requestDTO);
+        // G. 성공 처리
+        eventBus.emit('show-global-alert', {
+          message: '스탬프 획득 성공!',
+          type: 'success'
+        });
+        console.log('인증 성공:', response.data);
+        //
+        // :아래를_가리키는_손_모양: [핵심!] UI 갱신 코드 추가
+        //
+        if (this.pageType === 'exhibition') {
+          this.exhibition.isVisited = true;
+        } else if (this.pageType === 'science_place') {
+          this.place.isVisited = true;
+        }
+      } catch (error) {
+        // H. 실패 처리
+        // (백엔드 400 에러, GPS 권한 거부 에러 등)
+        const errorMessage = error.response?.data?.error || error.response?.data || error.message;
+        if (String(errorMessage).includes('GPS')) {
+          alert(`GPS 오류: ${errorMessage}`);
+        } else {
+          eventBus.emit('show-global-alert', {
+            message: `${errorMessage}`,
+            type: 'error'
+          });
+          //alert(`인증 실패: ${errorMessage}`);
+        }
+        console.error('스탬프 인증 중 오류:', error);
+      }
+    },
+    /**
+     * [필수 수정] (헬퍼 함수) Geolocation API - http://localhost 테스트용
+     * (임시로 고정된 좌표를 0.5초 뒤에 반환)
+     */
+    getUserCoordinates() {
+      console.log('GPS: http://xn--localhost-js61bn11a 임시 좌표를 사용합니다.');
+      // 1. 여기에 테스트할 임시 좌표를 입력하세요.
+      // (DB에 있는 장소 근처의 '가까운' 좌표로 설정하세요)
+      const DEMO_LOCATION = {
+        latitude: 36.6448020,  // (예시) 인증 '성공' 테스트용 위도
+        longitude: 127.4714750 // (예시) 인증 '성공' 테스트용 경도
+      };
+      // (주의!) MapView에서는 'lat', 'lng'를 썼을 수 있지만
+      // 백엔드 DTO는 'latitude', 'longitude'를 쓰므로 꼭 이 이름으로 맞춰야 합니다.
+      return new Promise((resolve) => {
+        // 2. 실제 GPS가 좌표를 가져오는 것처럼 0.5초 딜레이 (UX 테스트용)
+        setTimeout(() => {
+          console.log('GPS 좌표 획득 성공 (임시)', DEMO_LOCATION);
+          resolve(DEMO_LOCATION);
+        }, 500); // 0.5초
+      });
     }
+
   }
 }
 </script>

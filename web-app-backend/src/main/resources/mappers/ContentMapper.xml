@@ -327,10 +327,10 @@
     </select>
 
     <!-- AI가 추천한 과학장소 ID와 기타 정보로 과학장소 정보 가져오기   -->
-    <select id="findSciencePlaceByPlaceIdAndCriteria" resultType="com.example.demo.dto.CourseItemDTO">
+    <select id="findSciencePlaceByPlaceIdAndCriteria" resultMap="outerCourseItemResultMap">
     SELECT
-        sp.place_id AS placeId,
-        sp.place_name AS placeName,
+        sp.place_id AS place_id,
+        sp.place_name AS place_name,
         cmc.category_name AS subjectName,
         gc.grade_name AS gradeName,
         sp.description,

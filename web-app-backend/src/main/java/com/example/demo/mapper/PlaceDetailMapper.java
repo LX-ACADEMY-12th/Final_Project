@@ -17,4 +17,6 @@ public interface PlaceDetailMapper {
 	
 	// 아이디를 통해 장소 상세정보를 가져올 메서드
 	public PlaceDetailDTO findPlaceDetailDTO(Map<String, Object> params);
+
+    public PlaceDetailDTO findPlaceCoordinates(Long detailId);
 }

@@ -84,4 +84,15 @@
 	    GROUP BY
             sp.place_id
 	</select>
+
+    <select id="findPlaceCoordinates" parameterType="long"
+            resultType="com.example.demo.dto.PlaceDetailDTO">
+        SELECT
+            latitude,
+            longitude
+        FROM
+            science_place
+        WHERE
+            place_id = #{placeId}
+    </select>
 </mapper>

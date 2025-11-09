@@ -3,6 +3,17 @@
     <div class="top-meta">
       <div class="image-area">
         <img :src="mainImageSrc" alt="메인 이미지" class="main-image">
+
+        <div v-if="item.isVisited" class="visit-stamp">
+          <i class="bi bi-postage-heart-fill"></i>
+          <span>방문 인증</span>
+        </div>
+
+        <div v-else class="visit-stamp inactive" @click="onAuthButtonClick">
+          <i class="bi bi-postage-heart"></i>
+          <span>방문 인증</span>
+        </div>
+
       </div>
     </div>
 
@@ -56,7 +67,6 @@
 
 <script>
 // ✨ 1. SubjectTag 컴포넌트를 가져옵니다.
-import { ref, computed } from 'vue';
 import PillTag from '@/components/tag/PillTag.vue';
 import Hashtag from '@/components/tag/HashTag.vue';
 // import TypeTag from '@/components/tag/TypeTag.vue';
@@ -73,6 +83,8 @@ export default {
     Hashtag,
     // TypeTag,
   },
+
+  emits: ['authenticate-visit'],
 
   // 컴포넌트 생성 시 props 확인
   created() {
@@ -177,6 +189,10 @@ export default {
   methods: {
     toggleDescription() {
       this.isExpanded = !this.isExpanded;
+    },
+    onAuthButtonClick() {
+      console.log(`InfoSection: 버튼 클릭! 부모에게 알림.`);
+      this.$emit('authenticate-visit');
     }
   }
 };
@@ -274,5 +290,69 @@ export default {
 .btn {
   font-size: 13px;
   padding: 0px;
+}
+
+.visit-stamp {
+  position: absolute;
+  /* ▼▼▼ [수정] 정중앙 배치 ▼▼▼ */
+  top: 25%;
+  left: 12%;
+  /* ▲▲▲ [수정] 정중앙 배치 ▲▲▲ */
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: rgba(230, 255, 230, 0.8);
+  /* 텍스트에도 공통 스타일 적용 (필요시) */
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.visit-stamp i {
+  font-size: 28px;
+  /* 아이콘 크기 (bi-클래스는 font-size로 조절) */
+  margin-bottom: 4px;
+  color: #008A00;
+  /* 활성 아이콘 색 */
+}
+
+/* ▲▲▲ [수정] img -> i (아이콘) ▲▲▲ */
+/* span (텍스트) */
+.visit-stamp span {
+  color: #008A00;
+  /* 활성 텍스트 색 */
+}
+
+/* (4) 미인증 스탬프 (회색 처리) */
+.visit-stamp.inactive {
+  background-color: rgba(238, 238, 238, 0.8);
+}
+
+/* ▼▼▼ [수정] img -> i (비활성 아이콘) ▼▼▼ */
+.visit-stamp.inactive i {
+  color: #9E9E9E;
+  /* 비활성 아이콘 색 */
+}
+
+/* ▲▲▲ [수정] img -> i (비활성 아이콘) ▲▲▲ */
+.visit-stamp.inactive span {
+  color: #9E9E9E;
+  /* 비활성 텍스트 색 */
+}
+
+.visit-stamp:not(.inactive) {
+  pointer-events: none;
+}
+
+/* (B) 방문 안 한 스탬프(v-else)는 클릭이 가능해야 함 */
+.visit-stamp.inactive {
+  pointer-events: auto;
+  /* 'auto'가 기본값이자 클릭 허용 */
+  cursor: pointer;
+  /* 마우스 커서도 손가락 모양으로 변경 */
 }
 </style>
