@@ -3,12 +3,12 @@
     <div class="top-meta">
       <div class="image-area">
         <img :src="mainImageSrc" alt="메인 이미지" class="main-image">
-
-        <div v-if="item.isVisited" class="visit-stamp">
+        <!-- 이미 방문한 상태 -->
+        <div v-if="item.visited" class="visit-stamp" @click="onAuthButtonClick">
           <i class="bi bi-postage-heart-fill"></i>
           <span>방문 인증</span>
         </div>
-
+        <!-- 방문 전 상태 -->
         <div v-else class="visit-stamp inactive" @click="onAuthButtonClick">
           <i class="bi bi-postage-heart"></i>
           <span>방문 인증</span>
@@ -310,14 +310,15 @@ export default {
   /* 텍스트에도 공통 스타일 적용 (필요시) */
   font-size: 14px;
   font-weight: bold;
+  cursor: pointer;
 }
 
 .visit-stamp i {
   font-size: 28px;
   /* 아이콘 크기 (bi-클래스는 font-size로 조절) */
   margin-bottom: 4px;
-  color: #008A00;
   /* 활성 아이콘 색 */
+  color: #008A00;
 }
 
 /* ▲▲▲ [수정] img -> i (아이콘) ▲▲▲ */
@@ -338,21 +339,9 @@ export default {
   /* 비활성 아이콘 색 */
 }
 
-/* ▲▲▲ [수정] img -> i (비활성 아이콘) ▲▲▲ */
+/* img -> i (비활성 아이콘) ▲▲▲ */
 .visit-stamp.inactive span {
   color: #9E9E9E;
   /* 비활성 텍스트 색 */
-}
-
-.visit-stamp:not(.inactive) {
-  pointer-events: none;
-}
-
-/* (B) 방문 안 한 스탬프(v-else)는 클릭이 가능해야 함 */
-.visit-stamp.inactive {
-  pointer-events: auto;
-  /* 'auto'가 기본값이자 클릭 허용 */
-  cursor: pointer;
-  /* 마우스 커서도 손가락 모양으로 변경 */
 }
 </style>

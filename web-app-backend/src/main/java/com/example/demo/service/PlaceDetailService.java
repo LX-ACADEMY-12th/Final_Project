@@ -50,6 +50,7 @@ public class PlaceDetailService {
 		params.put("mainCategoryTags", mainCategoryTags);
 		params.put("subCategoryTags", subCategoryTags);
 		params.put("gradeTags", gradeTags);
+        params.put("userId", userId);
 		
 		// Mapper 메서드 호출 시, 3개의 값이 아닌 Map 객체 1개를 전달
 		PlaceDetailDTO dto = placeDetailMapper.findPlaceDetailDTO(params);
@@ -57,32 +58,6 @@ public class PlaceDetailService {
         // 3-1. 만약 DTO가 null이면(결과가 없으면) 바로 반환
         if (dto == null) {
             return null;
-        }
-
-        // 4. 이제부터 DTO에 isVisited 값을 설정합니다.
-        // 비로그인 사용자(userId가 null 또는 0)는 무조건 false
-        if (userId == null || userId == 0) {
-            dto.setVisited(false);
-        } else {
-            // 로그인 사용자면 스탬프 DB 조회
-
-            // A. 스탬프 매퍼에 보낼 요청 DTO 준비
-            StampRequestDTO checkDTO = new StampRequestDTO();
-            checkDTO.setUserId(userId);
-            checkDTO.setTargetId(placeId); // (중요!)
-            checkDTO.setTargetType("exhibition"); // (중요!)
-
-            // B. 매퍼 호출
-            StampResponseDTO existingStamp = stampMapper.findStampByUserIdAndTarget(checkDTO);
-
-            // C. 결과에 따라 isVisited 값 설정
-            if (existingStamp != null) {
-                // 이미 방문한 기록이 있으면
-                dto.setVisited(true);
-            } else {
-                // 방문 기록이 없으면
-                dto.setVisited(false);
-            }
         }
 
 		return dto;

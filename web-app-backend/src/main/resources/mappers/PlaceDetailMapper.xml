@@ -26,6 +26,36 @@
                     r.target_id = sp.place_id
                     AND r.target_type = 'science_place'
             ) AS totalPhotoReviews,
+            -- 방문 인증 관련
+            (
+                CASE
+                    -- userId가 없으면 (비로그인) 무조건 false
+                    WHEN #{userId, jdbcType=BIGINT} IS NULL THEN false
+                    -- userId가 있으면, STAMP_RECORD 테이블에 기록이 존재하는지(EXISTS) 확인
+                    ELSE EXISTS (
+                        SELECT 1
+                        FROM STAMP_RECORD sr
+                        WHERE sr.user_id = #{userId}
+                          AND sr.target_id = sp.place_id
+                          AND sr.target_type = 'science_place'
+                    )
+                    END
+                ) AS visited,
+            -- 찜 관련
+            (
+                CASE
+                    -- 1. userId가 없으면 (비로그인) 무조건 false
+                    WHEN #{userId, jdbcType=BIGINT} IS NULL THEN false
+                    -- 2. userId가 있으면, 찜(wishlist) 테이블에 기록이 존재하는지(EXISTS) 확인
+                    ELSE EXISTS (
+                        SELECT 1
+                        FROM wishlist wl  -- :뒤쪽_화살표::뒤쪽_화살표: 찜 테이블명 (예: 'wishlist')
+                        WHERE wl.user_id = #{userId}
+                          AND wl.target_id = sp.place_id -- :뒤쪽_화살표::뒤쪽_화살표: 'sp'로 수정
+                          AND wl.target_type = 'science_place'
+                    )
+                    END
+                ) AS liked,
 	        -- 1. 메인 카테고리 태그 (버그 수정됨)
             array_to_string(
                 array_agg(

@@ -17,9 +17,9 @@
         </div>
 
         <button class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center btn-add flex-shrink-0"
-          @click="onIconClick">
+          @click.stop="onIconClick">
           <i v-if="props.iconType === 'heart'" class="bi bi-heart-fill fs-5" style="color:red;"></i>
-          <i v-else class="bi bi-plus fs-5"></i>
+          <i v-else class="bi bi-plus fs-4"></i>
         </button>
       </div>
       <div class="text-frame d-flex flex-column gap-1 min-w-0">

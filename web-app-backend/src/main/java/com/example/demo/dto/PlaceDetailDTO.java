@@ -48,7 +48,7 @@ public class PlaceDetailDTO {
  	private Long totalPhotoReviews;
     
  	// 찜 여부 필드 추가
- 	private boolean isLiked;
+ 	private boolean liked;
 
     private boolean visited;
 

@@ -25,7 +25,7 @@ public class ExhibitionDetailDTO {
 	private Long totalPhotoReviews;
 
 	// 찜 여부 필드 추가
-	private boolean isLiked;
+	private boolean liked;
 
     // MyBatis에서 받을 문자열 필드
     private String exhibitionListStr;

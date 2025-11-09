@@ -228,6 +228,7 @@ export default {
   flex-direction: row;
   justify-content: center;
   align-items: center;
+  width: 115px;
   padding: 5px 16px;
   gap: 8px;
   position: relative;

@@ -243,7 +243,8 @@ export default {
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
         exhibitionList: [],
-        isVisited: false
+        visited: false,
+        liked: false
       },
       isLoading: false, // 중복 클릭 방지용
 
@@ -269,7 +270,8 @@ export default {
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
         photoReviewCount: 0,
-        isVisited: false
+        visited: false,
+        liked: false
       },
       // (LocationSection이 'placeAddress'를 사용)
       placeInformation: {
@@ -361,9 +363,12 @@ export default {
       if (newUserId && !oldUserId && this.currentId) {
         console.log(`User ID 감지 (${newUserId}), '찜 상태만' 새로고침`);
 
-        // 🟢 전체 데이터를 다시 불러오는 대신, '찜 상태'만 새로고침
-        this.fetchWishStatus();
-
+        // 찜/ 방문 상태를 모두 포함한 메인 API를 다시 호출
+        if (this.pageType === 'exhibition') {
+          this.fetchExhibitionData(this.currentId);
+        } else if (this.pageType === 'science_place') {
+          this.fetchPlaceData(this.currentId);
+        }
       } else if (!newUserId && oldUserId) {
         // 🟢 5. [신규] 로그아웃 감지 시 찜 상태 false로 초기화
         this.isWished = false;
@@ -412,8 +417,11 @@ export default {
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
         exhibitionList: dto.exhibitionList,
-        isVisited: dto.isVisited ?? false
+        visited: dto.visited ?? false,
+        liked: dto.liked ?? false
       };
+
+      this.isWished = dto.liked ?? false;
 
       // LocationSection이 사용할 데이터
       this.exhibitionInformation = {
@@ -467,8 +475,11 @@ export default {
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
         type: dto.type ?? 'science_place',
-        isVisited: dto.isVisited ?? false
+        visited: dto.visited ?? false,
+        liked: dto.liked ?? false
       };
+
+      this.isWished = dto.liked ?? false;
 
       // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
       this.placeInformation = {
@@ -507,32 +518,6 @@ export default {
     },
 
 
-    // 🟢 찜 상태만 별도로 조회하는 함수
-    async fetchWishStatus() {
-      // targetId, targetType이 아직 없거나, 로그아웃 상태면(currentUserId가 없으면) 실행 안함
-      if (!this.currentId || !this.pageType || !this.currentUserId) {
-        this.isWished = false;
-        return;
-      }
-
-      try {
-        // 백엔드에 새로 만든 API 호출
-        // ⭐️ GET /api/wishlist/exhibition/123/status
-        const res = await axios.get(
-          `/api/wishlist/${this.pageType}/${this.currentId}/status`
-        );
-
-        // ⭐️ 응답 {"isWished": true} 에서 값을 꺼내 data의 isWished에 저장
-        this.isWished = res.data.isWished;
-        console.log(`✅ [fetchWishStatus] 찜 상태 갱신: ${this.isWished}`);
-
-      } catch (error) {
-        console.error('찜 상태 조회 실패:', error);
-        // ⭐️ 실패 시에도 false로 초기화 (중요)
-        this.isWished = false;
-      }
-    },
-
     /** 전시 상세 정보 가져오기 */
     async fetchExhibitionData(id) {
       try {
@@ -554,9 +539,6 @@ export default {
           return;
         }
         this.mapExhibitionDTO(dto);
-
-        // 🟢 찜 상태를 별도로 갱신
-        await this.fetchWishStatus();
 
       } catch (error) {
         console.error('전시 상세 조회 실패:', error);
@@ -790,9 +772,6 @@ export default {
         // 지도 정보
         this.mapPlaceDTO(dto);
 
-        // 🟢 8. [추가] 찜 상태를 별도로 갱신
-        await this.fetchWishStatus();
-
       } catch (error) {
         console.error('장소 상세 조회 실패:', error);
         eventBus.emit('show-global-alert', {
@@ -965,6 +944,16 @@ export default {
     async handleVisitAuthentication() {
       console.log('PlaceDetailView: 신호 받음! 인증을 시작합니다.');
       try {
+        const isAlreadyVisited = (this.pageType === 'exhibition') ? this.exhibition.visited : this.place.visited;
+        if (isAlreadyVisited) {
+          // 이미 방문했다면, 알림을 띄우고 함수 종료
+          eventBus.emit('show-global-alert', {
+            message: '이미 방문한 장소입니다.',
+            type: 'error'
+          });
+          console.log('스탬프 인증 중단: 이미 방문한 곳입니다.');
+          return; // 여기서 로직 종료
+        }
         // A. [핵심] Pinia 스토어에서 가져온 ID 사용
         const userId = this.currentUserId;
         // B. [방어 코드] 로그인이 안 되어있으면 중단
@@ -1008,12 +997,12 @@ export default {
         });
         console.log('인증 성공:', response.data);
         //
-        // :아래를_가리키는_손_모양: [핵심!] UI 갱신 코드 추가
+        // UI 갱신 코드 추가
         //
         if (this.pageType === 'exhibition') {
-          this.exhibition.isVisited = true;
+          this.exhibition.visited = true;
         } else if (this.pageType === 'science_place') {
-          this.place.isVisited = true;
+          this.place.visited = true;
         }
       } catch (error) {
         // H. 실패 처리
@@ -1031,6 +1020,7 @@ export default {
         console.error('스탬프 인증 중 오류:', error);
       }
     },
+
     /**
      * [필수 수정] (헬퍼 함수) Geolocation API - http://localhost 테스트용
      * (임시로 고정된 좌표를 0.5초 뒤에 반환)

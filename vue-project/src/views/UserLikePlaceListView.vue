@@ -22,8 +22,8 @@
 
       <template v-else>
 
-        <PlaceCard2 v-for="item in displayedItems" :key="item.id" :item="item" @add="goToDetail(item)"
-          @item-click="handleItemClick(item)" />
+        <PlaceCard2 v-for="item in displayedItems" :key="item.id" :item="item" iconType="heart" @add="goToDetail(item)"
+          @toggle-favorite="handleRemoveFavorite(item)" @item-click="handleItemClick(item)" />
 
       </template>
     </div>
@@ -69,6 +69,45 @@ export default {
   computed: {
   },
   methods: {
+
+    async handleRemoveFavorite(item) {
+      console.log(`[찜 취소] ${item.title} (ID: ${item.id}, Type: ${item.itemType})`);
+      // 1. 찜 취소 로직을 실행하기 전에, 먼저 확인창을 띄웁니다.
+      eventBus.emit('show-global-confirm', {
+        message: '해당 관심 장소를 삭제하시겠습니까?',
+        // 2. 사용자가 '확인'을 눌렀을 때만 실행될 async 함수
+        onConfirm: async () => {
+          console.log(`[찜 취소] 확인 완료. API 호출`);
+          try {
+            // [수정 1] API 주소를 '/api/wishlist'로 변경 (뒤에 /delete 제거)
+            // [수정 2] 'data:'를 사용 (params: 아님)
+            await axios.delete(`/api/wishlist`, {
+              data: {
+                targetId: item.id,
+                targetType: item.itemType
+                // (참고: PlaceDetailView는 mainCategory와 gradeTag도 보냈지만,
+                // 삭제 시에는 이 두 개만 있어도 될 겁니다.)
+              }
+            });
+            // (성공 로직 - 동일)
+            this.displayedItems = this.displayedItems.filter(i => i.id !== item.id);
+            this.allWishlistItems = this.allWishlistItems.filter(i => i.id !== item.id);
+            eventBus.emit('show-global-alert', {
+              message: '관심 목록에서 삭제되었습니다.',
+              type: 'success'
+            });
+          } catch (error) {
+            // (에러 처리 - 동일)
+            console.error('찜 취소 실패:', error);
+            eventBus.emit('show-global-alert', {
+              message: error.response?.data?.message || '삭제에 실패했습니다. 다시 시도해주세요.',
+              type: 'error'
+            });
+          }
+        }// onConfirm 끝
+      }); // event.Bus 끝
+    }, // handleRemoveFavorite 끝
+
     // 장소 상세페이지 이동 함수 (기존 로직 유지)
     goToDetail(item) {
       const queryParams = {

@@ -17,7 +17,7 @@
         </div>
         <!-- 찜 아이콘 -->
         <div class="action-icons" @click.stop="handleHeartClick">
-          <i class="bi bi-heart-fill"></i>
+          <i class="bi bi-heart-fill fs-4"></i>
         </div>
       </div>
       <!-- 타이틀 -->
@@ -387,7 +387,8 @@ export default {
 
   /* ▼▼▼ [수정] 텍스트가 2줄을 넘어가면 ... 처리 ▼▼▼ */
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* 텍스트를 2줄로 제한합니다. (1줄로 바꾸셔도 됩니다) */
+  -webkit-line-clamp: 2;
+  /* 텍스트를 2줄로 제한합니다. (1줄로 바꾸셔도 됩니다) */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -463,7 +464,8 @@ export default {
 
   /* ▼▼▼ [수정] 제목을 2줄로 제한 ▼▼▼ */
   display: -webkit-box;
-  -webkit-line-clamp: 1; /* 2줄로 제한 */
+  -webkit-line-clamp: 1;
+  /* 2줄로 제한 */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -475,7 +477,8 @@ export default {
   margin-bottom: 4px;
 
   /* ▼▼▼ [수정] 주소를 1줄로 제한 ▼▼▼ */
-  white-space: nowrap; /* 1줄로 제한 */
+  white-space: nowrap;
+  /* 1줄로 제한 */
   overflow: hidden;
   text-overflow: ellipsis;
 }

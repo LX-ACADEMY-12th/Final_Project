@@ -29,6 +29,36 @@
                     r.target_id = eh.hall_id
                   AND r.target_type = 'exhibition'
             ) AS totalPhotoReviews,
+            -- 방문 인증 로직 추가
+            (
+                CASE
+                    -- userId가 없으면 (비로그인) 무조건 false
+                    WHEN #{userId, jdbcType=BIGINT} IS NULL THEN false
+                    -- userId가 있으면, STAMP_RECORD 테이블에 기록이 존재하는지(EXISTS) 확인
+                    ELSE EXISTS (
+                        SELECT 1
+                        FROM STAMP_RECORD sr
+                        WHERE sr.user_id = #{userId}
+                          AND sr.target_id = eh.hall_id
+                          AND sr.target_type = 'exhibition'
+                    )
+                    END
+                ) AS visited,
+            -- 찜 관련 로직
+            (
+                CASE
+                    -- 1. userId가 없으면 (비로그인) 무조건 false
+                    WHEN #{userId, jdbcType=BIGINT} IS NULL THEN false
+                    -- 2. userId가 있으면, 찜(wishlist) 테이블에 기록이 존재하는지(EXISTS) 확인
+                    ELSE EXISTS (
+                        SELECT 1
+                        FROM wishlist wl  -- :뒤쪽_화살표::뒤쪽_화살표: 찜 테이블명 (예: 'wishlist')
+                        WHERE wl.user_id = #{userId}
+                          AND wl.target_id = eh.hall_id
+                          AND wl.target_type = 'exhibition'
+                    )
+                    END
+                ) AS liked,
             -- 위치 정보
             CONCAT_WS(' ', eh.science_center_name, eh.hall_name) AS location
         FROM
@@ -42,15 +72,11 @@
                 LEFT JOIN
             curriculum_main_category AS cmc ON csc.main_category_id = cmc.main_category_id
                 LEFT JOIN
-            exhibition_grade_mapping AS egm ON e.exhibition_id = egm.exhibition_id
+            exhibition_grade_mapping AS ecm_grade ON e.exhibition_id = ecm_grade.exhibition_id
                 LEFT JOIN
-            grade_category gc ON egm.grade_id = gc.grade_id
+            grade_category gc ON ecm_grade.grade_id = gc.grade_id
         WHERE
             eh.hall_id = #{exhibitionHallId}
-            AND
-            cmc.category_name = #{mainCategoryTags}
-            AND
-            gc.grade_name = #{gradeTags}
         GROUP BY
             eh.hall_id,
             eh.hall_name,
