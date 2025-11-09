@@ -22,7 +22,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/contents") 
 @RequiredArgsConstructor 
-@CrossOrigin(origins = "http://localhost:8081") 
 public class AdminContentController {
 
     // [수정] ExhibitionService도 주입받습니다.

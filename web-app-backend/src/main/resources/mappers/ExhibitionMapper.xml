@@ -107,7 +107,7 @@
             e.exhibition_id DESC
     </select>
     <select id="findCombinedAdminContent"
-            resultMap="com.example.demo.mapper.PlaceMapper.PlaceResultMap"
+            resultMap="com.example.demo.mapper.ContentMapper.PlaceResultMap"
             parameterType="map">
         (
             SELECT

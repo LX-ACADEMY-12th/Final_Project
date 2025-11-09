@@ -26,7 +26,7 @@ public class PlaceDetailService {
 	@Autowired
 	private PlaceDetailMapper placeDetailMapper;
     @Autowired
-    private ContentMapper placeMapper;
+    private ContentMapper contentMapper;
     @Autowired
     private MappingMapper mappingMapper;
 
@@ -90,7 +90,7 @@ public class PlaceDetailService {
 
     // --- [추가] Admin 읽기 기능 ---
     public List<PlaceResultDTO> findAllForAdmin() {
-        return placeMapper.findAllForAdmin();
+        return contentMapper.findAllForAdmin();
     }
     // --- [Admin 쓰기 기능] ---
     @Transactional
@@ -105,7 +105,7 @@ public class PlaceDetailService {
         place.setAdmissionFee(dto.getAdmissionFee());
         place.setOpeningHours(dto.getOpeningHours());
         place.setDescription(dto.getDescription());
-        placeMapper.insert(place);
+        contentMapper.insert(place);
         Long newPlaceId = place.getId();
         // 2. [수정] 'mapping' 테이블에 학년/과목 정보 저장 (로직 활성화)
         Long gradeId = mappingMapper.getGradeIdByName(dto.getGrade());
@@ -119,7 +119,7 @@ public class PlaceDetailService {
     }
     @Transactional
     public void updateSciencePlace(Long id, SciencePlaceAdminRequestDto dto, String newImageUrl) {
-        SciencePlace place = placeMapper.findById(id);
+        SciencePlace place = contentMapper.findById(id);
         if (place == null) {
             throw new RuntimeException("Place not found with id: " + id);
         }
@@ -134,7 +134,7 @@ public class PlaceDetailService {
         if (newImageUrl != null) {
             place.setMainImageUrl(newImageUrl);
         }
-        placeMapper.update(place);
+        contentMapper.update(place);
         // 2. [수정] 'mapping' 정보 업데이트 (로직 활성화)
         // 2-1. 기존 매핑 정보 삭제
         mappingMapper.deletePlaceGradeMapping(id);
@@ -154,6 +154,6 @@ public class PlaceDetailService {
         // [수정] 매핑 정보 삭제
         mappingMapper.deletePlaceGradeMapping(id);
         mappingMapper.deletePlaceCurriculumMapping(id);
-        placeMapper.deleteById(id);
+        contentMapper.deleteById(id);
     }
 }
