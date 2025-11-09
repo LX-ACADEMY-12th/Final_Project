@@ -354,6 +354,8 @@
         sp.place_id, cmc.category_name, gc.grade_name;
     </select>
 
+
+    <!-- 관리자 전용 -->
     <select id="findPlacesForLikedList" resultType="com.example.demo.dto.LikedCourseListDTO">
         SELECT place_id, place_name
         FROM science_place
@@ -398,9 +400,27 @@
             opening_hours = #{openingHours}
         WHERE place_id = #{id}
     </update>
+
     <delete id="deleteById" parameterType="long">
         DELETE FROM science_place WHERE place_id = #{id}
     </delete>
+
+
+    <resultMap id="PlaceResultMap" type="com.example.demo.dto.PlaceResultDTO">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="subject" column="subject"/>
+        <result property="grade" column="grade"/>
+        <result property="place" column="place"/>
+        <result property="imageUrl" column="imageUrl"/>
+        <result property="hashtags" column="hashtags"
+                jdbcType="ARRAY"
+                javaType="java.util.List"
+                typeHandler="com.example.demo.typehandler.StringListTypeHandler"/>
+        <result property="lat" column="lat"/>
+        <result property="lng" column="lng"/>
+        <result property="type" column="type"/>
+    </resultMap>
     <select id="findAllForAdmin" resultMap="PlaceResultMap">
     SELECT
         sp.place_id as id,
@@ -420,7 +440,5 @@
     ORDER BY
         sp.place_id DESC
     </select>
-
-
 
 </mapper>
