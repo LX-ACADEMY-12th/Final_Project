@@ -171,5 +171,14 @@ body {
   /* 문서의 흐름에 따라 요소 배치 */
   display: flex;
   flex-direction: column;
+
+  /* 스크롤바 숨기기 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+}
+
+#app-container::-webkit-scrollbar {
+  display: none;
 }
 </style>

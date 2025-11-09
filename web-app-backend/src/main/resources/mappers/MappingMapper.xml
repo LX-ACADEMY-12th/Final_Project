@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.MappingMapper">
+
+    <select id="getGradeIdByName" resultType="long">
+        SELECT grade_id FROM grade_category WHERE grade_name = #{gradeName}
+    </select>
+
+    <select id="getSubCategoryIdBySubjectName" resultType="long">
+        SELECT csc.sub_category_id
+        FROM curriculum_sub_category csc
+        JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+        WHERE cmc.category_name = #{subjectName}
+        LIMIT 1
+    </select>
+    
+    <delete id="deleteExhibitionGradeMapping">
+        DELETE FROM exhibition_grade_mapping WHERE exhibition_id = #{contentId}
+    </delete>
+    <delete id="deleteExhibitionCurriculumMapping">
+        DELETE FROM exhibition_curriculum_mapping WHERE exhibition_id = #{contentId}
+    </delete>
+    <delete id="deletePlaceGradeMapping">
+        DELETE FROM place_grade_mapping WHERE place_id = #{contentId}
+    </delete>
+    <delete id="deletePlaceCurriculumMapping">
+        DELETE FROM place_curriculum_mapping WHERE place_id = #{contentId}
+    </delete>
+
+    <insert id="insertExhibitionGradeMapping">
+        INSERT INTO exhibition_grade_mapping (exhibition_id, grade_id)
+        VALUES (#{contentId}, #{gradeId})
+    </insert>
+    <insert id="insertExhibitionCurriculumMapping">
+        INSERT INTO exhibition_curriculum_mapping (exhibition_id, sub_category_id)
+        VALUES (#{contentId}, #{subCategoryId})
+    </insert>
+    <insert id="insertPlaceGradeMapping">
+        INSERT INTO place_grade_mapping (place_id, grade_id)
+        VALUES (#{contentId}, #{gradeId})
+    </insert>
+    <insert id="insertPlaceCurriculumMapping">
+        INSERT INTO place_curriculum_mapping (place_id, sub_category_id)
+        VALUES (#{contentId}, #{subCategoryId})
+    </insert>
+
+</mapper>

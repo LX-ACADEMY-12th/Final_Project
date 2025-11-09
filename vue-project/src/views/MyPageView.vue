@@ -1,7 +1,7 @@
 <template>
   <div id="my-page" class="container px-4 py-4">
-
-    <div class="d-flex align-items-center justify-content-between pb-4 border-bottom">
+    <!-- 헤더 영역 -->
+    <div class="header-section d-flex align-items-center justify-content-between pb-4 border-bottom">
       <button class="btn p-0 me-3 border-0" @click="goBack">
         <i class="bi bi-arrow-left fs-4"></i>
       </button>
@@ -11,78 +11,82 @@
       </div>
     </div>
 
-    <div class="d-flex align-items-center mt-4 mb-4">
-      <div class="position-relative me-3">
-        <!--
+    <!-- 콘텐츠 영역 -->
+    <div class="content-wrapper py-4">
+      <div class=" d-flex align-items-center mb-4">
+        <div class="position-relative me-3">
+          <!--
           기존 emoji 아이콘을 v-if/v-else로 감싸고,
           user.profileImageUrl이 있으면 <img>를 표시합니다.
           기존 'profile-pic' 클래스(60x60px)와 스타일을 유지합니다.
         -->
-        <div
-          class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary"
-          style="overflow: hidden;"> <!-- 👈 이미지가 원을 벗어나지 않도록 overflow: hidden 추가 -->
+          <div
+            class="profile-pic rounded-circle d-flex align-items-center justify-content-center bg-body-secondary text-secondary"
+            style="overflow: hidden;"> <!-- 👈 이미지가 원을 벗어나지 않도록 overflow: hidden 추가 -->
 
-          <!-- 스토어에 이미지가 있으면 <img> 표시 -->
-          <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필"
-            style="width: 100%; height: 100%; object-fit: cover;">
-          <!-- 스토어에 이미지가 없으면(v-else) 기존 이모지 아이콘 표시 -->
-          <i v-else class="bi bi-emoji-smile" style="font-size: 2.5rem;"></i>
+            <!-- 스토어에 이미지가 있으면 <img> 표시 -->
+            <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필"
+              style="width: 100%; height: 100%; object-fit: cover;">
+            <!-- 스토어에 이미지가 없으면(v-else) 기존 이모지 아이콘 표시 -->
+            <i v-else class="bi bi-emoji-smile" style="font-size: 2.5rem;"></i>
+          </div>
+          <button
+            class="btn btn-primary rounded-circle p-0 position-absolute profile-badge d-flex align-items-center justify-content-center"
+            @click="goToAccountView">
+            <i class="bi bi-gear-fill"></i>
+          </button>
         </div>
-        <button
-          class="btn btn-primary rounded-circle p-0 position-absolute profile-badge d-flex align-items-center justify-content-center"
-          @click="goToAccountView">
-          <i class="bi bi-gear-fill"></i>
-        </button>
+        <div>
+          <div class="fw-bold text-dark">{{ user?.name || '로그인 해주세요' }}</div>
+          <div class="small text-dark">{{ user?.email || ' ' }}</div>
+        </div>
       </div>
-      <div>
-        <div class="fw-bold text-dark">{{ user?.name || '로그인 해주세요' }}</div>
-        <div class="small text-dark">{{ user?.email || ' ' }}</div>
-      </div>
-    </div>
 
-    <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start">
-      <div class="d-flex align-items-center mb-2">
-        <i class="bi bi-crosshair me-2 fs-5"></i>
-        <span class="fw-bold">스탬프 투어</span>
-      </div>
-      <div class="display-4 fw-bolder">12 / 20</div>
-    </button>
-    <button
-      class="btn btn-primary w-100 p-3 mb-4 custom-rounded text-start d-flex align-items-center justify-content-between saved-route-btn"
-      @click="goToUserLikeCouseList">
-      <div class="d-flex align-items-center">
-        <i class="bi bi-bookmark-plus-fill me-2 fs-5"></i>
-        <span class="fw-bold">저장된 추천 경로</span>
-      </div>
-      <!-- <i class="bi bi-plus-lg fs-5"></i> -->
-    </button>
-    <ul class="list-group list-group-flush">
-      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
-        <div class="d-flex align-items-center" @click="goToLikePlace()">
-          <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
-          <span>관심 목록</span>
-        </div>
-        <i class="bi bi-chevron-right text-muted"></i>
-      </li>
 
-      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0"
-        @click="showSettingsModal">
-        <div class=" d-flex align-items-center">
-          <i class="bi bi-gear-fill me-3 fs-5 text-secondary"></i>
-          <!-- 🟢 [수정] Pinia 스토어의 isLoggedIn을 사용합니다. -->
-          <span>{{ isLoggedIn ? '로그아웃/탈퇴' : '로그인/탈퇴' }}</span>
+      <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start">
+        <div class="d-flex align-items-center mb-2">
+          <i class="bi bi-crosshair me-2 fs-5"></i>
+          <span class="fw-bold">스탬프 투어</span>
         </div>
-        <i class="bi bi-chevron-right text-muted"></i>
-      </li>
-      <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0"
-        @click="goToNotice">
+        <div class="display-4 fw-bolder">12 / 20</div>
+      </button>
+      <button
+        class="btn btn-primary w-100 p-3 mb-4 custom-rounded text-start d-flex align-items-center justify-content-between saved-route-btn"
+        @click="goToUserLikeCouseList">
         <div class="d-flex align-items-center">
-          <i class="bi bi-bell-fill me-3 fs-5 text-warning"></i>
-          <span>공지사항</span>
+          <i class="bi bi-bookmark-plus-fill me-2 fs-5"></i>
+          <span class="fw-bold">저장된 추천 경로</span>
         </div>
-        <i class="bi bi-chevron-right text-muted"></i>
-      </li>
-    </ul>
+        <!-- <i class="bi bi-plus-lg fs-5"></i> -->
+      </button>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
+          <div class="d-flex align-items-center" @click="goToLikePlace()">
+            <i class="bi bi-heart-fill me-3 fs-5 text-heart-red"></i>
+            <span>관심 목록</span>
+          </div>
+          <i class="bi bi-chevron-right text-muted"></i>
+        </li>
+
+        <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0"
+          @click="showSettingsModal">
+          <div class=" d-flex align-items-center">
+            <i class="bi bi-gear-fill me-3 fs-5 text-secondary"></i>
+            <!-- 🟢 [수정] Pinia 스토어의 isLoggedIn을 사용합니다. -->
+            <span>{{ isLoggedIn ? '로그아웃/탈퇴' : '로그인/탈퇴' }}</span>
+          </div>
+          <i class="bi bi-chevron-right text-muted"></i>
+        </li>
+        <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0"
+          @click="goToNotice">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-bell-fill me-3 fs-5 text-warning"></i>
+            <span>공지사항</span>
+          </div>
+          <i class="bi bi-chevron-right text-muted"></i>
+        </li>
+      </ul>
+    </div>
 
     <SettingsModal :show="isSettingsModalOpen" :isLoggedIn="isLoggedIn" @close="isSettingsModalOpen = false"
       @logout="handleLogout" @withdraw="handleWithdraw" @login="goToLoginView" />
@@ -272,6 +276,19 @@ export default {
   max-width: 480px;
   background-color: #ffffff;
   min-height: 100vh;
+  padding: 0;
+}
+
+.header-section {
+  position: sticky;
+  top: 0;
+  background-color: #ffffff;
+  z-index: 100;
+  padding-top: 16px;
+}
+
+.content-wrapper {
+  position: relative;
 }
 
 .profile-pic {

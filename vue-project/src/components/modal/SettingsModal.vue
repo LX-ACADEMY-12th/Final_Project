@@ -4,12 +4,12 @@
       <div class="modal-content border-0">
         <div class="modal-body text-center p-4">
           <h5 class="fw-bold text-dark mb-4" id="settingsModalLabel">설정</h5>
-          
+
           <button type="button" class="btn btn-primary w-100 p-3 fw-bold mb-3 rounded-pill modal-logout-btn"
             @click="onMainButtonClick">
             {{ isLoggedIn ? '로그아웃' : '로그인' }}
           </button>
-          
+
           <button type="button" class="btn btn-outline-primary w-100 p-3 fw-bold rounded-pill modal-withdraw-btn"
             @click="onWithdrawClick">
             회원탈퇴
@@ -78,16 +78,19 @@ export default {
   justify-content: center;
   /* 👈 flex-end에서 center로 수정 */
   align-items: center;
-  /* 모바일 화면 여백 */
-  padding: 20px;
 }
 
 .modal-dialog {
   width: 90%;
+  max-width: 500px;
+  height: auto;
+  max-height: 90vh;
   background-color: #ffffff;
   margin-left: auto;
   margin-right: auto;
   border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .modal-logout-btn {

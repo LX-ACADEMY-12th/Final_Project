@@ -354,4 +354,73 @@
         sp.place_id, cmc.category_name, gc.grade_name;
     </select>
 
+    <select id="findPlacesForLikedList" resultType="com.example.demo.dto.LikedCourseListDTO">
+        SELECT place_id, place_name
+        FROM science_place
+        WHERE place_id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+    <resultMap id="SciencePlaceResult" type="com.example.demo.vo.SciencePlace">
+        <id property="id" column="place_id"/>
+        <result property="placeName" column="place_name"/>
+        <result property="description" column="description"/>
+        <result property="mainImageUrl" column="main_image_url"/>
+        <result property="addressDetail" column="address_detail"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+        <result property="admissionFee" column="admission_fee"/>
+        <result property="openingHours" column="opening_hours"/>
+    </resultMap>
+    <select id="findById" parameterType="long" resultMap="SciencePlaceResult">
+        SELECT * FROM science_place WHERE place_id = #{id}
+    </select>
+    <insert id="insert" parameterType="com.example.demo.vo.SciencePlace" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO science_place (
+            place_name, description, main_image_url, address_detail,
+            latitude, longitude, admission_fee, opening_hours
+        ) VALUES (
+                     #{placeName}, #{description}, #{mainImageUrl}, #{addressDetail},
+                     #{latitude}, #{longitude}, #{admissionFee}, #{openingHours}
+                 )
+    </insert>
+    <update id="update" parameterType="com.example.demo.vo.SciencePlace">
+        UPDATE science_place
+        SET
+            place_name = #{placeName},
+            description = #{description},
+            main_image_url = #{mainImageUrl},
+            address_detail = #{addressDetail},
+            latitude = #{latitude},
+            longitude = #{longitude},
+            admission_fee = #{admissionFee},
+            opening_hours = #{openingHours}
+        WHERE place_id = #{id}
+    </update>
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM science_place WHERE place_id = #{id}
+    </delete>
+    <select id="findAllForAdmin" resultMap="PlaceResultMap">
+    SELECT
+        sp.place_id as id,
+        sp.place_name as title,
+        'PLACE' as type,
+        MIN(cmc.category_name) as subject,
+        MIN(gc.grade_name) as grade,
+        sp.address_detail as place,
+        sp.main_image_url as imageUrl
+    FROM science_place sp
+        LEFT JOIN place_curriculum_mapping pcm ON sp.place_id = pcm.place_id
+        LEFT JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+        LEFT JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+        LEFT JOIN grade_category gc ON csc.grade_id = gc.grade_id
+    GROUP BY
+        sp.place_id
+    ORDER BY
+        sp.place_id DESC
+    </select>
+
+
+
 </mapper>

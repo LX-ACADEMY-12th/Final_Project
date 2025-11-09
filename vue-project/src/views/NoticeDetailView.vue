@@ -9,52 +9,50 @@
       <div class="header-spacer"></div>
     </div>
 
-    <!-- 로딩 중 표시 -->
-    <div v-if="loading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">로딩 중...</span>
-      </div>
-    </div>
-
-    <!-- 공지사항 상세 내용 -->
-    <div v-else-if="notice" class="notice-detail-container">
-      <!-- 제목 영역 -->
-      <div class="notice-header-section">
-        <h1 class="notice-detail-title">{{ notice.title }}</h1>
-        <div class="notice-meta-info">
-          <div class="meta-item">
-            <i class="bi bi-calendar3"></i>
-            <span>{{ formatDate(notice.createdAt) }}</span>
-          </div>
-          <div class="meta-divider"></div>
-          <div class="meta-item">
-            <i class="bi bi-eye"></i>
-            <span>{{ notice.views }}</span>
-          </div>
+    <!-- 콘텐츠 영역 -->
+    <div class="content-wrapper">
+      <!-- 로딩 중 표시 -->
+      <div v-if="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">로딩 중...</span>
         </div>
       </div>
 
-      <!-- 본문 내용 -->
-      <div class="notice-content-section">
-        <div class="notice-content">{{ notice.content }}</div>
+      <!-- 공지사항 상세 내용 -->
+      <div v-else-if="notice" class="notice-detail-container">
+        <!-- 제목 영역 -->
+        <div class="notice-header-section">
+          <h1 class="notice-detail-title">{{ notice.title }}</h1>
+          <div class="notice-meta-info">
+            <div class="meta-item">
+              <i class="bi bi-calendar3"></i>
+              <span>{{ formatDate(notice.createdAt) }}</span>
+            </div>
+            <div class="meta-divider"></div>
+            <div class="meta-item">
+              <i class="bi bi-eye"></i>
+              <span>조회 {{ notice.views }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 본문 내용 -->
+        <div class="notice-content-section">
+          <div class="notice-content">{{ notice.content }}</div>
+        </div>
+
       </div>
 
-      <!-- 목록으로 버튼 -->
-      <button class="btn-back-to-list" @click="goToNoticeList">
-        <i class="bi bi-arrow-left me-2"></i>
-        목록으로
-      </button>
-    </div>
+      <!-- 로딩 실패 또는 공지사항이 없을 때 -->
+      <div v-else class="empty-state">
+        <i class="bi bi-exclamation-circle"></i>
+        <p>공지사항을 찾을 수 없습니다.</p>
+      </div>
 
-    <!-- 로딩 실패 또는 공지사항이 없을 때 -->
-    <div v-else class="empty-state">
-      <i class="bi bi-exclamation-circle"></i>
-      <p>공지사항을 찾을 수 없습니다.</p>
-    </div>
-
-    <!-- 에러 메시지 -->
-    <div v-if="error" class="alert alert-danger mt-4" role="alert">
-      {{ error }}
+      <!-- 에러 메시지 -->
+      <div v-if="error" class="alert alert-danger mt-4" role="alert">
+        {{ error }}
+      </div>
     </div>
   </div>
 </template>
@@ -101,10 +99,6 @@ export default {
       this.$router.back();
     },
 
-    goToNoticeList() {
-      this.$router.push({ name: 'Notice' });
-    },
-
     formatDate(dateString) {
       const date = new Date(dateString);
       const year = date.getFullYear();
@@ -132,11 +126,11 @@ export default {
 #notice-detail-page {
   font-family: 'SUIT Variable', sans-serif;
   max-width: 480px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+  background: #ffffff;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
+  padding: 0;
 }
 
 /* 헤더 */
@@ -144,8 +138,12 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
-  margin-bottom: 24px;
+  padding: 16px;
+  border-bottom: 1px solid #e9ecef;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 100;
 }
 
 .btn-back {
@@ -165,7 +163,7 @@ export default {
 }
 
 .header-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: #212529;
   margin: 0;
@@ -175,14 +173,14 @@ export default {
   width: 24px;
 }
 
+.content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+
 /* 공지사항 상세 컨테이너 */
 .notice-detail-container {
-  flex: 1;
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  margin-bottom: 16px;
+  padding: 20px 16px;
 }
 
 /* 제목 영역 */
@@ -191,7 +189,7 @@ export default {
 }
 
 .notice-detail-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #212529;
   line-height: 1.4;
@@ -212,57 +210,33 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13x;
   color: #868e96;
 }
 
 .meta-item i {
   color: #4A7CEC;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .meta-divider {
   width: 1px;
-  height: 16px;
+  height: 14px;
   background: #e9ecef;
 }
 
 /* 본문 내용 */
 .notice-content-section {
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #e9ecef;
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
 }
 
 .notice-content {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.8;
   color: #495057;
   white-space: pre-wrap;
   word-wrap: break-word;
-}
-
-/* 목록으로 버튼 */
-.btn-back-to-list {
-  background: linear-gradient(135deg, #4A7CEC 0%, #3a65d0 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 20px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(74, 124, 236, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn-back-to-list:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 6px rgba(74, 124, 236, 0.2);
 }
 
 /* 빈 상태 */

@@ -33,8 +33,10 @@ public class PlaceDetailController {
 			@RequestParam(required = false) String mainCategoryTags,
 			@RequestParam(required = false) String subCategoryTags,
 			@RequestParam(name = "gradeTags", required = false) String gradeTags) {
+
         Long userId = getUserIdFromAuthentication(authentication);
-		// 1. URL로 받은 ID를 서비스로 전달
+
+        // 1. URL로 받은 ID를 서비스로 전달
 		PlaceDetailDTO dto = placeDetailService.getfindPlaceDetails(placeId, userId, mainCategoryTags, subCategoryTags, gradeTags);
 		
 		// 2. 서비스가 DB에서 가져온 DTO를 프론트엔드로 반환 (JSON 형태)

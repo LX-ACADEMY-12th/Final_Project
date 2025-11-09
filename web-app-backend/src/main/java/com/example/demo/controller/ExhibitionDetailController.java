@@ -60,8 +60,9 @@ public class ExhibitionDetailController {
 
         log.info("Parameters - 조회하려는 전시관 id: {}, mainCategory: {}, grade: {}",
                 exhibitionId, mainCategoryTags, gradeTags);
-
+        // 헤더 토큰에서 userId 빼오기
         Long userId = getUserIdFromAuthentication(authentication);
+        log.info("전시 상세정보를 조회하는 사용자 id : {}", userId);
 
 		ExhibitionDetailDTO dto = exhibitionDetailService.getfindExhibitionDetails(
 				exhibitionId,

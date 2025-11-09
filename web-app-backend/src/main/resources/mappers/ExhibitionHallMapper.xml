@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.ExhibitionHallMapper">
+
+    <resultMap id="ExhibitionHallResult" type="com.example.demo.vo.ExhibitionHall">
+        <id property="id" column="hall_id"/>
+        <result property="hallName" column="hall_name"/>
+        <result property="scienceCenterName" column="science_center_name"/>
+        <result property="addressDetail" column="address_detail"/>
+        <result property="mainImageUrl" column="main_image_url"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="admissionFee" column="admission_fee"/>
+        <result property="openingHours" column="opening_hours"/>
+        <result property="averageRating" column="average_rating"/>
+        <result property="description" column="description"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+    </resultMap>
+
+    <select id="findByName" parameterType="String" resultMap="ExhibitionHallResult">
+        SELECT * FROM exhibition_hall WHERE hall_name = #{hallName} LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.demo.vo.ExhibitionHall" 
+            useGeneratedKeys="true" keyProperty="id" keyColumn="hall_id">
+        INSERT INTO exhibition_hall (
+            hall_name, science_center_name, latitude, longitude, address_detail,
+            main_image_url, start_date, end_date, admission_fee, opening_hours,
+            description, average_rating
+        ) VALUES (
+            #{hallName}, #{scienceCenterName}, #{latitude}, #{longitude}, #{addressDetail},
+            #{mainImageUrl}, #{startDate}, #{endDate}, #{admissionFee}, #{openingHours},
+            #{description}, #{averageRating}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.example.demo.vo.ExhibitionHall">
+        UPDATE exhibition_hall
+        SET 
+            hall_name = #{hallName},
+            science_center_name = #{scienceCenterName},
+            latitude = #{latitude},
+            longitude = #{longitude},
+            address_detail = #{addressDetail},
+            main_image_url = #{mainImageUrl},
+            start_date = #{startDate},
+            end_date = #{endDate},
+            admission_fee = #{admissionFee},
+            opening_hours = #{openingHours},
+            description = #{description},
+            average_rating = #{averageRating}
+        WHERE hall_id = #{id}
+    </update>
+
+</mapper>

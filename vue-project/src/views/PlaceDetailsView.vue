@@ -361,7 +361,7 @@ export default {
       if (newUserId && !oldUserId && this.currentId) {
         console.log(`User ID 감지 (${newUserId}), '찜 상태만' 새로고침`);
 
-        // 🟢 4. [수정] 전체 데이터를 다시 불러오는 대신, '찜 상태'만 새로고침
+        // 🟢 전체 데이터를 다시 불러오는 대신, '찜 상태'만 새로고침
         this.fetchWishStatus();
 
       } else if (!newUserId && oldUserId) {

@@ -1,10 +1,9 @@
 package com.example.demo.mapper;
 
-import com.example.demo.dto.CourseHallDTO;
-import com.example.demo.dto.CourseItemDTO;
-import com.example.demo.dto.LikedCourseListDTO;
-import com.example.demo.dto.ContentResultDTO;
+import com.example.demo.dto.*;
+import com.example.demo.vo.SciencePlace;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
@@ -46,4 +45,14 @@ public interface ContentMapper {
 
         // ID 목록으로 장소 정보 리스트 조회 (목록 카드용)
         List<LikedCourseListDTO> findPlacesForLikedList(@Param("ids") List<Long> ids);
+
+        // --- [Admin 기능] ---
+        SciencePlace findById(Long id);
+        @Options(useGeneratedKeys = true, keyProperty = "id")
+        void insert(SciencePlace place);
+        void update(SciencePlace place);
+        void deleteById(Long id);
+        // [추가] 관리자 페이지 목록 조회를 위한 쿼리
+        List<PlaceResultDTO> findAllForAdmin();
+
 }

@@ -1,12 +1,12 @@
 package com.example.demo.config;
 
-import com.example.demo.config.JwtAuthenticationFilter;
-import com.example.demo.config.JwtTokenProvider;
 
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -36,8 +36,29 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // 관리자 API용 필터 체인 (먼저 실행: @Order(1))
+    // 이 필터 체인은 JWT 필터를 포함하지 않습니다.
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
+        http
+                // '/api/admin/contents' (POST용) 경로 추가
+                .securityMatcher("/api/admin/contents", "/api/admin/contents/**", "/uploads/images/**")
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(authz -> authz
+                        // 2. 이 경로들은 인증 없이 모두 허용
+                        .anyRequest().permitAll()
+                );
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain defaultfilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
