@@ -2,6 +2,9 @@
   <div class="course-container">
 
     <CourseMap :items="courseItems" />
+    <div class="d-flex justify-content-center align-items-center mt-2 mb-2">
+      <button class="btn" style="background-color: #6366F1; color: white;" @click="goToVirtualTour">가상 답사 시작하기</button>
+    </div>
 
     <div class="timeline-list">
       <div v-if="type === 'exhibition'">
@@ -18,6 +21,7 @@
 
 <script>
 //import { ref } from 'vue';
+import router from '@/router';
 import CourseMap from '@/components/map/CourseMap.vue';
 import RecommendationCTA from '@/components/RecommendationCTA.vue';
 import AiRecommendCourseExhibitionCard from '@/components/card/AiRecommendCourseExhibitionCard.vue';
@@ -60,6 +64,21 @@ export default {
       console.log('경로 저장 요청 (CourseRecommend)');
       // 아이템 목록을 부모로 전달
       this.$emit('save-recommended-course', this.courseItems);
+    },
+    goToVirtualTour() {
+      // 1. "가상 답사" 페이지에 필요한 정보만
+      //    (예: 이름, ID, 대표 이미지 등) 추출해서 넘기는 것이 좋습니다.
+      const tourStops = this.courseItems.map(item => ({
+        id: item.id, // 각 장소의 고유 ID (필요하다면)
+        title: item.title, // 탭에 표시될 이름 (예: "창의나래관")
+        sceneId: item.sceneId // :전구: 1단계에서 추가한 sceneId
+      }));
+      router.push({
+        name: 'virtualTour',
+        state: {
+          items: tourStops
+        }
+      });
     }
   }
 }

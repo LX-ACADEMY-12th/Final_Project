@@ -85,6 +85,7 @@
             </div>
           </div>
           <PlaceCard v-else v-for="item in filteredItems" :key="item.id" :item="item" @add="goToDetail(item)"
+            :id="`card-${item.id}`" :class="{ 'active-card': item.id === activeItemId }"
             @item-click="handleItemClick(item)" />
         </div>
       </div>
@@ -95,6 +96,13 @@
       @close="isModalOpen = false" @complete="handleFilterComplete" />
 
     <BottomNavbar :selectedNavItem="selectedNavItem" @navigate="handleNavigation" />
+
+    <!-- 템플릿에 로딩 오버레이 추가 -->
+    <transition name="fade">
+      <div v-if="isMapLoading" class="map-loading-overlay">
+        <div class="spinner"></div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -109,6 +117,7 @@ export default {
 import { ref, onMounted, watch, onActivated, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from '@/api/axiosSetup';
+import rawAxios from 'axios';         // ⬅️ [추가] (외부 API용)
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import FilterModal from '@/components/modal/FilterModal.vue';
 import PlaceCard from '@/components/card/PlaceCard.vue';
@@ -118,6 +127,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
 const router = useRouter();
+const activeItemId = ref(null); // ⬅️ [추가]
 
 // 🟢 [추가] 시연을 위한 대전 시청 고정 좌표
 const DEMO_LOCATION = { lat: 36.3504119, lng: 127.3845475 };
@@ -137,6 +147,11 @@ const markers = ref([]);
 const currentLocationMarker = ref(null);
 
 const infoOverlay = ref(null); // :왼쪽_화살표: [유지] 호버 시 열릴 오버레이를 추적할 ref
+const directionsPolyline = ref(null); // ⬅️ [추가] 길찾기 경로 선을 저장할 ref
+const routeMarkers = ref([]);         // ⬅️ [추가] 길찾기 시작/도착 마커를 저장할 ref
+// Kakao Developers에서 발급받은 'REST API 키'를 입력하세요.
+const KAKAO_REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
+
 // 1. 마커 이미지 크기/옵션 설정 (핀 크기에 맞게 조절하세요)
 const imageSize = new window.kakao.maps.Size(32, 37); // 예: 32x37px 핀
 const imageOption = { offset: new window.kakao.maps.Point(16, 37) }; // 핀의 하단 중앙
@@ -204,6 +219,7 @@ onActivated(() => {
 // 탭 변경 함수
 const changeTab = (tabName) => {
   selectedTab.value = tabName;
+  activeItemId.value = null;
   router.replace({ query: { tab: tabName } });
 };
 
@@ -231,9 +247,37 @@ const goToDetail = (item) => {
   }
 };
 
-// 카드 클릭 시 지도 이동
+// 카드 클릭 핸들러 개선
 const handleItemClick = (item) => {
-  moveMapToItem(item.lat, item.lng);
+  // 0. 활성 ID 설정
+  activeItemId.value = item.id;
+
+  // 1. 먼저 해당 위치로 부드럽게 이동
+  smoothPanTo(item.lat, item.lng);
+
+  // 2. 마커 하이라이트 효과
+  highlightMarker(item);
+
+  // 3. 일정 시간 후 길찾기 표시
+  setTimeout(() => {
+    showDirectionsToItem(item);
+  }, 500); // 맵 이동 시간(300ms) + 하이라이트 시간 고려
+};
+
+// 마커 하이라이트 함수
+const highlightMarker = (item) => {
+  markers.value.forEach(marker => {
+    const position = marker.getPosition();
+    if (position.getLat() === item.lat && position.getLng() === item.lng) {
+      // 바운스 효과 또는 크기 변경
+      marker.setAnimation(window.kakao.maps.Animation.BOUNCE);
+
+      // 2초 후 애니메이션 중지
+      setTimeout(() => {
+        marker.setAnimation(null);
+      }, 2000);
+    }
+  });
 };
 
 // // 현재 위치 가져오기
@@ -269,48 +313,50 @@ const getCurrentLocation = () => {
   });
 };
 
-// 현위치 버튼 클릭 핸들러
 const goToCurrentLocation = async () => {
   try {
-    await getCurrentLocation(); // 현재 위치 업데이트
+    await getCurrentLocation();
     if (currentUserLocation.value && map.value) {
       const currentLatLng = new window.kakao.maps.LatLng(
         currentUserLocation.value.lat,
         currentUserLocation.value.lng
       );
-      map.value.setCenter(currentLatLng);
-      map.value.setLevel(3); // 현위치 근처로 확대
 
-      // --- [수정] 원 대신 커스텀 오버레이(작은 원) 생성 및 표시 ---
+      // panTo로 부드럽게 이동
+      map.value.panTo(currentLatLng);
 
-      // 1. 기존 현위치 표시(마커 또는 오버레이) 제거
+      // 애니메이션과 함께 줌 레벨 조정
+      setTimeout(() => {
+        map.value.setLevel(3, {
+          animate: {
+            duration: 300
+          }
+        });
+      }, 300); // panTo가 끝나는 시점과 비슷하게 맞춤
+
+      // 현위치 마커 애니메이션 추가
       if (currentLocationMarker.value) {
         currentLocationMarker.value.setMap(null);
       }
 
-      // 2. 새 커스텀 오버레이 생성 (HTML 컨텐츠 사용)
-      const content = '<div class="current-location-dot"></div>'; // CSS로 스타일링될 div
+      // 펄스 애니메이션이 있는 현위치 표시
+      const content = `
+        <div class="current-location-wrapper">
+          <div class="current-location-dot"></div>
+          <div class="current-location-pulse"></div>
+        </div>
+      `;
+
       const newOverlay = new window.kakao.maps.CustomOverlay({
         position: currentLatLng,
         content: content,
-        // yAnchor: 0.5, // 필요시 오버레이 위치 미세 조정
-        // xAnchor: 0.5
       });
 
-      // 3. 오버레이를 맵에 표시
       newOverlay.setMap(map.value);
-
-      // 4. ref에 새 오버레이 저장
       currentLocationMarker.value = newOverlay;
-      // --- 오버레이 생성 끝 ---
-
     }
   } catch (error) {
     console.error("현위치 이동 실패:", error);
-    eventBus.emit('show-global-alert', {
-      message: '현위치를 가져올 수 없습니다. GPS가 켜져 있는지 확인해주세요..',
-      type: 'error'
-    });
   }
 };
 
@@ -318,13 +364,202 @@ const goToCurrentLocation = async () => {
 const moveMapToItem = (lat, lng) => {
   if (map.value) {
     const itemLatLng = new window.kakao.maps.LatLng(lat, lng);
-    map.value.setCenter(itemLatLng);
-    map.value.setLevel(1); // 줌인
+
+    // panTo로 부드럽게 이동
+    map.value.panTo(itemLatLng);
+
+    // 줌 레벨 변경도 단계적으로
+    setTimeout(() => {
+      // 핀 클릭 시 줌 레벨 (1은 너무 가깝습니다. 3~4 추천)
+      const targetLevel = 4;
+      map.value.setLevel(targetLevel, {
+        animate: {
+          duration: 300
+        }
+      });
+    }, 300);
+
+    // map.value.setCenter(itemLatLng);
+    // map.value.setLevel(1); // 줌인
   }
 };
 
-// 마커/오버레이 초기화
-const clearMapElements = () => {
+// 부드러운 줌 함수
+const smoothZoom = (targetLevel, step = 1) => {
+  if (!map.value) return;
+
+  const currentLevel = map.value.getLevel();
+
+  if (currentLevel === targetLevel) return;
+
+  const zoomIn = currentLevel > targetLevel;
+  const nextLevel = zoomIn
+    ? Math.max(currentLevel - step, targetLevel)
+    : Math.min(currentLevel + step, targetLevel);
+
+  map.value.setLevel(nextLevel, {
+    animate: {
+      duration: 250 // 애니메이션 시간(ms)
+    }
+  });
+
+  // 목표 레벨에 도달할 때까지 재귀
+  if (nextLevel !== targetLevel) {
+    setTimeout(() => smoothZoom(targetLevel, step), 260);
+  }
+};
+
+/**
+ * 길찾기 실행 (Orchestrator)
+ */
+const showDirectionsToItem = async (item) => {
+  // 1. 현위치(출발지)가 없으면 알림
+  if (!currentUserLocation.value) {
+    eventBus.emit('show-global-alert', {
+      message: '현위치를 먼저 확인해주세요.',
+      type: 'error'
+    });
+    return;
+  }
+
+  // 2. 이전 경로 제거
+  clearDirections();
+
+  const origin = {
+    lat: currentUserLocation.value.lat,
+    lng: currentUserLocation.value.lng
+  };
+  const destination = {
+    lat: item.lat,
+    lng: item.lng
+  };
+
+  try {
+    // 3. Kakao Navi API로 경로 데이터 요청
+    const { path, bounds } = await fetchDirections(origin, destination);
+
+    if (path.length > 0) {
+      // 4. 지도에 경로 Polyline 그리기
+      drawDirectionsPolyline(path);
+
+      // 5. [선택] 출발/도착 마커 그리기
+      drawRouteStartEndMarkers(origin, destination);
+
+      // 6. 경로가 모두 보이도록 맵 범위 재설정
+      map.value.setBounds(bounds);
+    }
+  } catch (error) {
+    console.error("길찾기 실패:", error);
+    eventBus.emit('show-global-alert', {
+      message: '경로를 찾는 데 실패했습니다.',
+      type: 'error'
+    });
+    // 실패 시 장소 마커들 다시 그림 (선택적)
+    // drawMarkers(filteredItems.value);
+  }
+};
+
+/**
+ * Kakao Mobility (Navi) REST API 호출 함수
+ */
+const fetchDirections = async (origin, destination) => {
+  const url = 'https://apis-navi.kakaomobility.com/v1/directions';
+
+  const params = {
+    origin: `${origin.lng},${origin.lat}`,
+    destination: `${destination.lng},${destination.lat}`,
+    priority: 'RECOMMEND' // 추천 경로
+  };
+
+  try {
+    const response = await rawAxios.get(url, {
+      params,
+      headers: {
+        'Authorization': `KakaoAK ${KAKAO_REST_KEY}`
+      }
+    });
+
+    if (response.data && response.data.routes && response.data.routes.length > 0) {
+      const route = response.data.routes[0];
+      const sections = route.sections;
+      const path = []; // Polyline을 그릴 좌표 배열
+      const bounds = new window.kakao.maps.LatLngBounds(); // 경로에 맞게 맵을 조정할 Bounds
+
+      sections.forEach(section => {
+        section.roads.forEach(road => {
+          // 'vertexes'는 [x1, y1, x2, y2, ...] 형태의 1차원 배열입니다.
+          for (let i = 0; i < road.vertexes.length; i += 2) {
+            const lng = road.vertexes[i];
+            const lat = road.vertexes[i + 1];
+            const latLng = new window.kakao.maps.LatLng(lat, lng);
+            path.push(latLng);
+            bounds.extend(latLng); // Bounds 확장
+          }
+        });
+      });
+      return { path, bounds };
+    } else {
+      throw new Error('API 응답에서 경로를 찾을 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('Kakao Navi API 호출 에러:', error);
+    throw error;
+  }
+};
+
+/**
+ * 지도에 경로 Polyline 및 마커 그리기
+ */
+const drawDirectionsPolyline = (path) => {
+  // 기존 Polyline 제거
+  if (directionsPolyline.value) {
+    directionsPolyline.value.setMap(null);
+  }
+
+  // 새 Polyline 생성
+  const polyline = new window.kakao.maps.Polyline({
+    path: path,
+    strokeWeight: 5,
+    strokeColor: '#FF0000', // 빨간색 경로
+    strokeOpacity: 0.7,
+    strokeStyle: 'solid'
+  });
+
+  polyline.setMap(map.value);
+  directionsPolyline.value = polyline; // ref에 저장
+};
+
+// 경로의 시작점과 끝점에 마커를 그리는 함수
+const drawRouteStartEndMarkers = (origin, destination) => {
+  // 기존 마커 제거 (clearMapElements에서 이미 했지만, 중복 방지)
+  routeMarkers.value.forEach(marker => marker.setMap(null));
+  routeMarkers.value = [];
+
+  const startPos = new window.kakao.maps.LatLng(origin.lat, origin.lng);
+  const endPos = new window.kakao.maps.LatLng(destination.lat, destination.lng);
+
+  // 출발 마커 (현위치)
+  const startMarker = new window.kakao.maps.Marker({
+    position: startPos,
+    title: '출발지'
+  });
+  startMarker.setMap(map.value);
+  routeMarkers.value.push(startMarker);
+
+  // 도착 마커
+  const endMarker = new window.kakao.maps.Marker({
+    position: endPos,
+    title: '도착지'
+  });
+  endMarker.setMap(map.value);
+  routeMarkers.value.push(endMarker);
+};
+
+
+/**
+ * [신규] 1. 장소 핀(마커)과 정보창만 지우는 함수
+ */
+const clearLocationMarkers = () => {
   markers.value.forEach(marker => marker.setMap(null));
   markers.value = [];
   if (infoOverlay.value) {
@@ -333,14 +568,49 @@ const clearMapElements = () => {
   }
 };
 
+/**
+ * [신규] 2. 길찾기 경로선과 출발/도착 마커만 지우는 함수
+ */
+const clearDirections = () => {
+  if (directionsPolyline.value) {
+    directionsPolyline.value.setMap(null);
+    directionsPolyline.value = null;
+  }
+  routeMarkers.value.forEach(marker => marker.setMap(null));
+  routeMarkers.value = [];
+};
+
+// 마커/오버레이 초기화
+const clearMapElements = () => {
+  markers.value.forEach(marker => marker.setMap(null));
+  markers.value = [];
+
+  // 정보 오버레이 제거
+  if (infoOverlay.value) {
+    infoOverlay.value.setMap(null);
+    infoOverlay.value = null;
+  }
+
+  // 길찾기 경로 선 제거
+  if (directionsPolyline.value) {
+    directionsPolyline.value.setMap(null);
+    directionsPolyline.value = null;
+  }
+
+  // 길찾기 마커(출발/도착) 제거
+  routeMarkers.value.forEach(marker => marker.setMap(null));
+  routeMarkers.value = [];
+};
+
 // 아이템들을 '커스텀 핀'과 '호버 오버레이'로 표시
 const drawMarkers = (items) => {
-  if (!map.value || !items.length) {
-    // 아이템이 0개일 때 마커 제거
-    clearMapElements();
+  // 맵이 없으면 중단
+  if (!map.value) return;
+  clearLocationMarkers();
+  // 아이템이 0개일 때 바로 리턴
+  if (!items.length) {
     return;
   }
-  clearMapElements();
 
   items.forEach(item => {
     const markerImage = (item.itemType === 'exhibition')
@@ -388,22 +658,42 @@ const drawMarkers = (items) => {
       });
       infoOverlay.value = overlay;
     });
-    // 4. [신규] 'mouseout' (마우스 내리기) 이벤트 리스너
+    // 'mouseout' (마우스 내리기) 이벤트 리스너
     window.kakao.maps.event.addListener(marker, 'mouseout', () => {
       if (infoOverlay.value) {
         infoOverlay.value.setMap(null);
         infoOverlay.value = null;
       }
     });
-    // 5. [신규] 'click' (마커 클릭) 이벤트 리스너
+    // 'click' (마커 클릭) 이벤트 리스너
     window.kakao.maps.event.addListener(marker, 'click', () => {
-      goToDetail(item); // :왼쪽_화살표: 상세 페이지로 이동
+      // 지도 이동 함수 호출
+      moveMapToItem(item.lat, item.lng);
+
+      // 2. [추가] 활성 ID 설정
+      activeItemId.value = item.id;
+
+      // 3. [추가] 해당 카드로 스크롤
+      const cardElement = document.getElementById(`card-${item.id}`);
+      if (cardElement) {
+        cardElement.scrollIntoView({
+          behavior: 'smooth',  // 부드럽게 스크롤
+          inline: 'center',   // 가로축 중앙에 오도록
+          block: 'nearest'    // 세로축은 움직이지 않음
+        });
+      }
     });
   });
 };
 
+// 지도 로딩 중 표시
+const isMapLoading = ref(false);
+
 // --- 검색 실행 함수 (API 호출 방식으로 변경) ---
 const performSearch = async () => {
+  isMapLoading.value = true;
+  activeItemId.value = null;
+
   console.log('==== API 검색 실행 시작 ====');
   console.log('검색 타입:', locationType.value);
   console.log('탭:', selectedTab.value);
@@ -412,6 +702,11 @@ const performSearch = async () => {
 
   isSearching.value = true;
   allFetchedItems.value = [];
+
+  // 새로운 검색이므로, 지도 위의 핀과 경로를 모두 지웁니다.
+  if (map.value) {
+    clearMapElements();
+  }
 
   // 1. API 요청 파라미터 준비
   const params = {
@@ -468,9 +763,24 @@ const performSearch = async () => {
     });
     allFetchedItems.value = [];
   } finally {
+    // 부드러운 페이드 효과와 함께 로딩 종료
+    setTimeout(() => {
+      isMapLoading.value = false;
+    }, 300);
+
     isSearching.value = false;
     console.log('==== API 검색 완료 ====');
   }
+};
+
+// 부드러운 지도 이동 함수 추가
+const smoothPanTo = (lat, lng, duration = 300) => {
+  if (!map.value) return;
+
+  const targetLatLng = new window.kakao.maps.LatLng(lat, lng);
+
+  // panTo는 부드러운 이동, setCenter는 즉시 이동
+  map.value.panTo(targetLatLng);
 };
 
 // --- 맵 초기화 시 첫 검색 실행 ---
@@ -482,6 +792,11 @@ onMounted(async () => {
       level: 7, // 초기 줌 레벨 조정 (필요시)
     };
     map.value = new window.kakao.maps.Map(mapContainer.value, options);
+
+    window.kakao.maps.event.addListener(map.value, 'click', () => {
+      activeItemId.value = null; // 하이라이트 해제
+      clearDirections();       // 그려진 경로 제거
+    });
 
     try {
       await getCurrentLocation(); // 사용자 위치 먼저 시도
@@ -522,23 +837,43 @@ onMounted(async () => {
 watch(filteredItems, (newItems) => {
   if (!map.value) return;
 
-  drawMarkers(newItems);
+  // 마커 그리기 전 페이드아웃 효과
+  clearMarkersWithAnimation().then(() => {
+    drawMarkers(newItems);
 
-  // === 줌 레벨 로직 (기존 로직 유지) ===
-  if (newItems.length === 1) {
-    const item = newItems[0];
-    const itemLatLng = new window.kakao.maps.LatLng(item.lat, item.lng);
-    map.value.setCenter(itemLatLng);
-    map.value.setLevel(7); // 단일 결과 시 줌 레벨
-  } else if (newItems.length > 1) {
-    const bounds = new window.kakao.maps.LatLngBounds();
-    newItems.forEach(item => {
-      bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng));
-    });
-    map.value.setBounds(bounds);
-    // (선택) map.value.setLevel(map.value.getLevel() + 1);
-  }
+    // === 줌 레벨 로직 (기존 로직 유지) ===
+    if (newItems.length === 1) {
+      const item = newItems[0];
+      // setCenter/setLevel 대신 부드러운 이동 함수 사용
+      moveMapToItem(item.lat, item.lng);
+    } else if (newItems.length > 1) {
+      const bounds = new window.kakao.maps.LatLngBounds();
+      newItems.forEach(item => {
+        bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng));
+      });
+      // setBounds 대신 panToBounds 사용 (부드러운 이동)
+      map.value.panToBounds(bounds, {
+        duration: 500
+      });
+    }
+  });
 });
+
+// 마커 애니메이션과 함께 제거
+const clearMarkersWithAnimation = () => {
+  return new Promise((resolve) => {
+    markers.value.forEach((marker, index) => {
+      setTimeout(() => {
+        marker.setMap(null);
+      }, index * 20); // 순차적으로 사라지는 효과
+    });
+
+    setTimeout(() => {
+      markers.value = [];
+      resolve();
+    }, markers.value.length * 20 + 100);
+  });
+};
 
 // --- 모달 완료 핸들러 (기존 로직 유지) ---
 const handleFilterComplete = (filterData) => {
@@ -719,6 +1054,16 @@ const handleNavigation = (navItemName) => {
   font-weight: 700;
 }
 
+/* [추가] 활성 카드 하이라이트 스타일 */
+/* :deep()을 사용해 자식 컴포넌트의 루트(.place-card)를 선택합니다. */
+:deep(.active-card .place-card) {
+  border: 2px solid #4A7CEC;
+  box-shadow: 0 6px 20px rgba(74, 124, 236, 0.3);
+  transform: translateY(-5px);
+  /* 카드를 살짝 위로 올리는 효과 */
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
 /* 우측 플로팅 원형 버튼 */
 .btn-circle {
   width: 50px;
@@ -726,5 +1071,97 @@ const handleNavigation = (navItemName) => {
   border-radius: 50%;
   padding: 0;
   font-weight: 500;
+}
+
+/* 현위치 펄스 애니메이션 */
+.current-location-wrapper {
+  position: relative;
+  transform: translate(-50%, -50%);
+}
+
+.current-location-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #4A7CEC;
+  border: 3px solid white;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 2;
+}
+
+.current-location-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: rgba(74, 124, 236, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    width: 16px;
+    height: 16px;
+    opacity: 1;
+  }
+
+  100% {
+    width: 40px;
+    height: 40px;
+    opacity: 0;
+  }
+}
+
+/* 정보창 페이드인 효과 */
+.info-window {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(-10px);
+  }
+}
+
+/* 마커 호버 효과 */
+.custom-marker {
+  transition: transform 0.2s ease;
+}
+
+.custom-marker:hover {
+  transform: scale(1.1);
+}
+
+.map-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

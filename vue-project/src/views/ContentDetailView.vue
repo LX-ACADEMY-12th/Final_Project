@@ -1,10 +1,16 @@
 <template>
   <div class="view-detail-page">
 
-    <LocationSection v-if="isPlace" :placeInformation="exhibitionInformation" />
+    <LocationSection v-if="isPlace" :placeInformation="placeInformation" />
     <LocationSection v-else :exhibitionInformation="exhibitionInformation" />
 
     <hr class="divider" />
+
+    <div v-if="isPlace" class="activity-section-wrapper">
+      <hr class="divider" />
+      <ActivityRecommender :place-id="targetId" :place-main-category="place.mainCategory"
+        :place-sub-categories="place.subCategories" :place-grade-tag="place.gradeTag" />
+    </div>
 
     <ReviewSection ref="reviewSectionRef" :target-id="targetId" :target-type="targetType"
       :current-user-id="currentUserId" :rating="exhibition.rating" :review-count="exhibition.reviewCount"
@@ -32,6 +38,7 @@ import LocationSection from '@/components/section/LocationSection.vue';
 import ReviewSection from '@/components/section/ReviewSection.vue';
 import ReviewModal from '@/components/modal/ReviewModal.vue';
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
+import ActivityRecommender from '@/components/recommend/ActivityRecommender.vue';
 
 // API 베이스 (Vite 환경변수 우선)
 const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
@@ -44,6 +51,7 @@ export default {
     ReviewSection,
     ReviewModal,
     ConfirmDeleteModal,
+    ActivityRecommender,
   },
 
   // 1. Props 정의
@@ -56,6 +64,16 @@ export default {
     },
     // ReviewSection에 전달할 정보 (rating, reviewCount 포함)
     exhibition: {
+      type: Object,
+      default: () => ({})
+    },
+    // LocationSection에 전달할 정보
+    placeInformation: {
+      type: Object,
+      default: () => ({}) // 기본값을 빈 객체로 설정
+    },
+    // ReviewSection에 전달할 정보 (rating, reviewCount 포함)
+    place: {
       type: Object,
       default: () => ({})
     },

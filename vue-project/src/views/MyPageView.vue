@@ -1,8 +1,8 @@
 <template>
-  <div id="my-page" class="container px-4 py-4">
+  <div id="my-page" class="container px-4 py-2">
     <!-- 헤더 영역 -->
-    <div class="header-section d-flex align-items-center justify-content-between pb-4 border-bottom">
-      <button class="btn p-0 me-3 border-0" @click="goBack">
+    <div class="header-section d-flex align-items-center justify-content-between pb-3 border-bottom">
+      <button class="btn me-3 border-0" @click="goBack">
         <i class="bi bi-arrow-left fs-4"></i>
       </button>
       <h2 class="h5 mb-0 fw-bold text-dark">마이페이지</h2>
@@ -43,12 +43,12 @@
       </div>
 
 
-      <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start">
+      <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start"
+        @click="goToStampPage">
         <div class="d-flex align-items-center mb-2">
           <i class="bi bi-crosshair me-2 fs-5"></i>
           <span class="fw-bold">스탬프 투어</span>
         </div>
-        <div class="display-4 fw-bolder">12 / 20</div>
       </button>
       <button
         class="btn btn-primary w-100 p-3 mb-4 custom-rounded text-start d-flex align-items-center justify-content-between saved-route-btn"
@@ -152,7 +152,18 @@ export default {
       // 로그인이 되어 있다면, 계정설정 페이지로 이동
       this.$router.push({ name: 'AccountView' })
     },
-
+    goToStampPage() {
+      if (!this.isLoggedIn) {
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => {
+            this.$router.push({ name: 'login' });
+          }
+        });
+        return;
+      }
+      this.$router.push({ name: 'stamp' })
+    },
     // ⭐⭐⭐ 수정 4: SettingsModal을 띄우는 전용 메서드를 사용합니다. ⭐⭐⭐
     showSettingsModal() {
       this.isSettingsModalOpen = true;

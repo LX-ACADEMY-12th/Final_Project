@@ -95,7 +95,7 @@
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
-          <ContentDetailView :exhibitionInformation="placeInformation" :exhibition="place" :target-id="currentId"
+          <ContentDetailView :placeInformation="placeInformation" :place="place" :target-id="currentId"
             :target-type="pageType" :isPlace="true" @review-posted="handleReviewPosted"
             @review-deleted="handleReviewDeleted" :photo-review-count="place.photoReviewCount" />
         </div>
@@ -183,6 +183,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
 import eventBus from '@/utils/eventBus'; // 💡 [추가] 글로벌 알림용
+import { getSceneIdFromTitle } from '@/utils/tourMapper';
 
 
 // API 베이스
@@ -256,6 +257,8 @@ export default {
         entranceFee: '',
         lat: 0,
         lng: 0,
+        scienceCenterName: '',
+        hallId: 0
       },
 
       // 장소 상세
@@ -431,6 +434,8 @@ export default {
         entranceFee: this.formatFee(dto.admissionFee),
         lat: dto.latitude,
         lng: dto.longitude,
+        scienceCenterName: dto.location.split(' ')[0],
+        hallId: dto.hallId
       };
 
       console.log('✅ [PlaceDetailsView] mapExhibitionDTO 결과 (exhibition):', this.exhibition);
@@ -892,6 +897,7 @@ export default {
           exhibitionList: currentItemData.exhibitionList,
           lat: currentItemInfo.lat || 0,
           lng: currentItemInfo.lng || 0,
+          sceneId: getSceneIdFromTitle(currentItemData.title)
         };
 
 
@@ -911,7 +917,8 @@ export default {
             // 지도(CourseMap)를 위한 2,3,4번 항목의 좌표
             lat: item.latitude,
             lng: item.longitude,
-            type: item.type
+            type: item.type,
+            sceneId: getSceneIdFromTitle(item.placeName)
           };
         });
 

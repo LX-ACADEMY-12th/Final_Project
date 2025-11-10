@@ -1,0 +1,23 @@
+.pnlm-controls {
+  margin: 8px !important;
+}
+
+/* ====== 기본 “파란 화살표” 완전 비활성화(우리 커스텀만 쓰게) ======
+   nav-hotspot 클래스를 가진 scene 핫스팟에 대해서,
+   Pannellum의 스프라이트/디폴트 크기 제거 */
+.nav-hotspot.pnlm-hotspot,
+.nav-hotspot.pnlm-sprite {
+  background: none !important;
+  background-image: none !important;
+  border: none !important;
+  width: auto !important;
+  height: auto !important;
+  box-shadow: none !important;
+}
+.nav-hotspot.pnlm-hotspot .pnlm-tooltip {
+  /* 기본 툴팁 박스 제거 */
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}

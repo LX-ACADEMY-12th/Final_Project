@@ -2,14 +2,16 @@
   <div class="d-flex flex-column h-100 bg-white" style="font-family: 'SUIT', sans-serif">
     <div class="home-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
       <h2 class="home-header-title h5 mb-0 fw-bold">교과서</h2>
-      <button class="ai-tutor-button btn p-0 border-0 d-flex flex-column align-items-center" @click="goToAiTutor">
+      <!-- AI튜터 버튼 텍스트를 아이콘 옆에 배치 -->
+      <button class="ai-tutor-button btn p-0 border-0 d-flex align-items-center gap-2" @click="goToAiTutor">
         <i class="bi bi-robot fs-5"></i>
-        AI튜터
+        <span>AI튜터</span>
       </button>
     </div>
     <div class="flex-grow-1" style="overflow-y: auto; min-height: 0;">
       <div class="px-3 pt-3" @click="goToMyPage()">
-        <div class="profile-card d-flex align-items-center gap-3 p-3 rounded-4 shadow-sm" @click="goToMyPage()">
+        <div class="profile-card d-flex align-items-center gap-3 p-3 rounded-4 shadow-sm" @click="goToMyPage()"
+          role="button" tabindex="0" @keydown.enter="goToMyPage()" :aria-label="`${userName} 프로필 보기`">
           <div class="profile-avatar rounded-circle d-flex align-items-center justify-content-center flex-shrink-0">
             <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필 이미지" class="profile-image" />
             <div v-else>
@@ -22,19 +24,23 @@
           </div>
         </div>
       </div>
+      <!-- 더 자연스러운 문구로 수정 -->
       <div class="px-3 pt-3">
-        <p class="text-secondary mb-2 ms-1" style="font-size: 0.9rem;">학년을 선택하면 콘텐츠가 게시됩니다.</p>
-        <div class="fs-5 flex-wrap quick-badge-group"> <span>우리 아이는 </span>
-          <a href="#" class="text-decoration fw-bold" style="color: #4A7CEC;" @click.prevent="isModalOpen = true">
-            {{ selectedSubject }}
-            <i class="bi bi-chevron-down" style="width: 16px; height: 16px;"></i>
-          </a>
-          <span>가 궁금한 </span>
+        <p class="text-secondary mb-2 ms-1" style="font-size: 0.9rem;">
+          맞춤 콘텐츠를 추천해드려요
+        </p>
+        <div class="fs-5 flex-wrap quick-badge-group">
+          <span>우리 아이는</span>
           <a href="#" class="text-decoration fw-bold" style="color: #4A7CEC;" @click.prevent="isModalOpen = true">
             {{ selectedGrade }}
             <i class="bi bi-chevron-down" style="width: 16px; height: 16px;"></i>
           </a>
-          <span>입니다.</span>
+          <span class="d-none d-sm-inline">학생이며,</span>
+          <a href="#" class="text-decoration fw-bold" style="color: #4A7CEC;" @click.prevent="isModalOpen = true">
+            {{ selectedSubject }}
+            <i class="bi bi-chevron-down" style="width: 16px; height: 16px;"></i>
+          </a>
+          <span>과목을 학습 중입니다</span>
         </div>
       </div>
       <div class="px-3 pt-3">
@@ -64,7 +70,10 @@
                     </div>
                   </li>
                 </ul>
-                <p v-else class="chalkboard-no-data">해당 학기에 연관된 단원이 없습니다.</p>
+                <!-- 메시지 개선 -->
+                <p v-else class="chalkboard-no-data">
+                  {{ selectedSemester }}에는 학습 내용이 준비되지 않았어요
+                </p>
               </div>
             </div>
             <div class="chalkboard-stand position-absolute w-100">
@@ -75,7 +84,7 @@
         </div>
       </div>
       <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-0">
-        <h5 class="fw-bold fs-6 mb-0">:세계_지도: 과학관</h5>
+        <h5 class="fw-bold fs-6 mb-0">과학관</h5>
       </div>
       <div>
         <div class="card-carousel-container"
@@ -86,9 +95,13 @@
               <span class="visually-hidden">Loading...</span>
             </div>
           </div>
+          <!-- 결과가 없을 때 더 친근한 메시지 -->
           <div v-else-if="exhibitionItems.length === 0"
-            class="d-flex justify-content-center align-items-center text-muted w-100" style="min-height: 350px;">
-            추천 과학관이 없습니다.
+            class="d-flex flex-column justify-content-center align-items-center text-muted w-100"
+            style="min-height: 250px;">
+            <i class="bi bi-inbox fs-1 mb-3" style="color: #D1D5DB;"></i>
+            <p class="mb-2">아직 추천할 과학관이 없어요</p>
+            <p class="small text-muted">다른 학년이나 과목을 선택해보세요</p>
           </div>
           <div v-else class="d-flex flex-row" style="gap: 16px; padding-left: 1rem; padding-right: 1rem;">
             <PlaceReviewCard v-for="item in exhibitionItems" :key="item.id" :item="item" @add="goToDetail(item, '전시')"
@@ -97,25 +110,33 @@
         </div>
       </div>
       <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-0">
-        <h5 class="fw-bold fs-6 mb-0">:전구: 과학 체험 학습</h5>
+        <h5 class="fw-bold fs-6 mb-0">과학 체험 학습</h5>
       </div>
       <div>
-        <div class="card-carousel-container"
-          style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-top: 1rem; padding-bottom: 1rem;">
-          <div v-if="isSearching" class="d-flex justify-content-center align-items-center text-muted w-100"
-            style="min-height: 350px;">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+        <!-- 스크롤 가능함을 암시하는 그라데이션 추가 -->
+        <div class="card-carousel-wrapper position-relative">
+          <div class="card-carousel-container"
+            style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-top: 1rem; padding-bottom: 1rem;">
+            <!-- 로딩 시 UX 제공 -->
+            <div v-if="isSearching"
+              class="d-flex flex-column justify-content-center align-items-center text-muted w-100"
+              style="min-height: 250px;">
+              <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="text-muted small">추천 장소를 찾고 있어요...</p>
+            </div>
+            <div v-else-if="fieldTripItems.length === 0"
+              class="d-flex justify-content-center align-items-center text-muted w-100" style="min-height: 350px;">
+              추천 현장학습이 없습니다.
+            </div>
+            <div v-else class="d-flex flex-row" style="gap: 16px; padding-left: 1rem; padding-right: 1rem;">
+              <PlaceReviewCard v-for="item in fieldTripItems" :key="item.id" :item="item" @add="goToDetail(item, '답사')"
+                @item-click="goToDetail(item, '답사')" />
             </div>
           </div>
-          <div v-else-if="fieldTripItems.length === 0"
-            class="d-flex justify-content-center align-items-center text-muted w-100" style="min-height: 350px;">
-            추천 현장학습이 없습니다.
-          </div>
-          <div v-else class="d-flex flex-row" style="gap: 16px; padding-left: 1rem; padding-right: 1rem;">
-            <PlaceReviewCard v-for="item in fieldTripItems" :key="item.id" :item="item" @add="goToDetail(item, '답사')"
-              @item-click="goToDetail(item, '답사')" />
-          </div>
+          <!-- 오른쪽 그라데이션 (더 많은 콘텐츠가 있음을 표시) -->
+          <div class="scroll-hint-gradient"></div>
         </div>
       </div>
     </div>
@@ -817,6 +838,8 @@ export default {
   transition: transform .12s ease, background .15s ease, border-color .15s ease;
   font-family: 'SUIT', sans-serif;
   font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
 }
 
 .chalkboard-tab-button:hover {
@@ -826,9 +849,11 @@ export default {
 }
 
 .chalkboard-tab-button.active {
-  background: rgba(255, 255, 255, .08);
   color: var(--chalk-yellow);
   border-color: rgba(255, 255, 255, .45);
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 2px rgba(255, 225, 156, 0.3);
 }
 
 /* Chalkboard list */
@@ -913,14 +938,30 @@ export default {
   animation-delay: .22s;
 }
 
-/* [추가] 데이터 없음 */
+/* 칠판 내용이 없을 때 메시지 개선 */
 .chalkboard-no-data {
-  font-size: 1rem;
-  color: var(--muted);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
-  padding: 1rem 0;
+  padding: 2rem 1rem;
+  text-align: center;
   opacity: 0;
   animation: fadeSlide .32s ease-out forwards;
+}
+
+.card-carousel-wrapper {
+  position: relative;
+}
+
+.scroll-hint-gradient {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.9));
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ========================================

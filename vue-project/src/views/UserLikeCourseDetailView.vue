@@ -32,6 +32,11 @@
         </span>
       </div>
 
+      <div class="d-flex justify-content-center align-items-center mt-2 mb-2" v-if="pageType === 'exhibition'">
+        <button class="btn" style="background-color: #6366F1; color: white;" @click="goToVirtualTour">가상 답사
+          시작하기</button>
+      </div>
+
       <div class="course-add-btn" v-if="pageType === 'place'">
         <button class="btn btn-primary" @click="openAddModal">
           <i class="bi bi-plus"></i> 경로추가
@@ -91,6 +96,7 @@ import draggable from 'vuedraggable';
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 import eventBus from '@/utils/eventBus';
+import router from '@/router'
 
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import AddPlaceModal from '@/components/modal/AddPlaceModal.vue';
@@ -502,6 +508,9 @@ export default {
 
       this.updateMapKey();
       this.closeAddModal();
+    },
+    goToVirtualTour() {
+      router.push('/virtualTour')
     }
   }
 }

@@ -3,7 +3,7 @@
 
     <div class="header-wrap">
       <h3 class="section-title">{{ sectionTitle }}</h3>
-      <button class="indoor-map-btn" v-if="!isPlace" @click="goToIndoorMap">실내지도</button>
+      <button class="indoor-map-btn" v-if="!isPlace" @click="goToIndoorMap">전시관 안내도</button>
     </div>
 
     <div class="map-area">
@@ -45,7 +45,20 @@ export default {
   methods: {
     // 실내지도 버튼 클릭 시 호출 함수
     goToIndoorMap() {
-      this.$router.push('/indoormap');
+      // exhibitionInformation 또는 placeInformation
+      const info = this.information;
+
+      // ExhibitionHall 페이지로 이동시
+      // 1. 과학관 이름
+      // 2. 내가 선택한 전시관 id
+      // 를 쿼리로 전달
+      this.$router.push({
+        path: '/indoormap',
+        query: {
+          scienceCenterName: info.scienceCenterName,
+          selectedHallId: info.hallId
+        }
+      });
     },
   },
 

@@ -1,9 +1,7 @@
 package com.example.demo.mapper;
 
 
-import com.example.demo.dto.LikedCourseListDTO;
-import com.example.demo.dto.ExhibitionDTO; // [!!] 1. '목록용 DTO' import 추가
-import com.example.demo.dto.PlaceResultDTO;
+import com.example.demo.dto.*;
 import com.example.demo.vo.Exhibition;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -17,6 +15,12 @@ public interface ExhibitionMapper {
 
     // ID 목록으로 전시 정보 리스트 조회 (목록 카드용)
     List<LikedCourseListDTO> findExhibitionsForLikedList(@Param("ids") List<Long> ids);
+
+    // API 1 : 특정 전시관 상세 정보 조회
+    HallDetailResultDTO findHallDetailById(@Param("hallId") Long hallId);
+
+    // API 2 : 특정 과학관에 속한 모든 전시관 목록 조회
+    List<HallSimpleResultDTO> findHallsByScienceCenterName(@Param("scienceCenterName") String scienceCenterName);
 
     List<ExhibitionDTO> findAllExhibitions(@Param("category") String category);
 

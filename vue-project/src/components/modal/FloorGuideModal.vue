@@ -1,7 +1,6 @@
 <template>
   <div v-if="show" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
-      <!-- 모달 헤더 -->
       <div class="modal-header bg-primary text-white p-3 d-flex align-items-center">
         <i class="bi bi-map me-2"></i>
         <span class="fw-bold flex-grow-1">{{ hallName }}</span>
@@ -10,43 +9,36 @@
         </button>
       </div>
 
-      <!-- 층 표시 -->
-      <div class="text-center py-3">
-        <h4 class="fw-bold mb-0">{{ floors[currentFloorIndex] }}</h4>
+      <div class="text-center py-3" v-if="floorGuides.length > 0">
+        <h4 class="fw-bold mb-0">{{ floorGuides[currentFloorIndex].floorName }}</h4>
       </div>
 
-      <!-- 이미지 슬라이더 -->
       <div class="slider-container">
         <div class="slider-wrapper" :style="{ transform: `translateX(-${currentFloorIndex * 100}%)` }"
           @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd"
           @mousedown="handleMouseDown">
-          <div v-for="(floor, index) in floors" :key="index" class="floor-slide">
-            <div class="floor-image-placeholder">
-              <i class="bi bi-geo-alt fs-1 text-muted"></i>
-              <p class="text-muted mt-2">실내 평면도</p>
-              <small class="text-muted">{{ floor }} · 구조도</small>
-            </div>
+
+          <div v-for="(guide, index) in floorGuides" :key="index" class="floor-slide">
+            <img :src="guide.imageUrl" :alt="`${hallName} ${guide.floorName} 안내도`" class="floor-image"
+              @dragstart.prevent />
           </div>
         </div>
       </div>
 
-      <!-- 인디케이터 (점) -->
       <div class="indicators d-flex justify-content-center gap-2 py-3">
-        <span v-for="(floor, index) in floors" :key="index" class="indicator"
+        <span v-for="(guide, index) in floorGuides" :key="index" class="indicator"
           :class="{ active: index === currentFloorIndex }" @click="goToFloor(index)"></span>
       </div>
 
-      <!-- 층 버튼들 -->
       <div class="floor-buttons d-flex justify-content-center gap-3 pb-3">
-        <button v-for="(floor, index) in floors" :key="index" class="btn floor-btn"
+        <button v-for="(guide, index) in floorGuides" :key="index" class="btn floor-btn"
           :class="{ 'btn-primary': index === currentFloorIndex, 'btn-outline-secondary': index !== currentFloorIndex }"
           @click="goToFloor(index)">
-          {{ floor }}
+          {{ guide.floorName }}
         </button>
       </div>
 
-      <!-- 안내 문구 -->
-      <div class="text-center pb-3">
+      <div class="text-center pb-3" v-if="floorGuides.length > 1">
         <small class="text-muted">
           <i class="bi bi-info-circle me-1"></i>
           좌우로 스와이프 하여 다른 층을 확인하세요
@@ -68,15 +60,16 @@ export default {
       type: String,
       required: true
     },
-    floors: {
-      type: Array,
-      default: () => ['B1F', '1F', '2F', '3F']
+    // [수정] 'floors' (문자열 배열) 대신 'floorGuides' (객체 배열)를 받습니다.
+    floorGuides: {
+      type: Array, // [{ floorName: '1F', imageUrl: '...' }, ...]
+      default: () => []
     }
   },
   emits: ['close', 'floor-change'],
   data() {
     return {
-      currentFloorIndex: 1,
+      currentFloorIndex: 0, // [수정] 1이 아닌 0 (첫 번째 인덱스)
       touchStartX: 0,
       touchEndX: 0,
       mouseStartX: 0,
@@ -87,11 +80,16 @@ export default {
   watch: {
     show(newVal) {
       if (newVal) {
-        this.currentFloorIndex = 1;
+        // [수정] 1(2번째)이 아닌 0(첫 번째)으로 초기화
+        this.currentFloorIndex = 0;
         document.body.style.overflow = 'hidden';
       } else {
         document.body.style.overflow = 'auto';
       }
+    },
+    // [선택] floorGuides가 바뀔 때(다른 전시관 클릭)도 0으로 초기화
+    floorGuides() {
+      this.currentFloorIndex = 0;
     }
   },
   methods: {
@@ -102,6 +100,7 @@ export default {
       this.currentFloorIndex = index;
       this.$emit('floor-change', index);
     },
+    // [수정] 스와이프 로직에서 this.floors -> this.floorGuides 로 변경
     handleTouchStart(e) {
       this.touchStartX = e.touches[0].clientX;
     },
@@ -109,11 +108,12 @@ export default {
       this.touchEndX = e.touches[0].clientX;
     },
     handleTouchEnd() {
+      if (this.floorGuides.length <= 1) return; // 층이 하나면 스와이프 안 함
       const swipeDistance = this.touchStartX - this.touchEndX;
       const minSwipeDistance = 50;
 
       if (Math.abs(swipeDistance) > minSwipeDistance) {
-        if (swipeDistance > 0 && this.currentFloorIndex < this.floors.length - 1) {
+        if (swipeDistance > 0 && this.currentFloorIndex < this.floorGuides.length - 1) {
           this.currentFloorIndex++;
         } else if (swipeDistance < 0 && this.currentFloorIndex > 0) {
           this.currentFloorIndex--;
@@ -133,14 +133,16 @@ export default {
     },
     handleMouseUp() {
       if (this.isDragging) {
-        const swipeDistance = this.mouseStartX - this.mouseEndX;
-        const minSwipeDistance = 50;
+        if (this.floorGuides.length > 1) { // 층이 하나 이상일 때만
+          const swipeDistance = this.mouseStartX - this.mouseEndX;
+          const minSwipeDistance = 50;
 
-        if (Math.abs(swipeDistance) > minSwipeDistance) {
-          if (swipeDistance > 0 && this.currentFloorIndex < this.floors.length - 1) {
-            this.currentFloorIndex++;
-          } else if (swipeDistance < 0 && this.currentFloorIndex > 0) {
-            this.currentFloorIndex--;
+          if (Math.abs(swipeDistance) > minSwipeDistance) {
+            if (swipeDistance > 0 && this.currentFloorIndex < this.floorGuides.length - 1) {
+              this.currentFloorIndex++;
+            } else if (swipeDistance < 0 && this.currentFloorIndex > 0) {
+              this.currentFloorIndex--;
+            }
           }
         }
 
@@ -159,7 +161,7 @@ export default {
 </script>
 
 <style scoped>
-/* 모달 스타일 */
+/* 모달 스타일 (기존과 동일) */
 .modal-overlay {
   position: absolute;
   top: 0;
@@ -188,7 +190,7 @@ export default {
   border-radius: 12px 12px 0 0;
 }
 
-/* 슬라이더 */
+/* 슬라이더 (기존과 동일) */
 .slider-container {
   position: relative;
   overflow: hidden;
@@ -208,24 +210,29 @@ export default {
 }
 
 .floor-slide {
-  min-width: 100%;
+  min-width: 80%;
   flex-shrink: 0;
-  padding: 0 20px;
+  padding: 0;
+  box-sizing: border-box;
+  /* 패딩이 너비에 포함되도록 */
 }
 
-.floor-image-placeholder {
-  background: #e9ecef;
-  border-radius: 8px;
-  height: 250px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
+/* [수정] Placeholder 대신 실제 이미지 스타일 */
+.floor-image {
   width: 100%;
+  height: 250px;
+  /* 고정 높이 */
+  /* 이미지가 비율을 유지하며 꽉 차게 포함됨 */
+  object-fit: cover;
+  ;
+  background: #f8f9fa;
+  /* 이미지가 없는 경우 배경색 */
+  border-radius: 8px;
+  user-select: none;
+  /* 이미지 드래그 방지 */
 }
 
-/* 인디케이터 */
+/* 인디케이터 (기존과 동일) */
 .indicators {
   user-select: none;
 }
@@ -245,14 +252,14 @@ export default {
   background-color: #0d6efd;
 }
 
-/* 층 버튼 */
+/* 층 버튼 (기존과 동일) */
 .floor-btn {
   min-width: 50px;
   font-size: 0.9rem;
   padding: 0.4rem 0.8rem;
 }
 
-/* 스크롤바 커스텀 */
+/* 스크롤바 (기존과 동일) */
 .modal-content::-webkit-scrollbar {
   width: 6px;
 }

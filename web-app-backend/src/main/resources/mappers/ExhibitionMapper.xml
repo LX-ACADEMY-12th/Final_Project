@@ -174,5 +174,51 @@
     </select>
 
 
+    <resultMap id="hallDetailResultMap" type="com.example.demo.dto.HallDetailResultDTO">
+        <result property="hallId" column="hall_id"/>
+        <result property="scienceCenterId" column="science_center_id"/>
+        <result property="exhibitionLocation" column="exhibition_location"/>
+        <result property="floors" column="floors"/>
+        <result property="lat" column="lat"/>
+        <result property="lng" column="lng"/>
+        <result property="operationPeriod" column="operation_period"/>
+        <result property="operationHours" column="operation_hours"/>
+        <result property="entranceFee" column="entrance_fee"/>
+    </resultMap>
+
+    <resultMap id="hallSimpleResultMap" type="com.example.demo.dto.HallSimpleResultDTO">
+        <result property="key" column="key"/>
+        <result property="name" column="hall_name"/>
+        <result property="locationDescription" column="location_description"/>
+        <result property="floors" column="floors"/>
+    </resultMap>
+
+    <select id="findHallDetailById" parameterType="long" resultMap="hallDetailResultMap">
+        SELECT
+            h.hall_id AS hall_id,
+            split_part(h.science_center_name, ' ', 1) AS science_center_id,
+            h.name AS exhibition_location,
+            h.floors,
+            s.lat, s.lng, s.operation_period, s.operation_hours, s.entrance_fee
+        FROM
+            exhibition_hall h
+                JOIN
+            science_center s ON split_part(h.science_center_name, ' ', 1) = s.name
+        WHERE
+            h.hall_id = #{hallId}
+    </select>
+
+    <select id="findHallsByScienceCenterName" parameterType="string" resultMap="hallSimpleResultMap">
+        SELECT
+            h.hall_id AS key,
+            h.hall_name,
+            h.description AS location_description
+        FROM
+            exhibition_hall h
+        WHERE
+            split_part(h.science_center_name, ' ', 1) = #{scienceCenterName}
+        ORDER BY
+            h.hall_name
+    </select>
 
 </mapper>

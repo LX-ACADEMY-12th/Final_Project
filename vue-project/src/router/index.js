@@ -15,6 +15,8 @@ import SignupView from '@/views/SignupView.vue'
 import UserLikePlaceListView from '@/views/UserLikePlaceListView.vue'
 import NoticeView from '@/views/NoticeView.vue'
 import NoticeDetailView from '@/views/NoticeDetailView.vue'
+import StampView from '@/views/StampView.vue'
+import TourView from '@/views/TourView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -114,6 +116,17 @@ const router = createRouter({
       path: '/notice/:id',
       name: 'NoticeDetail',
       component: NoticeDetailView,
+    },
+    // 스탬프 화면
+    {
+      path: '/stamp',
+      name: 'stamp',
+      component: StampView,
+    },
+    {
+      path: '/virtualTour',
+      name: 'virtualTour',
+      component: TourView,
     },
   ],
 })

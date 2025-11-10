@@ -106,6 +106,10 @@ public class SecurityConfig {
                         // 3. 추천 코스 '조회'는 공개 (GET)
                         .requestMatchers(HttpMethod.GET, "/api/recommend/course").permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/api/halls/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/api/centers/**").permitAll()
+
                         // 4. ✅ 추천 코스 '저장'은 인증 필수 (POST) - 명시적으로 추가
                         .requestMatchers(HttpMethod.POST, "/api/schedules/save-recommended").authenticated()
 
