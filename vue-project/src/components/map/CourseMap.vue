@@ -70,6 +70,74 @@ watch(() => props.items, (newItems) => {
     toggleRoadview(false); // 지도로 복귀
   }
 });
+
+// :큰_초록색_원: [신규] API 키와 URL을 사용하여 경로 데이터를 가져오는 비동기 함수
+const getRoutePathFromAPI = async (items) => {
+  // 1. items가 2개 미만이면 (경로 계산 불필요) null을 반환합니다.
+  if (items.length < 2) {
+    console.warn('[API] 경로를 계산하기에 아이템이 부족합니다.');
+    return null;
+  }
+  // 2. 출발지, 목적지, 경유지를 items 배열에서 분리합니다.
+  const origin = items[0]; // 배열의 첫 번째 요소
+  const destination = items[items.length - 1]; // 배열의 마지막 요소
+  const waypoints = items.slice(1, -1); // 첫 요소와 마지막 요소를 제외한 중간 요소
+  // 3. API 요청 본문(Payload)을 구성합니다.
+  // 카카오 모빌리티 API는 경도(X), 위도(Y) 순서를 사용하며, 모든 값은 문자열이어야 합니다.
+  const payload = {
+    origin: { x: origin.lng.toString(), y: origin.lat.toString() },
+    destination: { x: destination.lng.toString(), y: destination.lat.toString() },
+    // 경유지 배열도 {x: lng, y: lat} 형태의 객체 배열로 변환합니다.
+    waypoints: waypoints.map(item => ({ x: item.lng.toString(), y: item.lat.toString() })),
+    priority: "TIME", // 경로 우선순위를 최단 시간(TIME)으로 설정 (DISTANCE도 가능)
+  };
+  // 4. 환경 변수에서 REST API 키를 가져옵니다.
+  const API_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
+  const API_URL = 'https://apis-navi.kakaomobility.com/v1/waypoints/directions';
+  try {
+    // 5. fetch를 사용하여 POST 요청을 보냅니다.
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        // Authorization 헤더에 REST API 키를 포함해야 합니다.
+        'Authorization': `KakaoAK ${API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload) // 구성한 Payload를 JSON 문자열로 변환하여 전송
+    });
+    if (!response.ok) {
+      // HTTP 상태 코드가 200번대가 아닐 경우 에러 처리
+      throw new Error(`Kakao Directions API 오류: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    // 6. 응답 데이터(data)에서 경로 좌표를 추출합니다.
+    if (data.routes && data.routes.length > 0) {
+      const route = data.routes[0]; // 첫 번째 추천 경로 사용
+      const allPoints = [];
+      route.sections.forEach(section => {
+        section.roads.forEach(road => {
+          // vertexes는 [x1, y1, x2, y2, ...] 형식으로 되어 있습니다.
+          road.vertexes.forEach((coord, index) => {
+            // 짝수 인덱스는 경도(X), 홀수 인덱스는 위도(Y)입니다.
+            if (index % 2 === 0) {
+              const x = coord; // 경도 (lng)
+              const y = road.vertexes[index + 1]; // 위도 (lat)
+              // 카카오맵의 Polyline을 위해 LatLng 객체로 변환 (순서: 위도, 경도)
+              allPoints.push(new window.kakao.maps.LatLng(y, x));
+            }
+          });
+        });
+      });
+      console.log(`[API] 길찾기 경로 좌표 ${allPoints.length}개 추출 완료.`);
+      return allPoints; // Polyline에 사용할 실제 경로 좌표 배열 반환
+    }
+    return null; // 경로가 없는 경우
+  } catch (error) {
+    console.error('[API] 길찾기 API 호출 중 오류 발생:', error);
+    return null; // 오류 발생 시 null 반환
+  }
+};
+
 // :큰_초록색_원: [신규] 로드뷰 <-> 지도 토글 함수
 const toggleRoadview = (showRoadview) => {
   isRoadviewActive.value = showRoadview;
@@ -134,7 +202,7 @@ const clearMapElements = () => {
 // :총격전: [수정] bounds 변수를 함수 밖(전역)으로 이동
 let bounds = null;
 // --- 맵에 핀과 선을 그리는 핵심 함수 ---
-const drawCourseOnMap = (items) => {
+const drawCourseOnMap = async (items) => {
   // --- 함수 시작 ---
   console.log('[CourseMap] drawCourseOnMap 호출됨 / items:', JSON.stringify(items || [], null, 2));
   // --- 맵 준비 상태 확인 ---
@@ -152,16 +220,19 @@ const drawCourseOnMap = (items) => {
     return;
   }
   console.log('[CourseMap] 기존 지도 요소 지우는 중...');
+
   clearMapElements();
+
   const newMarkers = [];
-  const path = [];
+  const straightPath = [];
+
   // :총격전: [수정] 'const'를 지우고 전역 'let bounds' 변수에 할당
   bounds = new window.kakao.maps.LatLngBounds();
   items.forEach((item, index) => {
     console.log(`[CourseMap] 아이템 ${index} 처리 중:`, item);
     // --- 좌표 유효성 검사 ---
     if (item.lat == null || item.lng == null || isNaN(Number(item.lat)) || isNaN(Number(item.lng))) {
-      console.error(`[CourseMap] :느낌표:️:느낌표:️:느낌표:️ 아이템 ${index}의 좌표가 유효하지 않거나 없습니다. 마커 생성을 건너<0xEB><0x9A><0x8E>니다.`, item);
+      console.error(`[CourseMap] 아이템 ${index}의 좌표가 유효하지 않거나 없습니다. 마커 생성을 건너뜁니다.`, item);
       return; // 이 아이템 건너뛰기
     }
     const position = new window.kakao.maps.LatLng(Number(item.lat), Number(item.lng));
@@ -173,7 +244,7 @@ const drawCourseOnMap = (items) => {
     const markerImageSrc = createMarkerImage(itemNumber, markerColor);
     console.log(`[CourseMap] 아이템 ${index} - 번호: ${itemNumber}, 색상: ${markerColor}, 이미지 소스(앞부분): ${markerImageSrc?.substring(0, 50)}...`);
     if (!markerImageSrc || typeof markerImageSrc !== 'string' || !markerImageSrc.startsWith('data:image/svg+xml')) {
-      console.error(`[CourseMap] :느낌표:️:느낌표:️:느낌표:️ 아이템 ${index}에 대한 마커 이미지 소스가 유효하지 않습니다. 마커 생성을 건너<0xEB><0x9A><0x8E>니다.`, markerImageSrc);
+      console.error(`[CourseMap] 아이템 ${index}에 대한 마커 이미지 소스가 유효하지 않습니다. 마커 생성을 건너뜁니다.`, markerImageSrc);
       return; // 이 아이템 건너뛰기
     }
     let markerImage;
@@ -185,7 +256,7 @@ const drawCourseOnMap = (items) => {
       );
       console.log(`[CourseMap] 아이템 ${index} MarkerImage 생성됨.`);
     } catch (imgError) {
-      console.error(`[CourseMap] :느낌표:️:느낌표:️:느낌표:️ 아이템 ${index} MarkerImage 생성 중 오류 발생:`, imgError, markerImageSrc);
+      console.error(`[CourseMap]  아이템 ${index} MarkerImage 생성 중 오류 발생:`, imgError, markerImageSrc);
       return; // MarkerImage 생성 실패 시 건너뛰기
     }
     // --- 마커 생성 ---
@@ -195,23 +266,32 @@ const drawCourseOnMap = (items) => {
         image: markerImage, // 생성된 markerImage 객체 사용
         map: map.value,
       });
+
       console.log(`[CourseMap] 아이템 ${index} 마커 생성 및 지도에 추가 완료.`);
       newMarkers.push(marker);
-      path.push(position);
+      straightPath.push(position);
       bounds.extend(position); // :왼쪽을_가리키는_손_모양: 여기가 전역 bounds를 채움
     } catch (markerError) {
       // insertBefore 에러는 주로 여기서 발생 (image 값이 잘못되었을 때)
-      console.error(`[CourseMap] :느낌표:️:느낌표:️:느낌표:️ 아이템 ${index} 마커 생성 중 오류 발생:`, markerError, { position, markerImage });
+      console.error(`[CourseMap]  아이템 ${index} 마커 생성 중 오류 발생:`, markerError, { position, markerImage });
       // 필요시 에러를 다시 던지거나 다르게 처리
     }
   }); // --- forEach 끝 ---
-  // --- 끝 ---
-  console.log('[CourseMap] 아이템 처리 완료. 경로 개수:', path.length);
+
+  markers.value = newMarkers;
+
+  markers.value = newMarkers; // 마커 목록 업데이트
+  // :큰_초록색_원: [신규] API 경로를 가져옵니다. (비동기 호출)
+  const apiPath = await getRoutePathFromAPI(items);
+  // API 경로가 성공하면 그것을 사용하고, 실패하면 마커 좌표를 이용한 직선 경로를 사용합니다.
+  const polylinePath = apiPath || straightPath;
+  console.log('[CourseMap] 아이템 처리 완료. 최종 경로 개수:', polylinePath.length);
+
   // --- 폴리라인(선) 생성 ---
-  if (path.length > 1) {
+  if (polylinePath.length > 1) {
     try {
       const newPolyline = new window.kakao.maps.Polyline({
-        path: path,
+        path: polylinePath,
         strokeWeight: 4,
         strokeColor: '#4A7CEC',
         strokeOpacity: 0.8,
@@ -221,13 +301,12 @@ const drawCourseOnMap = (items) => {
       polyline.value = newPolyline;
       console.log('[CourseMap] 폴리라인 생성 및 추가 완료.');
     } catch (polyError) {
-      console.error('[CourseMap] :느낌표:️:느낌표:️:느낌표:️ 폴리라인 생성 중 오류 발생:', polyError, path);
+      console.error('[CourseMap]  폴리라인 생성 중 오류 발생:', polyError, polylinePath);
     }
   } else {
     console.log('[CourseMap] 폴리라인을 그리기에 점이 부족합니다.');
   }
-  // --- 마커 저장 및 지도 범위 설정 ---
-  markers.value = newMarkers;
+
   if (!bounds.isEmpty()) {
     // 1. 단일 위치 모드인 경우 (숫자 없고, 줌 고정)
     if (props.isSingleLocation) {
@@ -241,13 +320,14 @@ const drawCourseOnMap = (items) => {
         map.value.setBounds(bounds);
         console.log('[CourseMap] 지도 범위 설정 완료.');
       } catch (boundsError) {
-        console.error('[CourseMap] :느낌표:️:느낌표:️:느낌표:️ 지도 범위 설정 중 오류 발생:', boundsError, bounds);
+        console.error('[CourseMap]  지도 범위 설정 중 오류 발생:', boundsError, bounds);
       }
     }
   } else {
     console.warn('[CourseMap] 유효한 범위가 없어 지도 범위를 설정할 수 없습니다.');
   }
 }; // --- drawCourseOnMap 함수 끝 ---
+
 // --- 마커 색상 결정 함수
 const getCourseItemColor = (itemNumber) => {
   // CourseMap.vue의 getMarkerColor 함수와 동일한 로직 사용

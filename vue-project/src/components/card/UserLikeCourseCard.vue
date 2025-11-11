@@ -51,7 +51,8 @@ export default {
       markers: [],
       polyline: null,
       mapWidth: 149,
-      mapHeight: 126
+      mapHeight: 126,
+      routePath: []
     };
   },
   computed: {
@@ -121,9 +122,9 @@ export default {
     },
 
     // 콘텐츠 영역 클릭
-    handleContentClick(event) {
-      console.log('📝 Content area clicked');
+    handleContentClick() {
       // 이벤트 버블링으로 자동으로 handleCardClick 실행됨
+      console.log('📝 Content area clicked');
     },
 
     // 하트 아이콘 클릭 (카드 클릭과 분리)
@@ -146,6 +147,63 @@ export default {
       } catch (error) {
         console.error('지도 생성 실패:', error);
         this.showFallbackImage();
+      }
+    },
+
+    // :큰_초록색_원: [신규] 카카오 모빌리티 API 호출 함수 추가
+    async getRoutePathFromAPI(coordinates) {
+      if (coordinates.length < 2) {
+        console.warn('[API] 경로를 계산하기에 아이템이 부족합니다.');
+        return null;
+      }
+      const origin = coordinates[0];
+      const destination = coordinates[coordinates.length - 1];
+      // 중간 경유지 (출발지, 목적지 제외)
+      const waypoints = coordinates.slice(1, -1);
+      const payload = {
+        origin: { x: origin.lng.toString(), y: origin.lat.toString() },
+        destination: { x: destination.lng.toString(), y: destination.lat.toString() },
+        waypoints: waypoints.map(item => ({ x: item.lng.toString(), y: item.lat.toString() })),
+        priority: "TIME",
+      };
+      const API_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
+      const API_URL = 'https://apis-navi.kakaomobility.com/v1/waypoints/directions';
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `KakaoAK ${API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          throw new Error(`Kakao Directions API 오류: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const allPoints = [];
+          // 경로 좌표 추출 로직
+          route.sections.forEach(section => {
+            section.roads.forEach(road => {
+              road.vertexes.forEach((coord, index) => {
+                if (index % 2 === 0) {
+                  const x = coord; // 경도 (lng)
+                  const y = road.vertexes[index + 1]; // 위도 (lat)
+                  // LatLng 객체로 변환 (순서: 위도, 경도)
+                  allPoints.push(new window.kakao.maps.LatLng(y, x));
+                }
+              });
+            });
+          });
+          console.log(`[API] 카드 지도 경로 좌표 ${allPoints.length}개 추출 완료.`);
+          return allPoints; // Polyline에 사용할 실제 경로 좌표 배열 반환
+        }
+        return null;
+      } catch (error) {
+        console.error('[API] 카드 지도 길찾기 API 호출 중 오류 발생. 직선으로 표시:', error);
+        return null; // 오류 발생 시 null 반환
       }
     },
 
@@ -228,10 +286,10 @@ export default {
     },
 
     // 마커랑 경로 띄우기
-    addCourseMarkersAndRoute() {
+    async addCourseMarkersAndRoute() {
       if (this.courseCoordinates.length === 0) return;
 
-      const positions = [];
+      const markerPositions = [];
 
       // 기존 마커와 라인 제거
       this.clearMapElements();
@@ -239,7 +297,7 @@ export default {
       // 마커 추가
       this.courseCoordinates.forEach((coord, index) => {
         const position = new window.kakao.maps.LatLng(coord.lat, coord.lng);
-        positions.push(position);
+        markerPositions.push(position);
 
         // 커스텀 마커 이미지 생성
         const markerImageSrc = this.createMarkerImage(
@@ -263,10 +321,17 @@ export default {
         this.markers.push(marker);
       });
 
-      // 폴리라인 추가 (경로 연결선)
-      if (positions.length > 1) {
+      // 3. [신규] API 호출 및 실제 경로 가져오기
+      // await를 사용하여 API 응답을 기다립니다.
+      const apiPath = await this.getRoutePathFromAPI(this.courseCoordinates);
+      // 4. 사용할 최종 경로 결정: API 경로가 있으면 사용, 없으면 마커 좌표를 직선으로 사용
+      const finalPath = apiPath && apiPath.length > 1 ? apiPath : markerPositions;
+      this.routePath = finalPath; // 경로를 data에 저장합니다.
+      // 5. 폴리라인 추가 (경로 연결선)
+      if (finalPath.length > 1) {
         this.polyline = new window.kakao.maps.Polyline({
-          path: positions,
+          // [수정] API에서 가져온 경로 또는 직선 경로 사용
+          path: finalPath,
           strokeWeight: 3,
           strokeColor: '#4A7CEC',
           strokeOpacity: 0.8,
@@ -277,7 +342,7 @@ export default {
     },
 
     // 코스 아이템 변경 시 지도 업데이트
-    updateMapWithCourse() {
+    async updateMapWithCourse() {
       if (!this.map) return;
 
       // 기존 마커와 라인 제거
@@ -286,7 +351,7 @@ export default {
       if (this.courseCoordinates.length > 0) {
         // ⚠️ **수정된 부분:** 중심점/레벨 대신 경계(bounds)를 설정하는 함수 호출
         this.updateMapBounds();
-        this.addCourseMarkersAndRoute();
+        await this.addCourseMarkersAndRoute();
       }
     },
 
