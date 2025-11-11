@@ -17,6 +17,7 @@ import NoticeView from '@/views/NoticeView.vue'
 import NoticeDetailView from '@/views/NoticeDetailView.vue'
 import StampView from '@/views/StampView.vue'
 import TourView from '@/views/TourView.vue'
+import ExperimentView from '../views/ExperimentView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -127,6 +128,11 @@ const router = createRouter({
       path: '/virtualTour',
       name: 'virtualTour',
       component: TourView,
+    },
+    {
+      path: '/experiment',
+      name: 'ExperimentView',
+      component: ExperimentView,
     },
   ],
 })

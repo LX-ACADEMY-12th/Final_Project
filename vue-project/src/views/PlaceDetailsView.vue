@@ -17,7 +17,7 @@
           :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag"
           @authenticate-visit="handleVisitAuthentication" />
         <hr class="divider" />
-        <TabSection :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
+        <TabSection :key="currentTab" :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
           <ContentDetailView :exhibitionInformation="exhibitionInformation" :exhibition="exhibition" :isPlace="false"
@@ -81,7 +81,7 @@
           </div>
 
           <!-- 실제 추천 결과 -->
-          <CourseRecommend v-else :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
+          <CourseRecommend v-else :key="courseRerenderKey" :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
             @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
@@ -168,7 +168,6 @@
     </div>
   </div>
 </template>
-
 <script>
 import axios from '@/api/axiosSetup';
 
@@ -178,15 +177,14 @@ import InfoSection from '@/components/section/InfoSection.vue';
 import TabSection from '@/components/section/TabSection.vue';
 import ContentDetailView from './ContentDetailView.vue';
 import CourseRecommend from './CourseRecommend.vue';
-// 🟢 [추가] Pinia 스토어 (로그인 상태 확인용)
+
+// Pinia (로그인 상태 확인)
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
-import eventBus from '@/utils/eventBus'; // 💡 [추가] 글로벌 알림용
+import eventBus from '@/utils/eventBus';
 import { getSceneIdFromTitle } from '@/utils/tourMapper';
 
-
-// API 베이스
 export default {
   name: 'PlaceDetailsView',
 
@@ -197,48 +195,71 @@ export default {
     CourseRecommend,
     ContentDetailView,
   },
-  // 🟢 Options API에서 Pinia를 사용하기 위한 setup()
+
+  // 컴포넌트 라우트 가드
+  beforeRouteLeave(to, from, next) {
+    if (this.isTourRoute(to)) {
+      // 떠나기 직전 현재 courseItems 스냅샷 저장
+      this.saveCourseCache();
+      // 돌아오면 추천 탭으로 열기
+      sessionStorage.setItem('pdv:tabAfterBack', 'recommend');
+      // 추천 카드/지도 캐시도 재사용
+      sessionStorage.setItem('pdv:courseCacheKey', this.cacheKey);
+      // (선택) 복귀용 정보
+      sessionStorage.setItem(
+        'pdv:returnTo',
+        JSON.stringify({
+          type: this.pageType,
+          id: this.currentId,
+          query: this.$route.query
+        })
+      );
+      return next(); // 캐시는 유지
+    }
+    // 투어가 아니면 평소처럼 캐시 클리어
+    this.clearCourseCache();
+    next();
+  },
+
+  activated() {
+    this.restoreTabIfCameBack();
+  },
+
+  // Options API에서 Pinia 사용
   setup() {
-    // 1. auth 스토어를 가져옵니다.
     const authStore = useAuthStore();
-
-    // 2. storeToRefs를 사용해 스토어의 상태(state)와 게터(getter)를
-    //    반응성을 유지(reactive)하면서 가져옵니다.
     const { isLoggedIn, currentUserId } = storeToRefs(authStore);
-
-    // 3. setup()에서 이 값들을 반환하면,
-    //    computed, methods 등 다른 옵션에서 this.isLoggedIn, this.currentUserId로 접근할 수 있습니다.
     return {
       isLoggedIn,
-      currentUserId // (authStore.js의 'currentUserId' getter)
+      currentUserId
     };
   },
-  // 🟢 1. [추가] 이 computed 섹션을 setup() 함수 뒤, data() 앞 등에 추가하세요.
+
   computed: {
-    // 💡 :isFavorite prop에 전달할 최종 찜 상태
     computedIsFavorite() {
-      // 💡 data()에 있는 isWished 변수를 사용
       return this.isWished;
+    },
+    cacheKey() {
+      return `course-cache:${this.pageType}:${this.currentId}`;
     }
   },
 
   data() {
     return {
-      // 현재 ID를 저장할 변수
-      currentId: null, // <-- 여기에 targetId를 저장
-      // 화면 상태
-      pageType: null,     // 'exhibition' | 'place' <-- 여기에 targetType을 저장
+      courseRerenderKey: 0,
+      currentId: null,
+      pageType: null, // 'exhibition' | 'science_place'
       currentTab: 'detail',
-      isWished: false, // 찜 상태를 별도로 관리할 '신뢰할 수 있는' 변수
+      isWished: false,
 
       // 전시 상세
       exhibition: {
         title: '데이터 로딩 중...',
         rating: 0,
         reviewCount: 0,
-        mainCategory: '',   // (PillTag용)
-        subCategories: [],  // (HashTag용)
-        gradeTag: '',    // (PillTag용)
+        mainCategory: '',
+        subCategories: [],
+        gradeTag: '',
         type: '',
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
@@ -247,9 +268,8 @@ export default {
         visited: false,
         liked: false
       },
-      isLoading: false, // 중복 클릭 방지용
+      isLoading: false,
 
-      // 이게 LocationSection에 들어갈 부분
       exhibitionInformation: {
         exhibitionLocation: '',
         operationPeriod: '',
@@ -266,9 +286,9 @@ export default {
         title: '데이터 로딩 중...',
         rating: 0,
         reviewCount: 0,
-        mainCategory: '',   // (PillTag용)
-        subCategories: [],  // (HashTag용)
-        gradeTag: '',    // (PillTag용)
+        mainCategory: '',
+        subCategories: [],
+        gradeTag: '',
         type: '',
         description: '',
         mainImage: 'https://via.placeholder.com/600x400',
@@ -276,29 +296,22 @@ export default {
         visited: false,
         liked: false
       },
-      // (LocationSection이 'placeAddress'를 사용)
+
       placeInformation: {
         placeAddress: '',
         operationPeriod: '',
         operationHours: '',
         entranceFee: '',
         lat: 0,
-        lng: 0,
+        lng: 0
       },
 
-      // 공통 <--
-      // reviews: [],
-
-      // AI 추천 코스 결과를 담을 배열
+      // 추천 코스
       courseItems: [],
-
-      // 추천 코스를 이미 로드했는지 추적하는 플래그
       hasLoadedRecommendations: false,
-
-      // AI 추천 API 로딩 상태를 추적할 변수 추가
       isRecommending: false,
 
-      // AI 로딩 애니메이션 관련
+      // 로딩 애니메이션
       progressSteps: ['데이터 분석', '유사 장소 탐색', '경로 최적화', '코스 완성'],
       currentStepIndex: 0,
       stepInterval: null,
@@ -317,43 +330,44 @@ export default {
         '날씨와 시간대를 고려한 추천을 제공합니다'
       ],
       currentTipIndex: 0,
-      tipInterval: null,
+      tipInterval: null
     };
   },
 
-  // 컴포넌트 로드  훅 설정
   created() {
-    // URL에서 ID 가져오기
-    const id = this.$route.params.id; // url에서 id를 가져와서 targetId로 사용!
-    // ID를 data()에 저장
+    // URL에서 ID/타입 결정
+    const id = this.$route.params.id;
     this.currentId = id;
-    // URL 경로가 place 인지 판별
-    const isPlace = this.$route.path.startsWith('/place/'); // 1. URL 경로를 분석해서 'targetType'으로 사용
-    this.pageType = isPlace ? 'science_place' : 'exhibition'
+    const isPlace = this.$route.path.startsWith('/place/');
+    this.pageType = isPlace ? 'science_place' : 'exhibition';
 
-    console.log(`created: 이미 User ID (${this.currentUserId}) 있음. 즉시 데이터 로드`);
-    // 장소인 경우
+    // 데이터 로딩
     if (isPlace) {
       this.fetchPlaceData(id);
-      // 전시인 경우
     } else {
       this.fetchExhibitionData(id);
     }
 
-    // setup에서 가져온 currentUserId가 잘 찍히는지 확인
-    console.log('[PlaceDetailsView] 현재 로그인된 User ID (from Pinia):', this.currentUserId);
+    console.log('[PlaceDetailsView] currentUserId:', this.currentUserId);
+  },
+
+  mounted() {
+    this.restoreTabIfCameBack();
+    // 브라우저 bfcache 뒤로가기 케이스 대응
+    this._onPageShow = () => this.restoreTabIfCameBack();
+    window.addEventListener('pageshow', this._onPageShow);
   },
 
   watch: {
-    // currentId 대신, $route.params.id 감시
-    '$route.params.id'(newId) {
-      if (newId) {
+    '$route.params.id'(newId, oldId) {
+      if (oldId && newId && newId !== oldId) {
+        const oldKey = `course-cache:${this.pageType}:${oldId}`;
+        this.clearCourseCache(oldKey);
+        this.hasLoadedRecommendations = false;
+
         this.currentId = newId;
         const isPlace = this.$route.path.startsWith('/place/');
         this.pageType = isPlace ? 'science_place' : 'exhibition';
-
-        // 🟢 [수정] 로그인 여부와 관계없이 무조건 데이터를 로드합니다.
-        console.log(`watch($route.params.id): 데이터 로드 (User ID: ${this.currentUserId ?? '로그아웃'})`);
         if (isPlace) {
           this.fetchPlaceData(newId);
         } else {
@@ -362,18 +376,13 @@ export default {
       }
     },
     currentUserId(newUserId, oldUserId) {
-      // (falsey(null/undefined) -> truthy('28'))가 되고, ID가 이미 있다면
       if (newUserId && !oldUserId && this.currentId) {
-        console.log(`User ID 감지 (${newUserId}), '찜 상태만' 새로고침`);
-
-        // 찜/ 방문 상태를 모두 포함한 메인 API를 다시 호출
         if (this.pageType === 'exhibition') {
           this.fetchExhibitionData(this.currentId);
         } else if (this.pageType === 'science_place') {
           this.fetchPlaceData(this.currentId);
         }
       } else if (!newUserId && oldUserId) {
-        // 🟢 5. [신규] 로그아웃 감지 시 찜 상태 false로 초기화
         this.isWished = false;
       }
     }
@@ -381,40 +390,161 @@ export default {
 
   beforeUnmount() {
     this.clearLoadingIntervals();
+    if (this._onPageShow) window.removeEventListener('pageshow', this._onPageShow);
   },
 
   methods: {
 
-    /** DTO -> 프론트 상태 매핑 (Exhibition) */
+    async handleSaveRecommendedCourse(items) {
+      console.log('[Parent] save received, items =', Array.isArray(items) ? items.length : items);
+
+      // 로그인 가드
+      if (!this.isLoggedIn) {
+        eventBus.emit('show-global-confirm', {
+          message: '로그인이 필요한 기능입니다.',
+          onConfirm: () => this.$router.push({ name: 'login' })
+        });
+        return;
+      }
+      if (!Array.isArray(items) || items.length === 0) {
+        eventBus.emit('show-global-alert', { message: '저장할 코스 정보가 없습니다.', type: 'error' });
+        return;
+      }
+
+      try {
+        const currentItemData = (this.pageType === 'science_place') ? this.place : this.exhibition;
+        const scheduleName = `AI 추천: ${currentItemData.title || '코스'}`;
+        const sourceId = this.currentId;
+
+        const backendItems = items.map(item => ({
+          exhibitionId: this.pageType !== 'science_place' ? item.id : null,
+          placeId:      this.pageType === 'science_place' ? item.id : null,
+          sequence:     item.number,
+          itemType:     item.type === 'exhibition' ? 'exhibition' : 'science_place',
+          categoryName: item.subject,
+          gradeName:    item.grade,
+          subCategories: item.hashtags
+        }));
+
+        const requestDto = {
+          scheduleName,
+          sourceId,
+          sourceCourseType: this.pageType === 'science_place' ? 'ai_course' : 'inner_course',
+          items: backendItems,
+          userId: this.currentUserId
+        };
+
+        console.log('[Parent] POST /api/schedules/save-recommended', requestDto);
+        const res = await axios.post('/api/schedules/save-recommended', requestDto);
+
+        if (res.status === 200) {
+          eventBus.emit('show-global-alert', { message: '추천 코스가 "관심 코스"에 저장되었습니다.', type: 'success' });
+        } else {
+          eventBus.emit('show-global-alert', { message: `코스 저장 중 문제가 발생했습니다: ${res.statusText}`, type: 'error' });
+        }
+      } catch (err) {
+        console.error('save error', err);
+        const msg = err.response?.data || err.message;
+        eventBus.emit('show-global-alert', { message: `코스 저장 중 오류: ${msg}`, type: 'error' });
+      }
+    },
+
+    // 투어 라우트 감지 (name/path 모두 느슨하게)
+    isTourRoute(route) {
+      const n = (route?.name || '').toString().toLowerCase();
+      const p = (route?.path || '').toString().toLowerCase();
+      return (
+        n === 'virtualtour' ||
+        n === 'tour' ||
+        n.includes('virtual') ||
+        n.includes('tour') ||
+        /virtual|tour|vr|webgl/.test(p)
+      );
+    },
+
+    // 뒤로 복귀 시 탭/캐시 복원
+    async restoreTabIfCameBack() {
+      const desired = sessionStorage.getItem('pdv:tabAfterBack');
+      if (desired === 'recommend') {
+        this.currentTab = 'recommend';
+
+        const key = sessionStorage.getItem('pdv:courseCacheKey');
+        if (key && key === this.cacheKey) {
+          const reused = this.loadCourseCache();
+          if (!reused && !this.hasLoadedRecommendations) {
+            this.hasLoadedRecommendations = false;
+            this.fetchRecommendedCourse();
+          }
+        } else {
+          if (!this.hasLoadedRecommendations) this.fetchRecommendedCourse();
+        }
+
+        sessionStorage.removeItem('pdv:tabAfterBack');
+        sessionStorage.removeItem('pdv:courseCacheKey');
+      }
+    },
+
+    loadCourseCache() {
+      try {
+        const raw = sessionStorage.getItem(this.cacheKey);
+        if (!raw) return false;
+        const { items } = JSON.parse(raw);
+        if (!Array.isArray(items) || items.length === 0) return false;
+        this.courseItems = items;
+        this.hasLoadedRecommendations = true;
+        this.courseRerenderKey = Date.now(); // ⬅️ 자식 강제 리렌더
+        console.log('♻️ 코스 캐시 재사용:', this.courseItems);
+        return true;
+      } catch (e) {
+        console.warn('코스 캐시 파싱 실패:', e);
+        return false;
+      }
+    },
+
+    saveCourseCache() {
+      try {
+        const payload = { items: this.courseItems };
+        sessionStorage.setItem(this.cacheKey, JSON.stringify(payload));
+        console.log('💾 코스 캐시 저장 완료:', this.cacheKey);
+      } catch (e) {
+        console.warn('코스 캐시 저장 실패:', e);
+      }
+    },
+
+    clearCourseCache(key = this.cacheKey) {
+      try {
+        sessionStorage.removeItem(key);
+        console.log('🧹 코스 캐시 제거:', key);
+      } catch (e) {
+        console.warn('코스 캐시 제거 실패:', e);
+      }
+    },
+
+    // DTO -> 상태 매핑 (Exhibition)
     mapExhibitionDTO(dto) {
       const title = dto.exhibitionHallName ?? '제목 없음';
-      // URL 쿼리에서 원본 데이터 가져오기
-      const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
+
+      const category = this.$route.query.mainCategoryTags ?? '';
       const subCategoryData = this.$route.query.subCategoryTags;
       const grade = this.$route.query.gradeTags;
-      // subCategoriesArray를 빈 배열로 초기화
+
       let subCategoriesArray = [];
-      // subCategoryData가 문자열일 때만 split 실행
       if (typeof subCategoryData === 'string') {
         subCategoriesArray = subCategoryData
           .split(',')
           .map(tag => tag.trim())
           .filter(Boolean);
+      } else if (Array.isArray(subCategoryData)) {
+        subCategoriesArray = subCategoryData.map(tag => String(tag).trim()).filter(Boolean);
       }
-      // 만약 subCategoryData가 이미 배열일 경우 처리
-      else if (Array.isArray(subCategoryData)) {
-        // 각 요소를 문자열로 변환하고 공백 제거 (안전 장치)
-        subCategoriesArray = subCategoryData
-          .map(tag => String(tag).trim())
-          .filter(Boolean);
-      }
+
       this.exhibition = {
         title,
         rating: dto.averageRating ?? 0,
         reviewCount: dto.totalReviews ?? 0,
-        mainCategory: category, // PillTag
+        mainCategory: category,
         subCategories: subCategoriesArray,
-        gradeTag: grade, // PillTag
+        gradeTag: grade,
         type: dto.type ?? 'exhibition',
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
@@ -426,7 +556,6 @@ export default {
 
       this.isWished = dto.liked ?? false;
 
-      // LocationSection이 사용할 데이터
       this.exhibitionInformation = {
         exhibitionLocation: dto.location ?? '정보 없음',
         operationPeriod: this.formatPeriod(dto.startDate, dto.endDate),
@@ -434,48 +563,37 @@ export default {
         entranceFee: this.formatFee(dto.admissionFee),
         lat: dto.latitude,
         lng: dto.longitude,
-        scienceCenterName: dto.location.split(' ')[0],
+        scienceCenterName: (dto.location || '').split(' ')[0] || '',
         hallId: dto.hallId
       };
 
-      console.log('✅ [PlaceDetailsView] mapExhibitionDTO 결과 (exhibition):', this.exhibition);
-      console.log('✅ [PlaceDetailsView] mapExhibitionDTO 결과 (exhibitionInformation):', this.exhibitionInformation);
-
-      // (리뷰/코스 데이터는 나중에 별도 API로 가져옵니다)
-      this.reviews = [];
-      this.courseItems = [];
+      //this.courseItems = [];
     },
 
-    /** DFile.save('PlaceDetailsView.vue');TO -> 프론트 상태 매핑 (Place) ★★★ 버그 수정 ★★★ */
+    // DTO -> 상태 매핑 (Place)
     mapPlaceDTO(dto) {
       const title = dto.placeName ?? '제목 없음';
-      const category = this.$route.query.mainCategoryTags ?? '';       // 대분류
-      // URL 쿼리에서 원본 데이터 가져오기
+      const category = this.$route.query.mainCategoryTags ?? '';
       const subCategoryData = this.$route.query.subCategoryTags;
       const grade = this.$route.query.gradeTags;
-      // subCategoriesArray를 빈 배열로 초기화
+
       let subCategoriesArray = [];
-      // subCategoryData가 문자열일 때만 split 실행
       if (typeof subCategoryData === 'string') {
         subCategoriesArray = subCategoryData
           .split(',')
           .map(tag => tag.trim())
           .filter(Boolean);
-      } // 만약 subCategoryData가 이미 배열일 경우 처리
-      else if (Array.isArray(subCategoryData)) {
-        // 각 요소를 문자열로 변환하고 공백 제거 (안전 장치)
-        subCategoriesArray = subCategoryData
-          .map(tag => String(tag).trim())
-          .filter(Boolean);
+      } else if (Array.isArray(subCategoryData)) {
+        subCategoriesArray = subCategoryData.map(tag => String(tag).trim()).filter(Boolean);
       }
 
       this.place = {
         title,
         rating: dto.averageRating ?? 0,
         reviewCount: dto.totalReviews ?? 0,
-        mainCategory: category, // PillTag
-        subCategories: subCategoriesArray, // HashTag
-        gradeTag: grade, // PillTag
+        mainCategory: category,
+        subCategories: subCategoriesArray,
+        gradeTag: grade,
         description: dto.description ?? '',
         mainImage: dto.mainImageUrl || 'https://via.placeholder.com/600x400',
         photoReviewCount: dto.totalPhotoReviews ?? 0,
@@ -486,28 +604,19 @@ export default {
 
       this.isWished = dto.liked ?? false;
 
-      // LocationSection이 사용할 데이터 (PlaceDetailDTO.java 스펙에 맞게)
       this.placeInformation = {
-        // dto.location -> dto.addressDetail
         placeAddress: dto.addressDetail ?? '정보 없음',
-        // DTO에 기간 정보가 없으므로 '상 운영' 또는 '정보 없음' 처리
         operationPeriod: this.formatPeriod(null, null),
         operationHours: dto.openingHours ?? '정보 없음',
-        // ★ 수정: Place DTO의 admissionFee는 '무료' 같은 문자열(String)이므로 formatFee() 사용 안함
         entranceFee: dto.admissionFee ?? '정보 없음',
         lat: dto.latitude,
-        lng: dto.longitude,
+        lng: dto.longitude
       };
 
-      console.log('✅ [PlaceDetailsView] mapPlaceDTO 결과 (place):', this.place);
-      console.log('✅ [PlaceDetailsView] mapPlaceDTO 결과 (placeInformation):', this.placeInformation);
-
-      // (리뷰/코스 데이터는 나중에 별도 API로 가져옵니다)
-      this.reviews = [];
-      this.courseItems = [];
+      //this.courseItems = [];
     },
 
-    // ✨ (Helper) 날짜 포맷 함수 추가
+    // Helper: 기간
     formatPeriod(start, end) {
       if (!start && !end) return '상시 운영';
       if (start && !end) return `${start} ~ 별도 안내까지`;
@@ -515,39 +624,33 @@ export default {
       return `${start} ~ ${end}`;
     },
 
-    // ✨ (Helper) 요금 포맷 함수 추가 (Number -> String)
+    // Helper: 요금
     formatFee(fee) {
       if (fee === null || fee === undefined) return '정보 없음';
       if (fee === 0) return '무료';
-      return `${fee.toLocaleString('ko-KR')}원`; // 4000 -> "4,000원"
+      return `${fee.toLocaleString('ko-KR')}원`;
     },
 
-
-    /** 전시 상세 정보 가져오기 */
+    /** 전시 상세 조회 */
     async fetchExhibitionData(id) {
       try {
         const res = await axios.get(`/api/exhibitions`, {
           params: {
             exhibitionId: id,
-            // pinia 스토어 userId를 파라미터로 추가
             userId: this.currentUserId,
-            mainCategoryTags: this.$route.query.mainCategoryTags ?? '',       // 대분류
+            mainCategoryTags: this.$route.query.mainCategoryTags ?? '',
             gradeTags: this.$route.query.gradeTags
-          },
+          }
         });
 
         const dto = res.data;
-        console.log('✅ [PlaceDetailsView] API 원본 응답 (exhibition dto):', dto);
-
         if (!dto || Object.keys(dto).length === 0) {
           console.warn('전시 데이터가 비어 있습니다.');
           return;
         }
         this.mapExhibitionDTO(dto);
-
       } catch (error) {
         console.error('전시 상세 조회 실패:', error);
-
         eventBus.emit('show-global-alert', {
           message: '전시 정보를 불러오지 못했습니다.',
           type: 'error'
@@ -555,9 +658,185 @@ export default {
       }
     },
 
-    // 찜 기능 함수
+    /** 장소 상세 조회 */
+    async fetchPlaceData(id) {
+      try {
+        const res = await axios.get(`/api/place`, {
+          params: {
+            placeId: id,
+            userId: this.currentUserId
+          }
+        });
+
+        const dto = res.data;
+        if (!dto || Object.keys(dto).length === 0) {
+          console.warn('장소 데이터가 비어 있습니다.');
+          return;
+        }
+
+        this.mapPlaceDTO(dto);
+      } catch (error) {
+        console.error('장소 상세 조회 실패:', error);
+        eventBus.emit('show-global-alert', {
+          message: '장소 정보를 불러오지 못했습니다.',
+          type: 'error'
+        });
+      }
+    },
+
+    refreshData() {
+      if (this.pageType === 'exhibition') {
+        this.fetchExhibitionData(this.currentId);
+      } else if (this.pageType === 'science_place') {
+        this.fetchPlaceData(this.currentId);
+      }
+    },
+
+    handleReviewPosted() {
+      this.refreshData();
+    },
+
+    handleReviewDeleted() {
+      this.refreshData();
+    },
+
+    handleTabChange(tabName) {
+      this.currentTab = tabName;
+
+      if (tabName === 'recommend') {
+        const reused = this.loadCourseCache();
+        if (reused) return;
+
+        if (!this.hasLoadedRecommendations) {
+          this.fetchRecommendedCourse();
+        }
+      }
+    },
+
+    // 로딩 애니메이션 제어
+    startLoadingAnimation() {
+      this.currentStepIndex = 0;
+      this.currentMessageIndex = 0;
+
+      this.stepInterval = setInterval(() => {
+        if (this.currentStepIndex < this.progressSteps.length - 1) {
+          this.currentStepIndex++;
+          this.currentMessageIndex++;
+        }
+      }, 1200);
+
+      this.currentTipIndex = 0;
+      this.tipInterval = setInterval(() => {
+        this.currentTipIndex = (this.currentTipIndex + 1) % this.tips.length;
+      }, 2500);
+    },
+
+    clearLoadingIntervals() {
+      if (this.stepInterval) {
+        clearInterval(this.stepInterval);
+        this.stepInterval = null;
+      }
+      if (this.tipInterval) {
+        clearInterval(this.tipInterval);
+        this.tipInterval = null;
+      }
+    },
+
+    // 추천 코스 불러오기
+    async fetchRecommendedCourse() {
+      console.log('🤖 AI 추천 코스를 검색합니다...');
+
+      this.isRecommending = true;
+      this.startLoadingAnimation();
+
+      await this.$nextTick();
+
+      try {
+        const apiUrl = `/api/recommend/course`;
+        const params = {
+          type: this.pageType,
+          currentId: this.currentId,
+          mainCategoryTags: this.$route.query.mainCategoryTags,
+          subCategoryTags: this.$route.query.subCategoryTags,
+          gradeTags: this.$route.query.gradeTags
+        };
+
+        const [res] = await Promise.all([
+          axios.get(apiUrl, { params }),
+          new Promise(resolve => setTimeout(resolve, 3500))
+        ]);
+
+        const aiRecommendedDtos = res.data;
+
+        const currentItemData = this.pageType === 'science_place' ? this.place : this.exhibition;
+        const currentItemInfo =
+          this.pageType === 'science_place' ? this.placeInformation : this.exhibitionInformation;
+
+        const currentItemFormatted = {
+          id: this.currentId,
+          number: 1,
+          imageUrl: currentItemData.mainImage || 'https://via.placeholder.com/60x60',
+          title: currentItemData.title || '제목 없음',
+          subject: currentItemData.mainCategory || '분류 없음',
+          grade: currentItemData.gradeTag || '학년 정보 없음',
+          hashtags: Array.isArray(currentItemData.subCategories)
+            ? currentItemData.subCategories
+            : currentItemData.subCategories
+            ? [currentItemData.subCategories]
+            : [],
+          type: currentItemData.type,
+          place:
+            currentItemInfo.placeAddress ||
+            currentItemInfo.exhibitionLocation ||
+            '주소 정보 없음',
+          exhibitionList: currentItemData.exhibitionList,
+          lat: currentItemInfo.lat || 0,
+          lng: currentItemInfo.lng || 0,
+          sceneId: getSceneIdFromTitle(currentItemData.title)
+        };
+
+        const aiItemsFormatted = aiRecommendedDtos.map((item, index) => ({
+          id: item.placeId,
+          number: index + 2,
+          imageUrl: item.imageUrl || 'https://via.placeholder.com/60x60',
+          title: item.placeName,
+          subject: item.subjectName,
+          grade: item.gradeName,
+          hashtags: item.hashtags,
+          place: item.address || '주소 정보 없음',
+          exhibitionList: item.exhibitionList,
+          lat: item.latitude,
+          lng: item.longitude,
+          type: item.type,
+          sceneId: getSceneIdFromTitle(item.placeName)
+        }));
+
+        this.courseItems = [currentItemFormatted, ...aiItemsFormatted];
+        this.hasLoadedRecommendations = true;
+
+        this.saveCourseCache();
+        this.courseRerenderKey = Date.now(); // ⬅️ 자식 강제 리렌더
+      } catch (error) {
+        console.error('AI 추천 코스 로딩 실패:', error);
+        this.hasLoadedRecommendations = true;
+
+        eventBus.emit('show-global-alert', {
+          message: 'AI 추천 코스를 불러오는데 실패했습니다. 다시 시도해주세요.',
+          type: 'error'
+        });
+      } finally {
+        setTimeout(() => {
+          this.clearLoadingIntervals();
+          this.isRecommending = false;
+          this.currentStepIndex = 0;
+          this.currentMessageIndex = 0;
+          console.log('🏁 fetchRecommendedCourse 완료. isRecommending:', this.isRecommending);
+        }, 300);
+      }
+    },
+
+    // 찜 토글
     async handleToggleFavorite() {
-      // 🟢 로그인 상태 확인 (Pinia 스토어)
       if (!this.isLoggedIn) {
         eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
@@ -570,9 +849,8 @@ export default {
 
       if (this.isLoading) return;
 
-      const isExhibition = (this.pageType === 'exhibition');
-      // 🟢 신뢰할 수 있는 'isWished' data를 기준으로 삼음
-      let currentState = this.isWished;
+      const isExhibition = this.pageType === 'exhibition';
+      const currentState = this.isWished;
       const currentItem = isExhibition ? this.exhibition : this.place;
 
       const requestData = {
@@ -584,70 +862,40 @@ export default {
 
       try {
         if (currentState) {
-          // 1. 찜 취소 (DELETE)
-          // 🌟 data: deleteRequestData
-          await axios.delete(`/api/wishlist`, {
-            data: requestData
-          });
+          await axios.delete(`/api/wishlist`, { data: requestData });
           this.isWished = false;
-          eventBus.emit('show-global-alert', {
-            message: '찜 목록에서 삭제되었습니다.',
-            type: 'success'
-          });
-
+          eventBus.emit('show-global-alert', { message: '찜 목록에서 삭제되었습니다.', type: 'success' });
         } else {
-          // 2. 찜 추가 (POST)
-          // 🌟 postRequestData (맥락 정보가 포함된 DTO 전송)
           await axios.post(`/api/wishlist`, requestData);
-          // 요청 아이템
-          JSON.stringify(console.log(requestData), null, 2);
+          console.log('[wishlist] add payload:', requestData);
           this.isWished = true;
-          eventBus.emit('show-global-alert', {
-            message: '찜 목록에 추가되었습니다.',
-            type: 'success'
-          });
+          eventBus.emit('show-global-alert', { message: '찜 목록에 추가되었습니다.', type: 'success' });
         }
       } catch (error) {
-        // 3. 에러 처리
         const status = error.response?.status;
-
-        // 409 Conflict 에러 처리 (자동 취소)
         if (status === 409) {
           eventBus.emit('show-global-alert', {
             message: '중복된 찜 항목입니다. 자동으로 취소합니다.',
             type: 'error'
           });
           try {
-            // DELETE 요청 재시도 (취소) - 🌟 [수정] data 속성 사용 🌟
-            await axios.delete(`/api/wishlist`, {
-              data: requestData
-            });
-            // 🟢 11. [수정] 409 롤백 시에도 isWished 사용
+            await axios.delete(`/api/wishlist`, { data: requestData });
             this.isWished = false;
-            eventBus.emit('show-global-alert', {
-              message: '찜이 취소되었습니다.',
-              type: 'success'
-            });
-
+            eventBus.emit('show-global-alert', { message: '찜이 취소되었습니다.', type: 'success' });
           } catch (deleteError) {
-            // DELETE 재시도 실패 시
             console.error('409 후 찜 취소 실패:', deleteError);
             eventBus.emit('show-global-alert', {
               message: '찜 상태 동기화에 실패했습니다. (다음 클릭 시 취소됩니다.)',
               type: 'error'
             });
           }
-        }
-        // 403 Forbidden 에러 처리 (권한 문제)
-        else if (status === 403) {
+        } else if (status === 403) {
           eventBus.emit('show-global-alert', {
             message: '로그인이 필요하거나 권한이 없습니다.',
             type: 'error'
           });
-        }
-        // 그 외 에러 처리
-        else {
-          console.error('찜 처리 중 에러 발생:', error);
+        } else {
+          console.error('찜 처리 중 에러:', error);
           eventBus.emit('show-global-alert', {
             message: '찜 처리에 실패했습니다. 다시 시도해 주세요.',
             type: 'error'
@@ -658,401 +906,75 @@ export default {
       }
     },
 
-    // 추천 코스 저장 요청 처리
-    async handleSaveRecommendedCourse(items) {
-      console.log('💾 [PlaceDetailsView] 추천 코스 저장 시작...', items);
-      // 🟢 로그인 상태 확인
-      if (!this.isLoggedIn) {
-        eventBus.emit('show-global-confirm', {
-          message: '로그인이 필요한 기능입니다.',
-          onConfirm: () => {
-            this.$router.push({ name: 'login' });
-          }
-        });
-        return;
-      }
-
-      if (!items || items.length === 0) {
-        console.warn('저장할 추천 코스 아이템이 없습니다.');
-        // this.primaryLoading = false;
-        eventBus.emit('show-global-alert', {
-          message: '저장할 코스 정보가 없습니다.',
-          type: 'error'
-        });
-        return;
-      }
-
+    // 방문 인증
+    async handleVisitAuthentication() {
+      console.log('PlaceDetailView: 방문 인증 시작');
       try {
-        // 1. 백엔드로 보낼 데이터 준비
-        const currentItemData = (this.pageType === 'science_place') ? this.place : this.exhibition;
-        const scheduleName = `AI 추천: ${currentItemData.title || '코스'}`; // 스케줄 이름 생성
-        const sourceId = this.currentId; // 현재 보고 있는 상세 페이지의 ID
-
-        // 프론트엔드 items 배열 -> 백엔드 DTO 형식으로 변환
-        const backendItems = items.map(item => ({
-          exhibitionId: this.pageType !== 'science_place' ? item.id : null,      // 프론트엔드 id -> exhibitionId
-          placeId: this.pageType === 'science_place' ? item.id : null,
-          sequence: item.number,  // 프론트엔드 number -> sequence
-          itemType: item.type === 'exhibition' ? 'exhibition' : 'science_place', // 아이템 타입 설정 (백엔드와 일치 필요)
-          // [스냅샷] 추가
-          categoryName: item.subject,
-          gradeName: item.grade,
-          subCategories: item.hashtags
-        }));
-
-        // 최종 요청 페이로드
-        const requestDto = {
-          scheduleName: scheduleName,
-          sourceId: sourceId,
-          sourceCourseType: this.pageType === 'science_place' ? 'ai_course' : 'inner_course',
-          items: backendItems,
-          userId: this.currentUserId // 여기에 userId를 추가하세요
-        };
-
-
-        console.log('💾 [PlaceDetailsView] API 요청 데이터:', JSON.stringify(requestDto, null, 2));
-
-        // 2. API 호출 (axios 사용)
-        const response = await axios.post(`/api/schedules/save-recommended`, requestDto);
-
-        // 3. 성공 처리
-        if (response.status === 200) {
-          console.log('✅ [PlaceDetailsView] 추천 코스 저장 성공!');
-          eventBus.emit('show-global-alert', {
-            message: '추천 코스가 "관심 코스"에 성공적으로 저장되었습니다.',
-            type: 'success'
-          }); // 성공 메지
-          // TODO: (선택) 저장 후 사용자를 마이페이지나 다른 곳으로 이동킬 수 있습니다.
-          // 예: this.$router.push('/mypage/likes');
-        } else {
-          // 200 외의 응답 처리 (필요)
-          console.error('⚠️ [PlaceDetailsView] 추천 코스 저장 응답 오류:', response);
-          eventBus.emit('show-global-alert', {
-            message: `코스 저장 중 문제가 발생했습니다: ${response.data?.message || response.statusText}`,
-            type: 'error'
-          });
-        }
-
-      } catch (error) {
-        console.error('💥 [PlaceDetailsView] 추천 코스 저장 API 호출 실패:', error);
-
-        if (error.response?.status === 403) {
-          eventBus.emit('show-global-alert', {
-            message: '접근 권한이 없습니다.',
-            type: 'error'
-          });
-        } else {
-          eventBus.emit('show-global-alert', {
-            message: `코스 저장 중 오류가 발생했습니다: ${error.response?.data || error.message}`,
-            type: 'error'
-          });
-        }
-      } finally {
-        // 5. 로딩 상태 해제
-      }
-
-    },
-
-    /** 장소 상세 - 백엔드 연동 **/
-    async fetchPlaceData(id) {
-      try {
-        // API 호출
-        const res = await axios.get(`api/place`, {
-          params: {
-            placeId: id,
-            // pinia 스토어의 Id를 파라미터로 추가
-            userId: this.currentUserId
-          },
-        });
-
-        // DTO에 API 응답 담기
-        const dto = res.data;
-        console.log('✅ [PlaceDetailsView] API 원본 응답 (place dto):', dto);
-
-        if (!dto || Object.keys(dto).length === 0) {
-          console.warn('장소 데이터가 비어 있습니다.');
+        const isAlreadyVisited =
+          this.pageType === 'exhibition' ? this.exhibition.visited : this.place.visited;
+        if (isAlreadyVisited) {
+          eventBus.emit('show-global-alert', { message: '이미 방문한 장소입니다.', type: 'error' });
           return;
         }
 
-        // 지도 정보
-        this.mapPlaceDTO(dto);
-
-      } catch (error) {
-        console.error('장소 상세 조회 실패:', error);
-        eventBus.emit('show-global-alert', {
-          message: '장소 정보를 불러오지 못했습니다.',
-          type: 'error'
-        });
-      }
-    },
-
-    refreshData() {
-      console.log(`리뷰 변경 감지 : 부모 데이터 새로고침`);
-      if (this.pageType === 'exhibition') {
-        this.fetchExhibitionData(this.currentId);
-      } else if (this.pageType === 'science_place') { // 'place' 대신 정확한 'science_place' 사용
-        this.fetchPlaceData(this.currentId);
-      }
-    },
-
-    handleReviewPosted() {
-      this.refreshData();
-    },
-
-    // 리뷰 삭제 모달 -> 삭제 카운트 감소
-    handleReviewDeleted() {
-      this.refreshData();
-    },
-
-    // 탭 변경 호출될 메서드
-    handleTabChange(tabName) {
-      this.currentTab = tabName;
-
-      // 탭을 '처음' 클릭했고, 아직 추천 데이터를 로드한 적이 없으면 API 호출
-      if (tabName === 'recommend' && !this.hasLoadedRecommendations) {
-        this.fetchRecommendedCourse();
-      }
-    },
-
-    // 로딩 애니메이션 시작
-    startLoadingAnimation() {
-      // 진행 단계 애니메이션
-      this.currentStepIndex = 0;
-      this.currentMessageIndex = 0;
-
-      this.stepInterval = setInterval(() => {
-        if (this.currentStepIndex < this.progressSteps.length - 1) {
-          this.currentStepIndex++;
-          this.currentMessageIndex++;
-        }
-      }, 1200);
-
-      // 팁 로테이션
-      this.currentTipIndex = 0;
-      this.tipInterval = setInterval(() => {
-        this.currentTipIndex = (this.currentTipIndex + 1) % this.tips.length;
-      }, 2500);
-    },
-
-    // 로딩 애니메이션 정리
-    clearLoadingIntervals() {
-      if (this.stepInterval) {
-        clearInterval(this.stepInterval);
-        this.stepInterval = null;
-      }
-      if (this.tipInterval) {
-        clearInterval(this.tipInterval);
-        this.tipInterval = null;
-      }
-    },
-
-    // '새로운 추천 받기 버튼'이 이 함수를 직접 호출
-    async fetchRecommendedCourse() {
-      console.log('🤖 AI 추천 코스를 검색합니다...');
-
-      // 로딩 상태를 true로 변경하고 애니메이션 시작
-      this.isRecommending = true;
-      this.startLoadingAnimation();
-
-      await this.$nextTick();
-
-      try {
-        // 1. AI 추천 API 호출 (2번, 3번... 항목들)
-        const apiUrl = `/api/recommend/course`;
-        const params = {
-          type: this.pageType,
-          currentId: this.currentId,
-          mainCategoryTags: this.$route.query.mainCategoryTags,
-          subCategoryTags: this.$route.query.subCategoryTags,
-          gradeTags: this.$route.query.gradeTags,
-        };
-
-        // 최소 로딩 시간 보장 (UX 개선)
-        const [res] = await Promise.all([
-          axios.get(apiUrl, { params }),
-          new Promise(resolve => setTimeout(resolve, 3500)) // 최소 3.5초
-        ]);
-
-        const aiRecommendedDtos = res.data; // (백엔드가 보낸 DTO 리스트)
-
-        // 2. "1번 항목" (현재 페이지 장소) 데이터 준비
-        // (created()에서 이미 불러온 this.place 또는 this.exhibition 객체 활용)
-        const currentItemData = (this.pageType === 'science_place') ? this.place : this.exhibition;
-        const currentItemInfo = (this.pageType === 'science_place') ? this.placeInformation : this.exhibitionInformation;
-
-
-        // 3. "1번 항목"을 카드 형식으로 포맷
-        const currentItemFormatted = {
-          id: this.currentId,
-          number: 1,
-          imageUrl: currentItemData.mainImage || 'https://via.placeholder.com/60x60',
-          title: currentItemData.title || '제목 없음',  // ← null 체크 추가
-          subject: currentItemData.mainCategory || '분류 없음',  // ← null 체크 추가
-          grade: currentItemData.gradeTag || '학년 정보 없음',  // ← null 체크 추가
-          hashtags: Array.isArray(currentItemData.subCategories)
-            ? currentItemData.subCategories
-            : (currentItemData.subCategories ? [currentItemData.subCategories] : []),  // ← 예외 처리
-          type: currentItemData.type,
-          place: currentItemInfo.placeAddress || currentItemInfo.exhibitionLocation || '주소 정보 없음',  // ← null 체크 추가
-          exhibitionList: currentItemData.exhibitionList,
-          lat: currentItemInfo.lat || 0,
-          lng: currentItemInfo.lng || 0,
-          sceneId: getSceneIdFromTitle(currentItemData.title)
-        };
-
-
-        // 4. "2번, 3번..." (AI 추천 목록)을 카드 형식으로 포맷
-        const aiItemsFormatted = aiRecommendedDtos.map((item, index) => {
-          // (item = 백엔드 DTO: { placeId, placeName, imageUrl, address, latitude, longitude ... })
-          return {
-            id: item.placeId,
-            number: index + 2,
-            imageUrl: item.imageUrl || 'https://via.placeholder.com/60x60',
-            title: item.placeName,
-            subject: item.subjectName,
-            grade: item.gradeName,
-            hashtags: item.hashtags,
-            place: item.address || '주소 정보 없음',
-            exhibitionList: item.exhibitionList,
-            // 지도(CourseMap)를 위한 2,3,4번 항목의 좌표
-            lat: item.latitude,
-            lng: item.longitude,
-            type: item.type,
-            sceneId: getSceneIdFromTitle(item.placeName)
-          };
-        });
-
-        // 1번 항목과 (2,3,4..) 항목 리스트를 합쳐서 최종 저장
-        this.courseItems = [currentItemFormatted, ...aiItemsFormatted];
-        this.hasLoadedRecommendations = true; // 에러  무한 재도 방지
-        console.log('🤖 AI 추천 코스 수신 완료 (1번 + 추천 리스트):', this.courseItems);
-
-      } catch (error) {
-        console.error("AI 추천 코스 로딩 실패:", error);
-        // 에러가 나도 로드는 되었다고 처리해야, 탭 이동 후 다 눌렀을 때 재도 가능
-        this.hasLoadedRecommendations = true;
-
-        eventBus.emit('show-global-alert', {
-          message: 'AI 추천 코스를 불러오는데 실패했습니다. 다시 시도해주세요.',
-          type: 'error'
-        });
-      } finally {
-        // 애니메이션 정리 및 로딩 종료
-        setTimeout(() => {
-          this.clearLoadingIntervals();
-          this.isRecommending = false;
-          this.currentStepIndex = 0;
-          this.currentMessageIndex = 0;
-          console.log('🏁 fetchRecommendedCourse 완료. isRecommending:', this.isRecommending);
-        }, 300);
-      }
-    },
-
-    async handleVisitAuthentication() {
-      console.log('PlaceDetailView: 신호 받음! 인증을 시작합니다.');
-      try {
-        const isAlreadyVisited = (this.pageType === 'exhibition') ? this.exhibition.visited : this.place.visited;
-        if (isAlreadyVisited) {
-          // 이미 방문했다면, 알림을 띄우고 함수 종료
-          eventBus.emit('show-global-alert', {
-            message: '이미 방문한 장소입니다.',
-            type: 'error'
-          });
-          console.log('스탬프 인증 중단: 이미 방문한 곳입니다.');
-          return; // 여기서 로직 종료
-        }
-        // A. [핵심] Pinia 스토어에서 가져온 ID 사용
-        const userId = this.currentUserId;
-        // B. [방어 코드] 로그인이 안 되어있으면 중단
-        // (setup()에서 isLoggedIn도 가져왔으므로 this.isLoggedIn 사용 가능)
         if (!this.isLoggedIn) {
-          console.warn('스탬프 인증 실패: 로그인이 필요합니다.');
-          // (기존에 사용하시던 eventBus 로직 재활용)
           eventBus.emit('show-global-confirm', {
             message: '로그인이 필요한 기능입니다.',
-            onConfirm: () => {
-              this.$router.push({ name: 'login' });
-            }
+            onConfirm: () => this.$router.push({ name: 'login' })
           });
-          return; // 함수 종료
+          return;
         }
-        // C. [수정] data()에 이미 저장된 pageType과 currentId 사용
-        // (created 훅에서 이미 'science_place' 또는 'exhibition'으로 설정해 둠)
+
         const targetType = this.pageType;
         const targetId = this.currentId;
         if (!targetType || !targetId) {
           throw new Error('인증 대상(targetId/targetType)을 식별할 수 없습니다.');
         }
-        // D. GPS 좌표 가져오기
-        console.log('PlaceDetailView: GPS 좌표를 요청합니다...');
-        const coords = await this.getUserCoordinates(); // (아래에 추가한 헬퍼 함수)
-        // E. 백엔드에 보낼 DTO 준비
+
+        const coords = await this.getUserCoordinates();
+
         const requestDTO = {
-          userId: userId,
-          targetType: targetType,
-          targetId: targetId,
+          userId: this.currentUserId,
+          targetType,
+          targetId,
           latitude: coords.latitude,
           longitude: coords.longitude
         };
-        // F. API 호출
-        console.log('PlaceDetailView: 스탬프 인증 API 호출', requestDTO);
+
         const response = await axios.post('/api/stamps', requestDTO);
-        // G. 성공 처리
-        eventBus.emit('show-global-alert', {
-          message: '스탬프 획득 성공!',
-          type: 'success'
-        });
+
+        eventBus.emit('show-global-alert', { message: '스탬프 획득 성공!', type: 'success' });
         console.log('인증 성공:', response.data);
-        //
-        // UI 갱신 코드 추가
-        //
-        if (this.pageType === 'exhibition') {
-          this.exhibition.visited = true;
-        } else if (this.pageType === 'science_place') {
-          this.place.visited = true;
-        }
+
+        if (this.pageType === 'exhibition') this.exhibition.visited = true;
+        else if (this.pageType === 'science_place') this.place.visited = true;
       } catch (error) {
-        // H. 실패 처리
-        // (백엔드 400 에러, GPS 권한 거부 에러 등)
         const errorMessage = error.response?.data?.error || error.response?.data || error.message;
         if (String(errorMessage).includes('GPS')) {
           alert(`GPS 오류: ${errorMessage}`);
         } else {
-          eventBus.emit('show-global-alert', {
-            message: `${errorMessage}`,
-            type: 'error'
-          });
-          //alert(`인증 실패: ${errorMessage}`);
+          eventBus.emit('show-global-alert', { message: `${errorMessage}`, type: 'error' });
         }
         console.error('스탬프 인증 중 오류:', error);
       }
     },
 
-    /**
-     * [필수 수정] (헬퍼 함수) Geolocation API - http://localhost 테스트용
-     * (임시로 고정된 좌표를 0.5초 뒤에 반환)
-     */
+    // 데모용 좌표 반환(로컬 테스트)
     getUserCoordinates() {
-      console.log('GPS: http://xn--localhost-js61bn11a 임시 좌표를 사용합니다.');
-      // 1. 여기에 테스트할 임시 좌표를 입력하세요.
-      // (DB에 있는 장소 근처의 '가까운' 좌표로 설정하세요)
+      console.log('GPS: localhost 임시 좌표 사용');
       const DEMO_LOCATION = {
-        latitude: 36.6448020,  // (예시) 인증 '성공' 테스트용 위도
-        longitude: 127.4714750 // (예시) 인증 '성공' 테스트용 경도
+        latitude: 36.6448020,
+        longitude: 127.4714750
       };
-      // (주의!) MapView에서는 'lat', 'lng'를 썼을 수 있지만
-      // 백엔드 DTO는 'latitude', 'longitude'를 쓰므로 꼭 이 이름으로 맞춰야 합니다.
-      return new Promise((resolve) => {
-        // 2. 실제 GPS가 좌표를 가져오는 것처럼 0.5초 딜레이 (UX 테스트용)
+      return new Promise(resolve => {
         setTimeout(() => {
           console.log('GPS 좌표 획득 성공 (임시)', DEMO_LOCATION);
           resolve(DEMO_LOCATION);
-        }, 500); // 0.5초
+        }, 500);
       });
     }
-
   }
-}
+};
 </script>
 
 <style scoped>

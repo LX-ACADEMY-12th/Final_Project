@@ -27,22 +27,31 @@
  </div>
 </template>
 
+// TourView.vue
+
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import VirtualTour from '@/components/virtual/VirtualTour.vue'; // 💡 컴포넌트 임포트
+import VirtualTour from '@/components/virtual/VirtualTour.vue';
 import { tourConfig } from '@/data/tourConfig.js';
-import TourBottombar from '@/components/virtual/TourBottombar.vue'; // 💡 컴포넌트 임포트
+import TourBottombar from '@/components/virtual/TourBottombar.vue';
 
 const virtualTourRef = ref(null);
 const currentSceneId = ref(tourConfig.default.firstScene);
 const router = useRouter();
 
-// 💡 [추가] 2단계(CourseRecommend.vue)에서 state로 보낸 'items' 배열을 받습니다.
 const tourItems = ref(history.state?.items || []);
-
-// 💡 [확인용] 콘솔에 데이터가 잘 들어왔는지 찍어봅니다.
 console.log('가상 답사 페이지(TourView)가 전달받은 탭 목록:', tourItems.value);
+
+
+// ✨ [추가] 1. 탭 데이터가 '입구' 기준인지 '상세' 기준인지 확인
+const isEntranceView = computed(() => {
+  if (!tourItems.value || tourItems.value.length === 0) {
+    return false; // 기본값
+  }
+  // 탭 목록에 '_entrance'로 끝나는 sceneId가 하나라도 있으면 "입구 뷰"
+  return tourItems.value.some(item => item.sceneId && item.sceneId.endsWith('_entrance'));
+});
 
 
 function handleNavigation(sceneId) {
@@ -50,36 +59,55 @@ function handleNavigation(sceneId) {
 }
 function handleSceneChange(newSceneId) {
  currentSceneId.value = newSceneId;
- console.log('✅ [TourView] 씬 변경:', newSceneId); // 👈 디버깅 로그
+ console.log('✅ [TourView] 씬 변경:', newSceneId);
 }
 function handleHotspotClick({ hotspot }) {
- const text = hotspot?.text || '';
- if (text.includes('가상 답사를 종료')) {
-  router.back();
- }
+  const text = hotspot?.text || '';
+  if (!text.includes('가상 답사를 종료')) return;
+
+  // 돌아오자마자 추천 탭 열도록 플래그
+  sessionStorage.setItem('pdv:returnFromTour', '1');
+
+  // 상세 복귀 정보
+  const raw = sessionStorage.getItem('pdv:returnTo');
+  if (raw) {
+    const { type, id, query } = JSON.parse(raw);
+    const name = type === 'science_place' ? 'PlaceDetail' : 'ExhibitionDetail';
+
+    // ❗히스토리 무시하고 강제 이동
+    router.replace({ name, params: { id }, query });
+  } else {
+    router.replace({ name: 'Home' });
+  }
 }
 
-// 💡 [수정] 'active' 버튼을 파악하기 위한 로직
+// 💡 [수정] 2. 'active' 버튼을 파악하기 위한 로직
 const currentZone = computed(() => {
- const id = currentSceneId.value || ''; // (예: 'hall_1_ex1')
+ const id = currentSceneId.value || '';
   
-  // 현재 씬(id)이 'hall_1'로 시작하면,
-  // '창의나래관' 버튼의 sceneId인 'hall_1_entrance'를 반환
- if (id.startsWith('hall_1')) {
-    console.log('✅ [TourView] activeZone 계산: hall_1_entrance'); // 👈 디버깅 로그
-    return 'hall_1_entrance'; 
+  // ✨ [수정] 
+  // 1. "입구 뷰" (AI 추천 코스)일 때만 기존 그룹핑 로직을 사용합니다.
+  if (isEntranceView.value) {
+    if (id.startsWith('hall_1')) {
+      console.log('✅ [TourView] activeZone 계산 (입구 모드): hall_1_entrance');
+      return 'hall_1_entrance'; 
+    }
+    if (id.startsWith('hall_2')) {
+      console.log('✅ [TourView] activeZone 계산 (입구 모드): hall_2_entrance');
+      return 'hall_2_entrance';
+    }
+    if (id.startsWith('hall_3')) {
+      console.log('✅ [TourView] activeZone 계산 (입구 모드): hall_3_entrance');
+      return 'hall_3_entrance';
+    }
+    console.log('✅ [TourView] activeZone 계산 (입구 모드): (일치 항목 없음)');
+    return '';
+
+  // 2. "상세 뷰" (관심 코스)일 때는 씬 ID를 그대로 반환합니다.
+  } else {
+    console.log(`✅ [TourView] activeZone 계산 (상세 모드): ${id}`);
+    return id; 
   }
- if (id.startsWith('hall_2')) {
-    console.log('✅ [TourView] activeZone 계산: hall_2_entrance'); // 👈 디버깅 로그
-    return 'hall_2_entrance';
-  }
- if (id.startsWith('hall_3')) {
-    console.log('✅ [TourView] activeZone 계산: hall_3_entrance'); // 👈 디버깅 로그
-    return 'hall_3_entrance';
-  }
-  
-  console.log('✅ [TourView] activeZone 계산: (일치 항목 없음)'); // 👈 디버깅 로그
- return ''; // 그 외에는 빈 값
 });
 
 function goBack() { router.back(); }
