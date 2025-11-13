@@ -36,7 +36,8 @@
             gender,
             region,
             child_grade AS childGrade,
-            photo_url AS profileImageUrl
+            photo_url AS profileImageUrl,
+            role
         FROM
             "user"
         WHERE

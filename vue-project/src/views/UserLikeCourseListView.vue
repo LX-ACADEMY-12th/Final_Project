@@ -14,9 +14,9 @@
     <div class="segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
       <div class="segmented-control d-flex gap-3">
         <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-          @click="changeTab('전시')">과학관 전시</button>
+          @click="changeTab('전시')">과학관</button>
         <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-          @click="changeTab('답사')">과학 여행</button>
+          @click="changeTab('답사')">과학 답사</button>
       </div>
     </div>
 

@@ -102,7 +102,8 @@ public class UserService {
                 userWithSignedUrl.getChildGrade(),
                 userWithSignedUrl.getProfileImageUrl(), // 🟢 15분짜리 Signed URL
                 accessToken,
-                refreshToken
+                refreshToken,
+                userWithSignedUrl.getRole()
         );
     }
 

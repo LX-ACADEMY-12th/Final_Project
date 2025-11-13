@@ -19,4 +19,6 @@ public class UserDTO {
     // 🟢 [추가] 프로필 이미지 URL (또는 GCS Blob 이름)
     // GCS에 업로드된 프로필 이미지의 경로를 저장하기 위한 필드입니다.
     private String profileImageUrl;
+
+    private String role;
 }

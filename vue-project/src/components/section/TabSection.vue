@@ -42,7 +42,7 @@ export default {
       }
       // isPlace가 false (전시 상세화면)이면 '실내 코스 추천'
       else {
-        return '실내 코스 추천';
+        return 'AI 추천 관람';
       }
     },
   },

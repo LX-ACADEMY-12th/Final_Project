@@ -27,7 +27,7 @@ public class ReviewAdminController {
     /**
      * [관리자] 신고된 리뷰 목록 조회 API
      */
-    @GetMapping("/admin/reported")
+    @GetMapping("/reported")
     public ResponseEntity<List<ReportedReviewDTO>> getReportedReviews(Authentication authentication) {
         log.info("API CALL: [ADMIN] getReportedReviews - 임시 인증 해제 상태"); // 임시 로깅으로 대체
         try {
@@ -42,7 +42,7 @@ public class ReviewAdminController {
      * [관리자] 신고 리뷰 '삭제' 처리 API (Soft Delete)
      * (리뷰 상태를 DELETED_BY_ADMIN으로 변경하고 신고 기록 삭제)
      */
-    @PutMapping("/admin/reported/{reviewId}/delete")
+    @PutMapping("/{reviewId}/delete")
     public ResponseEntity<String> deleteReportedReview(
             Authentication authentication,
             @PathVariable Long reviewId) {
@@ -63,7 +63,7 @@ public class ReviewAdminController {
      * [관리자] 신고 '반려' 처리 API
      * (리뷰는 유지하고, 신고 기록만 삭제)
      */
-    @PutMapping("/admin/reported/{reviewId}/reject")
+    @PutMapping("/{reviewId}/reject")
     public ResponseEntity<String> rejectReportedReview(
             Authentication authentication,
             @PathVariable Long reviewId) {

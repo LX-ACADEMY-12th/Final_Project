@@ -17,10 +17,12 @@ public class LoginResponseDTO {
     private String gender;
     private String region;
     private String childGrade;
-    // 🟢 필드 이름이 'profileImageUrl' 이어야 합니다.
+    // 'profileImageUrl' 이어야 합니다.
     private String profileImageUrl;
-    // 🟢 필드 이름이 'accessToken' 이어야 합니다.
+    // 'accessToken' 이어야 합니다.
     private String accessToken;
 
     private String refreshToken;
+
+    private String role;
 }

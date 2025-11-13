@@ -1,142 +1,167 @@
 package com.example.demo.controller;
 
-import com.example.demo.dto.AdminPageResponseDTO; // [추가]
-import com.example.demo.dto.ExhibitionAdminRequestDto;
-import com.example.demo.dto.PlaceResultDTO; 
-import com.example.demo.dto.SciencePlaceAdminRequestDto;
-import com.example.demo.service.ExhibitionDetailService;
-import com.example.demo.service.ExhibitionService; // [추가]
-import com.example.demo.service.FileUploadService;
-import com.example.demo.service.PlaceDetailService;
+import com.example.demo.dto.*;
+import com.example.demo.service.AdminContentService;
+import com.example.demo.service.GeocodingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.ArrayList; 
-import java.util.Comparator; 
-import java.util.List; 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin/contents") 
-@RequiredArgsConstructor 
+@RequestMapping("/api/admin/content")
+@RequiredArgsConstructor
 public class AdminContentController {
 
-    // [수정] ExhibitionService도 주입받습니다.
-    private final ExhibitionService exhibitionListService; // (수정) '목록' 서비스
-    
-    // (기존) '상세/쓰기' 서비스
-    private final ExhibitionDetailService exhibitionService; 
-    private final PlaceDetailService placeService;         
-    private final FileUploadService fileUploadService;
-    private final ObjectMapper objectMapper; 
+    private final AdminContentService adminContentService;
+    private final GeocodingService geocodingService;
+    private final ObjectMapper objectMapper;
 
-    /**
-     * (Read) 모든 컨텐츠 목록 조회 [페이지네이션 적용]
-     * @param page 요청 페이지 (기본 1)
-     * @param size 페이지당 개수 (기본 10)
-     */
-    @GetMapping
-    public ResponseEntity<?> getAllContents(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+    // --- JSON 문자열을 DTO로 변환하는 헬퍼 ---
+    private <T> T getDtoFromString(String dtoString, Class<T> clazz) {
         try {
-            // [수정] 페이징 서비스를 호출합니다.
-            AdminPageResponseDTO response = exhibitionListService.findPaginatedAdminContent(page, size);
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("목록 조회 실패: " + e.getMessage());
+            return objectMapper.readValue(dtoString, clazz);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Invalid DTO format: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * (Create) 신규 컨텐츠 등록 (기존 코드 유지)
-     */
-    @PostMapping(consumes = {"multipart/form-data"})
-    public ResponseEntity<?> createContent(
-            @RequestPart("placeData") String placeDataJson,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
-        
-        try {
-            String imageUrl = fileUploadService.uploadImage(file);
-            Map<String, Object> dataMap = objectMapper.readValue(placeDataJson, Map.class);
-            String type = (String) dataMap.get("type");
-
-            if ("PERMANENT".equals(type)) { 
-                ExhibitionAdminRequestDto dto = objectMapper.convertValue(dataMap, ExhibitionAdminRequestDto.class);
-                dto.setMainImageUrl(imageUrl);
-                exhibitionService.createExhibition(dto); 
-                
-            } else if ("PLACE".equals(type)) { 
-                SciencePlaceAdminRequestDto dto = objectMapper.convertValue(dataMap, SciencePlaceAdminRequestDto.class);
-                dto.setMainImageUrl(imageUrl);
-                placeService.createSciencePlace(dto); 
-            } else {
-                return ResponseEntity.badRequest().body("알 수 없는 타입입니다.");
-            }
-            
-            return ResponseEntity.ok().build();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("등록 실패: " + e.getMessage());
-        }
+    // --- Geocoding ---
+    @PostMapping("/geocode")
+    public ResponseEntity<GeocodeResponseDTO> geocodeAddress(@RequestBody Map<String, String> payload) {
+        String address = payload.get("address");
+        return ResponseEntity.ok(geocodingService.getCoordinates(address));
     }
 
-    /**
-     * (Update) 컨텐츠 수정 (기존 코드 유지)
-     */
-    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
-    public ResponseEntity<?> updateContent(
-            @PathVariable("id") Long id,
-            @RequestPart("placeData") String placeDataJson,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
-
-        try {
-            String newImageUrl = fileUploadService.uploadImage(file);
-            Map<String, Object> dataMap = objectMapper.readValue(placeDataJson, Map.class);
-            String type = (String) dataMap.get("type");
-
-            if ("PERMANENT".equals(type)) {
-                ExhibitionAdminRequestDto dto = objectMapper.convertValue(dataMap, ExhibitionAdminRequestDto.class);
-                exhibitionService.updateExhibition(id, dto, newImageUrl); 
-                
-            } else if ("PLACE".equals(type)) {
-                SciencePlaceAdminRequestDto dto = objectMapper.convertValue(dataMap, SciencePlaceAdminRequestDto.class);
-                placeService.updateSciencePlace(id, dto, newImageUrl); 
-            } else {
-                return ResponseEntity.badRequest().body("알 수 없는 타입입니다.");
-            }
-            
-            return ResponseEntity.ok().build();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("수정 실패: " + e.getMessage());
-        }
+    // ========== Exhibition Hall (전시관) ==========
+    @GetMapping("/halls")
+    public ResponseEntity<List<AdminHallListDTO>> getHalls() {
+        return ResponseEntity.ok(adminContentService.getHallList());
+    }
+    @GetMapping("/halls/{id}")
+    public ResponseEntity<AdminHallDetailDTO> getHallById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminContentService.getHallById(id));
+    }
+    @PostMapping("/halls")
+    public ResponseEntity<AdminHallDetailDTO> createHall(
+            @RequestPart("dto") String dtoString,
+            @RequestPart(value = "mainImage", required = false) MultipartFile mainImage) {
+        AdminHallDetailDTO dto = getDtoFromString(dtoString, AdminHallDetailDTO.class);
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminContentService.createExhibitionHall(dto, mainImage));
+    }
+    @PutMapping("/halls/{id}")
+    public ResponseEntity<AdminHallDetailDTO> updateHall(
+            @PathVariable Long id,
+            @RequestPart("dto") String dtoString,
+            @RequestPart(value = "mainImage", required = false) MultipartFile mainImage) {
+        AdminHallDetailDTO dto = getDtoFromString(dtoString, AdminHallDetailDTO.class);
+        return ResponseEntity.ok(adminContentService.updateExhibitionHall(id, dto, mainImage));
+    }
+    @DeleteMapping("/halls/{id}")
+    public ResponseEntity<Void> deleteHall(@PathVariable Long id) {
+        adminContentService.deleteHall(id);
+        return ResponseEntity.noContent().build();
     }
 
-    /**
-     * (Delete) 컨텐츠 삭제 (기존 코드 유지)
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteContent(@PathVariable("id") Long id) {
-        try {
-            exhibitionService.deleteExhibition(id);
-        } catch (Exception e) {
-            // (무시)
-        }
-        try {
-            placeService.deleteSciencePlace(id);
-        } catch (Exception e) {
-            // (무시)
-        }
+    // ========== Exhibition (전시) ==========
+    @GetMapping("/exhibitions")
+    public ResponseEntity<List<AdminExhibitionListDTO>> getExhibitions(
+            @RequestParam(value = "hallId", required = false) Long hallId) {
+        return ResponseEntity.ok(adminContentService.getExhibitionList(hallId));
+    }
+    @GetMapping("/exhibitions/{id}")
+    public ResponseEntity<AdminExhibitionDetailDTO> getExhibitionById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminContentService.getExhibitionById(id));
+    }
+    @PostMapping("/exhibitions")
+    public ResponseEntity<AdminExhibitionDetailDTO> createExhibition(
+            @RequestPart("dto") String dtoString,
+            @RequestPart(value = "mainImage", required = false) MultipartFile mainImage) {
+        AdminExhibitionDetailDTO dto = getDtoFromString(dtoString, AdminExhibitionDetailDTO.class);
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminContentService.createExhibition(dto, mainImage));
+    }
+    @PutMapping("/exhibitions/{id}")
+    public ResponseEntity<AdminExhibitionDetailDTO> updateExhibition(
+            @PathVariable Long id,
+            @RequestPart("dto") String dtoString,
+            @RequestPart(value = "mainImage", required = false) MultipartFile mainImage) {
+        AdminExhibitionDetailDTO dto = getDtoFromString(dtoString, AdminExhibitionDetailDTO.class);
+        return ResponseEntity.ok(adminContentService.updateExhibition(id, dto, mainImage));
+    }
+    @DeleteMapping("/exhibitions/{id}")
+    public ResponseEntity<Void> deleteExhibition(@PathVariable Long id) {
+        adminContentService.deleteExhibition(id);
+        return ResponseEntity.noContent().build();
+    }
 
-        return ResponseEntity.ok().build();
+    // ========== Science Place (체험 장소) ==========
+    @GetMapping("/places")
+    public ResponseEntity<List<AdminPlaceListDTO>> getPlaces() {
+        return ResponseEntity.ok(adminContentService.getPlaceList());
+    }
+    @GetMapping("/places/{id}")
+    public ResponseEntity<AdminPlaceDetailDTO> getPlaceById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminContentService.getPlaceById(id));
+    }
+    @PostMapping("/places")
+    public ResponseEntity<AdminPlaceDetailDTO> createPlace(
+            @RequestPart("dto") String dtoString,
+            @RequestPart(value = "mainImage", required = false) MultipartFile mainImage) {
+        AdminPlaceDetailDTO dto = getDtoFromString(dtoString, AdminPlaceDetailDTO.class);
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminContentService.createSciencePlace(dto, mainImage));
+    }
+    @PutMapping("/places/{id}")
+    public ResponseEntity<AdminPlaceDetailDTO> updatePlace(
+            @PathVariable Long id,
+            @RequestPart("dto") String dtoString,
+            @RequestPart(value = "mainImage", required = false) MultipartFile mainImage) {
+        AdminPlaceDetailDTO dto = getDtoFromString(dtoString, AdminPlaceDetailDTO.class);
+        return ResponseEntity.ok(adminContentService.updateSciencePlace(id, dto, mainImage));
+    }
+    @DeleteMapping("/places/{id}")
+    public ResponseEntity<Void> deletePlace(@PathVariable Long id) {
+        adminContentService.deletePlace(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ========== [신규] Modal 공통 데이터 API ==========
+
+    @GetMapping("/common/halls")
+    public ResponseEntity<List<AdminSimpleHallDTO>> getCommonHalls() {
+        return ResponseEntity.ok(adminContentService.getSimpleHallList());
+    }
+
+    @GetMapping("/common/grades")
+    public ResponseEntity<List<AdminGradeCategoryDTO>> getCommonGrades() {
+        return ResponseEntity.ok(adminContentService.getGradeCategoryList());
+    }
+
+    @GetMapping("/common/subcategories")
+    public ResponseEntity<List<AdminSubCategoryDetailDTO>> getCommonSubCategories() {
+        return ResponseEntity.ok(adminContentService.getSubCategoryDetailList());
+    }
+
+
+    /**
+     * [신규] 좌표 -> 주소 변환 API
+     */
+    @PostMapping("/reverse-geocode")
+    public ResponseEntity<Map<String, String>> reverseGeocodeAddress(@RequestBody GeocodeResponseDTO payload) {
+        String address = geocodingService.getAddressFromCoordinates(
+                payload.getLongitude().toPlainString(),
+                payload.getLatitude().toPlainString()
+        );
+
+        if (address != null) {
+            return ResponseEntity.ok(Collections.singletonMap("address", address));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
     }
 }

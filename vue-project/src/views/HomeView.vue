@@ -1,7 +1,7 @@
 <template>
   <div class="d-flex flex-column h-100 bg-white" style="font-family: 'SUIT', sans-serif">
     <div class="home-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
-      <h2 class="home-header-title h5 mb-0 fw-bold">교과서</h2>
+      <h2 class="home-header-title h5 mb-0 fw-bold">과학 어디가?</h2>
       <!-- AI튜터 버튼 텍스트를 아이콘 옆에 배치 -->
       <button class="ai-tutor-button btn p-0 border-0 d-flex align-items-center gap-2" @click="goToAiTutor">
         <i class="bi bi-robot fs-5"></i>
@@ -156,7 +156,7 @@
 
       <!-- 과학 체험 학습 섹션 -->
       <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-0">
-        <h5 class="fw-bold fs-6 mb-0">과학 체험 학습</h5>
+        <h5 class="fw-bold fs-6 mb-0">과학과 함께하는 여행</h5>
       </div>
       <div>
         <div class="card-carousel-wrapper position-relative">

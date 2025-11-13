@@ -1,6 +1,9 @@
 package com.example.demo.config;
 
+import org.springframework.beans.factory.annotation.Value; // [추가]
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -8,22 +11,33 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-//    @Override
-//    public void addCorsMappings(CorsRegistry registry) {
-//        registry.addMapping("/api/**") // '/api/'로 시작하는 모든 경로에 대해
-//                .allowedOrigins("http://localhost:5173") // Vue 개발 서버의 주소를 허용
-//                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // 허용할 HTTP 메소드
-//                .allowedHeaders("*") // 모든 헤더 허용
-//                .allowCredentials(true); // 쿠키 등 자격 증명 허용
-//    }
+    // application.properties에서 경로를 읽어오도록 변경
+    @Value("${file.resource-url-path}")
+    private String resourceUrlPath; // /static/images/
 
-    // FileUploadService가 저장한 이미지를 웹에서 접근 가능하도록 설정
+    @Value("${file.upload-dir}")
+    private String resourceLocation; // C:/uploads/images/
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String resourceUrlPath = "/uploads/images/**";
-        String resourceLocation = "file:C:/uploads/images/";
-        registry.addResourceHandler(resourceUrlPath)
-                .addResourceLocations(resourceLocation);
+        // [수정] 변수 사용
+        // /static/images/** 요청이 오면
+        registry.addResourceHandler(resourceUrlPath + "**")
+                // file:C:/uploads/images/ 경로에서 파일을 찾음
+                .addResourceLocations("file:" + resourceLocation);
     }
 
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/api/**")
+                .allowedOrigins("http://localhost:5173")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
 }

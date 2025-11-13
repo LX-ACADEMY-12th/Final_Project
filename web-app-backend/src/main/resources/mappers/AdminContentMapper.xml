@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.AdminContentMapper">
+
+    <sql id="createGeogPoint">
+        <if test="latitude != null and longitude != null">
+            ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)
+        </if>
+        <if test="latitude == null or longitude == null">
+            NULL
+        </if>
+    </sql>
+
+    <select id="findAllHallsForList" resultType="com.example.demo.dto.AdminHallListDTO">
+        SELECT
+            h.hall_id AS id,
+            h.hall_name AS name,
+            h.address_detail AS address,
+            h.main_image_url AS imageUrl,
+            COUNT(DISTINCT e.exhibition_id) AS exhibitionCount
+        FROM exhibition_hall h
+                 LEFT JOIN exhibition e ON h.hall_id = e.hall_id
+        GROUP BY h.hall_id, h.hall_name, h.address_detail, h.main_image_url
+        ORDER BY h.hall_id DESC
+    </select>
+
+    <select id="findAllExhibitionsForList" resultType="com.example.demo.dto.AdminExhibitionListDTO">
+        SELECT
+        e.exhibition_id AS id,
+        e.exhibition_name AS title,
+        e.main_image_url AS imageUrl,
+        e.type AS type,
+        eh.hall_name AS place,
+        string_agg(DISTINCT g.grade_name, ', ') AS grade,
+        string_agg(DISTINCT cmc.category_name, ', ') AS subject
+        FROM exhibition e
+        LEFT JOIN exhibition_hall eh ON e.hall_id = eh.hall_id
+        LEFT JOIN exhibition_grade_mapping egm ON e.exhibition_id = egm.exhibition_id
+        LEFT JOIN grade_category g ON egm.grade_id = g.grade_id
+        LEFT JOIN exhibition_curriculum_mapping ecm ON e.exhibition_id = ecm.exhibition_id
+        LEFT JOIN curriculum_sub_category csc ON ecm.sub_category_id = csc.sub_category_id
+        LEFT JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+        <where>
+            <if test="hallId != null">
+                e.hall_id = #{hallId}
+            </if>
+        </where>
+        GROUP BY e.exhibition_id, eh.hall_name
+        ORDER BY e.exhibition_id DESC
+    </select>
+
+    <select id="findAllPlacesForList" resultType="com.example.demo.dto.AdminPlaceListDTO">
+        SELECT
+            p.place_id AS id,
+            p.place_name AS title,
+            p.main_image_url AS imageUrl,
+            p.place_type AS type,
+            p.address_detail AS place,
+            string_agg(DISTINCT g.grade_name, ', ') AS grade,
+            string_agg(DISTINCT cmc.category_name, ', ') AS subject
+        FROM science_place p
+                 LEFT JOIN place_grade_mapping pgm ON p.place_id = pgm.place_id
+                 LEFT JOIN grade_category g ON pgm.grade_id = g.grade_id
+                 LEFT JOIN place_curriculum_mapping pcm ON p.place_id = pcm.place_id
+                 LEFT JOIN curriculum_sub_category csc ON pcm.sub_category_id = csc.sub_category_id
+                 LEFT JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+        GROUP BY p.place_id
+        ORDER BY p.place_id DESC
+    </select>
+
+    <select id="findHallDetailDTOById" resultType="com.example.demo.dto.AdminHallDetailDTO">
+        SELECT * FROM exhibition_hall WHERE hall_id = #{id}
+    </select>
+    <select id="findExhibitionDetailDTOById" resultType="com.example.demo.dto.AdminExhibitionDetailDTO">
+        SELECT * FROM exhibition WHERE exhibition_id = #{id}
+    </select>
+    <select id="findPlaceDetailDTOById" resultType="com.example.demo.dto.AdminPlaceDetailDTO">
+        SELECT * FROM science_place WHERE place_id = #{id}
+    </select>
+
+    <select id="findGradeIdsByExhibitionId" resultType="long">
+        SELECT grade_id FROM exhibition_grade_mapping WHERE exhibition_id = #{id}
+    </select>
+    <select id="findSubCategoryIdsByExhibitionId" resultType="long">
+        SELECT sub_category_id FROM exhibition_curriculum_mapping WHERE exhibition_id = #{id}
+    </select>
+    <select id="findGradeIdsByPlaceId" resultType="long">
+        SELECT grade_id FROM place_grade_mapping WHERE place_id = #{id}
+    </select>
+    <select id="findSubCategoryIdsByPlaceId" resultType="long">
+        SELECT sub_category_id FROM place_curriculum_mapping WHERE place_id = #{id}
+    </select>
+
+    <insert id="insertExhibitionHall" parameterType="com.example.demo.dto.AdminHallDetailDTO" useGeneratedKeys="true" keyProperty="hallId" keyColumn="hall_id">
+        INSERT INTO exhibition_hall (
+        hall_name, science_center_name, address_detail, latitude, longitude, main_image_url,
+        start_date, end_date, admission_fee, opening_hours, description, geog
+        ) VALUES (
+        #{hallName}, #{scienceCenterName}, #{addressDetail}, #{latitude}, #{longitude}, #{mainImageUrl},
+        #{startDate}, #{endDate}, #{admissionFee}, #{openingHours}, #{description},
+        <include refid="createGeogPoint"/>
+        )
+    </insert>
+    <insert id="insertExhibition" parameterType="com.example.demo.dto.AdminExhibitionDetailDTO" useGeneratedKeys="true" keyProperty="exhibitionId" keyColumn="exhibition_id">
+        INSERT INTO exhibition (
+        exhibition_name, hall_id, address_detail, latitude, longitude, type, start_date, end_date,
+        admission_fee, opening_hours, main_image_url, description, geog
+        ) VALUES (
+        #{exhibitionName}, #{hallId}, #{addressDetail}, #{latitude}, #{longitude}, #{type}, #{startDate}, #{endDate},
+        #{admissionFee}, #{openingHours}, #{mainImageUrl}, #{description},
+        <include refid="createGeogPoint"/>
+        )
+    </insert>
+    <insert id="insertSciencePlace" parameterType="com.example.demo.dto.AdminPlaceDetailDTO" useGeneratedKeys="true" keyProperty="placeId" keyColumn="place_id">
+        INSERT INTO science_place (
+        place_name, description, main_image_url, address_detail, latitude, longitude,
+        admission_fee, opening_hours, place_type, geog
+        ) VALUES (
+        #{placeName}, #{description}, #{mainImageUrl}, #{addressDetail}, #{latitude}, #{longitude},
+        #{admissionFee}, #{openingHours}, #{placeType},
+        <include refid="createGeogPoint"/>
+        )
+    </insert>
+
+    <update id="updateExhibitionHall" parameterType="com.example.demo.dto.AdminHallDetailDTO">
+        UPDATE exhibition_hall SET
+        hall_name = #{hallName},
+        science_center_name = #{scienceCenterName},
+        address_detail = #{addressDetail},
+        latitude = #{latitude},
+        longitude = #{longitude},
+        main_image_url = #{mainImageUrl},
+        start_date = #{startDate},
+        end_date = #{endDate},
+        admission_fee = #{admissionFee},
+        opening_hours = #{openingHours},
+        description = #{description},
+        geog = <include refid="createGeogPoint"/>
+        WHERE hall_id = #{hallId}
+    </update>
+    <update id="updateExhibition" parameterType="com.example.demo.dto.AdminExhibitionDetailDTO">
+        UPDATE exhibition SET
+        exhibition_name = #{exhibitionName},
+        hall_id = #{hallId},
+        latitude = #{latitude},
+        longitude = #{longitude},
+        type = #{type},
+        start_date = #{startDate},
+        end_date = #{endDate},
+        admission_fee = #{admissionFee},
+        opening_hours = #{openingHours},
+        main_image_url = #{mainImageUrl},
+        description = #{description},
+        geog = <include refid="createGeogPoint"/>
+        WHERE exhibition_id = #{exhibitionId}
+    </update>
+    <update id="updateSciencePlace" parameterType="com.example.demo.dto.AdminPlaceDetailDTO">
+        UPDATE science_place SET
+        place_name = #{placeName},
+        description = #{description},
+        main_image_url = #{mainImageUrl},
+        address_detail = #{addressDetail},
+        latitude = #{latitude},
+        longitude = #{longitude},
+        admission_fee = #{admissionFee},
+        opening_hours = #{openingHours},
+        place_type = #{placeType},
+        geog = <include refid="createGeogPoint"/>
+        WHERE place_id = #{placeId}
+    </update>
+
+    <delete id="deleteHall"> DELETE FROM exhibition_hall WHERE hall_id = #{id} </delete>
+    <delete id="deleteExhibition"> DELETE FROM exhibition WHERE exhibition_id = #{id} </delete>
+    <delete id="deletePlace"> DELETE FROM science_place WHERE place_id = #{id} </delete>
+
+    <insert id="insertExhibitionGradeMappings">
+        INSERT INTO exhibition_grade_mapping (exhibition_id, grade_id) VALUES
+        <foreach collection="gradeIds" item="gradeId" separator=",">
+            (#{exhibitionId}, #{gradeId})
+        </foreach>
+    </insert>
+    <insert id="insertExhibitionCurriculumMappings">
+        INSERT INTO exhibition_curriculum_mapping (exhibition_id, sub_category_id) VALUES
+        <foreach collection="subCategoryIds" item="subCategoryId" separator=",">
+            (#{exhibitionId}, #{subCategoryId})
+        </foreach>
+    </insert>
+    <insert id="insertPlaceGradeMappings">
+        INSERT INTO place_grade_mapping (place_id, grade_id) VALUES
+        <foreach collection="gradeIds" item="gradeId" separator=",">
+            (#{placeId}, #{gradeId})
+        </foreach>
+    </insert>
+    <insert id="insertPlaceCurriculumMappings">
+        INSERT INTO place_curriculum_mapping (place_id, sub_category_id) VALUES
+        <foreach collection="subCategoryIds" item="subCategoryId" separator=",">
+            (#{placeId}, #{subCategoryId})
+        </foreach>
+    </insert>
+
+    <delete id="deleteExhibitionGradeMappings">
+        DELETE FROM exhibition_grade_mapping WHERE exhibition_id = #{id}
+    </delete>
+    <delete id="deleteExhibitionCurriculumMappings">
+        DELETE FROM exhibition_curriculum_mapping WHERE exhibition_id = #{id}
+    </delete>
+    <delete id="deletePlaceGradeMappings">
+        DELETE FROM place_grade_mapping WHERE place_id = #{id}
+    </delete>
+    <delete id="deletePlaceCurriculumMappings">
+        DELETE FROM place_curriculum_mapping WHERE place_id = #{id}
+    </delete>
+    <delete id="deleteAiCourseItemsByExhibitionId">
+        DELETE FROM ai_course_item WHERE exhibition_id = #{exhibitionId}
+    </delete>
+    <delete id="deleteAiCoursesByExhibitionId">
+        DELETE FROM ai_recommended_course WHERE source_exhibition_id = #{exhibitionId}
+    </delete>
+
+    <select id="findSimpleHallList" resultType="com.example.demo.dto.AdminSimpleHallDTO">
+        SELECT
+            hall_id AS hallId,
+            hall_name AS hallName
+        FROM exhibition_hall
+        ORDER BY hall_name
+    </select>
+
+    <select id="findAllGradeCategories" resultType="com.example.demo.dto.AdminGradeCategoryDTO">
+        SELECT
+            grade_id AS gradeId,
+            grade_name AS gradeName
+        FROM grade_category
+        ORDER BY grade_id
+    </select>
+
+    <select id="findAllSubCategoryDetails" resultType="com.example.demo.dto.AdminSubCategoryDetailDTO">
+        SELECT
+            csc.sub_category_id AS subCategoryId,
+            csc.sub_category_name AS subCategoryName,
+            g.grade_name AS gradeName,
+            cmc.category_name AS mainCategoryName
+        FROM curriculum_sub_category csc
+                 JOIN grade_category g ON csc.grade_id = g.grade_id
+                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+        ORDER BY g.grade_id, cmc.main_category_id, csc.sub_category_id
+    </select>
+
+
+</mapper>

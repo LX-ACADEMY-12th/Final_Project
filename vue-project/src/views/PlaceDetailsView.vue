@@ -2,9 +2,9 @@
   <div class="exhibition-detail-page">
 
     <div class="header">
-      <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시 상세" :isFavorite="computedIsFavorite"
+      <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시관 상세정보" :isFavorite="computedIsFavorite"
         @toggle-favorite="handleToggleFavorite" />
-      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="장소 상세" :isFavorite="computedIsFavorite"
+      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="체험장소 상세정보" :isFavorite="computedIsFavorite"
         @toggle-favorite="handleToggleFavorite" />
       <ExhibitionHeader v-else pageTitle="로딩 중..." />
     </div>
@@ -81,8 +81,9 @@
           </div>
 
           <!-- 실제 추천 결과 -->
-          <CourseRecommend v-else :key="courseRerenderKey" :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
-            @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
+          <CourseRecommend v-else :key="courseRerenderKey" :course-items="courseItems" :type="pageType"
+            :is-loading="isRecommending" @request-new-course="fetchRecommendedCourse"
+            @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
 
@@ -418,11 +419,11 @@ export default {
 
         const backendItems = items.map(item => ({
           exhibitionId: this.pageType !== 'science_place' ? item.id : null,
-          placeId:      this.pageType === 'science_place' ? item.id : null,
-          sequence:     item.number,
-          itemType:     item.type === 'exhibition' ? 'exhibition' : 'science_place',
+          placeId: this.pageType === 'science_place' ? item.id : null,
+          sequence: item.number,
+          itemType: item.type === 'exhibition' ? 'exhibition' : 'science_place',
           categoryName: item.subject,
-          gradeName:    item.grade,
+          gradeName: item.grade,
           subCategories: item.hashtags
         }));
 
@@ -782,8 +783,8 @@ export default {
           hashtags: Array.isArray(currentItemData.subCategories)
             ? currentItemData.subCategories
             : currentItemData.subCategories
-            ? [currentItemData.subCategories]
-            : [],
+              ? [currentItemData.subCategories]
+              : [],
           type: currentItemData.type,
           place:
             currentItemInfo.placeAddress ||
