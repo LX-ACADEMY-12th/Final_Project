@@ -71,9 +71,21 @@ public interface ReviewMapper {
             @Param("userId") Long userId
         );
 
-    // 관리자용: 신고된 리뷰 목록 조회
-    List<ReportedReviewDTO> findReportedReviews();
-
-
+    // =======================================================
+    // [수정] 관리자 신고 리뷰 목록 조회 (페이지네이션 및 필터 적용)
+    // =======================================================
+    /**
+     * 신고된 리뷰 목록을 조회합니다. 필터 조건(targetType)과 페이지네이션 조건(offset, limit)이 Map에 담겨 전달됩니다.
+     * @param params 검색 조건 및 페이지네이션 정보가 담긴 Map
+     * @return 신고된 리뷰 목록 DTO 리스트
+     */
+    List<ReportedReviewDTO> findReportedReviews(Map<String, Object> params);
+    /**
+     * 신고된 리뷰의 총 개수를 조회합니다. 필터 조건(targetType)이 Map에 담겨 전달됩니다.
+     * 필터링된 총 개수는 페이지네이션 정보 계산에 사용됩니다.
+     * @param params 필터 조건이 담긴 Map
+     * @return 필터링 조건에 맞는 전체 신고 리뷰 개수
+     */
+    long countReportedReviews(Map<String, Object> params);
 
 }

@@ -137,6 +137,17 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-storage</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>spring-cloud-gcp-starter-sql-postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>spring-cloud-gcp-starter-secretmanager</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -150,10 +161,12 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -164,6 +177,22 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>3.4.1</version>
+                <configuration>
+                    <to>
+                        <image>asia-northeast3-docker.pkg.dev/burnished-form-472201-t1/my-backend-repo/science-book-backend:latest</image>
+                    </to>
+                    <container>
+                        <jvmFlags>
+                            <jvmFlag>-Dspring.profiles.active=prod</jvmFlag>
+                        </jvmFlags>
+                    </container>
                 </configuration>
             </plugin>
         </plugins>

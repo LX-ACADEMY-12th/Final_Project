@@ -41,7 +41,7 @@ import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import ActivityRecommender from '@/components/recommend/ActivityRecommender.vue';
 
 // API 베이스 (Vite 환경변수 우선)
-const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
+const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export default {
   name: 'ViewDetailWithModal',

@@ -100,7 +100,8 @@ export default {
      */
     async fetchHalls(scienceCenterName) {
       try {
-        const response = await rawAxios.get(`http://localhost:8080/api/halls?scienceCenterName=${scienceCenterName}`);
+        const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+        const response = await rawAxios.get(`${VITE_API_BASE_URL}/api/halls?scienceCenterName=${scienceCenterName}`);
         console.log(`API 호출, {}`, scienceCenterName)
         this.halls = response.data;
         console.log(JSON.stringify(this.halls, null, 2))

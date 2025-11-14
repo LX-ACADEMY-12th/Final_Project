@@ -49,7 +49,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore';
 
 // API URL (Login API는 토큰이 필요 없으므로 Base URL만 사용)
-const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
+const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_URL = `${API_BASE}/api/user`; // '/api/user' 경로
 
 // export default를 사용하여 컴포넌트의 로직(데이터, 계산된 속성, 메서드 등)을 정의합니다.

@@ -365,19 +365,46 @@ public class ReviewService {
             return null; // 실패 시 null 반환
         }
     }
-    
-    // 관리자용
-    // =======================================================
-    // =======================================================
-    /**
-     * 1. 신고된 리뷰 목록 조회 (관리자 대시보드)
-     */
-    @Transactional(readOnly = true)
-    public List<ReportedReviewDTO> findReportedReviews() {
-        // Mapper에서 신고 횟수가 1회 이상이고, 상태가 ACTIVE인 리뷰만 조회합니다.
-        log.info("[ADMIN] 신고된 리뷰 목록을 조회합니다.");
-        return reviewMapper.findReportedReviews();
+    /*
+    * [관리자] 신고된 리뷰 목록 조회 (페이지네이션 및 필터 적용)
+    * @param page 현재 페이지 번호 (0부터 시작)
+    * @param size 페이지당 항목 수
+    * @param category 프론트엔드에서 전달된 카테고리 필터 값 ("science-center", "science-trip" 또는 ""/null)
+    * @return 페이지네이션 응답 DTO
+    */
+    public PageResponseDTO<ReportedReviewDTO> getReportedReviews(int page, int size, String category) {
+        // 1. 페이지네이션을 위한 offset (시작 위치)을 계산합니다.
+        int offset = page * size;
+        // 2. 매퍼로 전달할 모든 파라미터를 담을 Map을 생성합니다.
+        Map<String, Object> params = new HashMap<>();
+        params.put("offset", offset); // 데이터를 가져오기 시작할 위치
+        params.put("limit", size);    // 가져올 데이터의 개수
+        // :별2: 3. 카테고리 필터링 로직 추가 (프론트 값 -> DB targetType 매핑)
+        String targetType = null;
+        // category 값이 null이 아니거나 빈 문자열이 아닌 경우에만 필터링을 적용합니다.
+        if (category != null && !category.isEmpty()) {
+            // 프론트에서 넘어온 "science-center"를 DB의 '전시' 타입인 "exhibition"으로 매핑합니다.
+            if ("science-center".equals(category)) {
+                targetType = "exhibition";
+                // 프론트에서 넘어온 "science-trip"을 DB의 '장소' 타입인 "science_place"로 매핑합니다.
+            } else if ("science-trip".equals(category)) {
+                targetType = "science_place";
+            }
+            // 매핑된 DB targetType 값이 유효하면 Map에 추가합니다.
+            if (targetType != null) {
+                params.put("targetType", targetType);
+            }
+        }
+        // 4. 필터 조건이 적용된 전체 신고 리뷰의 개수를 조회합니다. (페이지네이션을 위해 필요)
+        // ReviewMapper 인터페이스에 이 메서드 (countReportedReviews)가 정의되어 있어야 합니다.
+        long totalElements = reviewMapper.countReportedReviews(params);
+        // 5. 페이지네이션 및 필터 조건이 적용된 신고 리뷰 목록을 조회합니다.
+        // ReviewMapper 인터페이스에 이 메서드 (findReportedReviews)가 정의되어 있어야 합니다.
+        List<ReportedReviewDTO> reviews = reviewMapper.findReportedReviews(params);
+        // 6. 조회된 목록과 전체 개수를 사용하여 최종 응답 DTO를 생성하고 반환합니다.
+        return new PageResponseDTO<ReportedReviewDTO>(reviews, page, size, totalElements);
     }
+
     /**
      * 2. 신고된 리뷰 삭제 처리 (Soft Delete)
      * (관리자 버튼: "삭제")

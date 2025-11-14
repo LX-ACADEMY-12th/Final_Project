@@ -6,8 +6,8 @@ target/
 
 # 민감한 정보가 포함된 파일들
 application-dev.properties
+application-prod.properties
 application-local.properties
-.env
 *.env
 
 ### STS ###

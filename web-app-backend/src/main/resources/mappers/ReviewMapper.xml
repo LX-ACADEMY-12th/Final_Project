@@ -307,6 +307,20 @@
 	        R.created_at DESC  LIMIT #{limit}
 	</select>
 
+    <select id="countReportedReviews" resultType="long">
+        SELECT
+        COUNT(DISTINCT r.review_id)
+        FROM
+        review r
+        INNER JOIN
+        review_report rr ON r.review_id = rr.review_id
+        WHERE
+        r.status = 'ACTIVE'
+        <if test="targetType != null and targetType != ''">
+            AND r.target_type = #{targetType}
+        </if>
+    </select>
+
     <select id="findReportedReviews"
             resultType="com.example.demo.dto.ReportedReviewDTO">
         SELECT
@@ -341,14 +355,16 @@
                 LEFT JOIN
             science_place sp ON r.target_type = 'science_place' AND r.target_id = sp.place_id
         WHERE
-            r.status = 'ACTIVE' GROUP BY
-                                    r.review_id, u.name, e.exhibition_name, place_name
-        -- 신고 횟수가 1회 이상인 것만 필터링
-        HAVING
-            COUNT(rr.review_id) > 0
-        -- 가장 최근에 신고된 리뷰가 위로 오도록 정렬
+            r.status = 'ACTIVE'
+            <if test="targetType != null and targetType != ''">
+                AND r.target_type = #{targetType}
+            </if>
+        GROUP BY
+            r.review_id, u.name, e.exhibition_name, sp.place_name, r.target_type, r.target_id, r.content, r.rating, r.created_at, r.user_id
         ORDER BY
-            MAX(rr.created_at) DESC
+            r.created_at DESC,
+            reportCount DESC,
+            r.review_id DESC  LIMIT #{limit} OFFSET #{offset}
     </select>
 	
 	

@@ -28,7 +28,7 @@ import PhotoReviewHeader from '@/components/header/PhotoReviewHeader.vue';
 import PhotoModal from '@/components/modal/PhotoModal.vue';
 import eventBus from '@/utils/eventBus';
 
-const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080';
+const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export default {
   name: 'ReviewPhotoGridView',
@@ -71,9 +71,9 @@ export default {
     } else {
       console.error('targetId 또는 targetType이 props로 전달되지 않았습니다.');
       eventBus.emit('show-global-alert', {
-          message: '잘못된 접근입니다.',
-          type: 'error'
-        });
+        message: '잘못된 접근입니다.',
+        type: 'error'
+      });
       this.isLoading = false;
     }
   },
@@ -86,7 +86,6 @@ export default {
       this.isLoading = true;
 
       // ⭐️ (수정) 우리가 만든 백엔드 API 엔드포인트
-      // 예: http://localhost:8080/api/reviews/target/place/123/photos
       const apiUrl = `${API_BASE}/api/reviews/target/${this.targetType}/${this.targetId}/photos`;
 
       // (수정) params 객체는 더 이상 필요 없으므로 삭제합니다.

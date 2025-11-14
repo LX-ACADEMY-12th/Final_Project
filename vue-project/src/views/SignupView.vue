@@ -106,7 +106,8 @@ import eventBus from '@/utils/eventBus';
 import axios from 'axios';
 
 // 백엔드 API의 기본 URL을 상수로 정의합니다. (실제 환경에 맞게 변경 필요)
-const API_URL = 'http://localhost:8080/api/user';
+const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `${VITE_API_BASE_URL}/api/user`;
 
 export default {
   // 컴포넌트의 이름 설정

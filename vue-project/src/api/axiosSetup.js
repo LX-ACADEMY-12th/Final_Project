@@ -3,14 +3,11 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 
 // API 베이스 URL 설정
-const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:8080'
+const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'
 
 // 2. 새로운 Axios 인스턴스 생성
 const axiosInstance = axios.create({
   baseURL: API_BASE,
-  // headers: {
-  //   'Content-Type': 'application/json',
-  // },
 })
 
 // 3. ⭐️ 요청 인터셉터 (Request Interceptor)

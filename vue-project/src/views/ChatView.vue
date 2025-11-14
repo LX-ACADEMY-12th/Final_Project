@@ -164,7 +164,8 @@ const stopAndSendAudio = () => {
     currentVolume.value = 0;
 
     try {
-      const response = await axios.post('http://localhost:8080/api/voice-query', formData, {
+      const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      const response = await axios.post(`${VITE_API_BASE_URL}/api/voice-query`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
