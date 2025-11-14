@@ -100,7 +100,7 @@ export default {
   computed: {
     // [!!] 1. 이미지 URL을 계산하는 computed 속성 추가
     computedImageUrl() {
-      const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+      const IMAGE_BASE_URL = 'https://storage.googleapis.com/science_book/';
       // 이 카드는 PlaceDetailsView -> CourseRecommend -> 여기로 옴
       // PlaceDetailsView가 이미 imageUrl을 만들어줌
       const url = this.item.imageUrl;

@@ -49,7 +49,7 @@
 
 <script>
 import PillTag from '@/components/tag/PillTag.vue';
-import TypeTag from '@/components/tag/TypeTag.vue';
+// import TypeTag from '@/components/tag/TypeTag.vue';
 import HashTag from '@/components/tag/HashTag.vue';
 
 export default {
@@ -68,7 +68,7 @@ export default {
   computed: {
     // 기존 computed 속성들...
     computedImageUrl() {
-      const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+      const IMAGE_BASE_URL = 'https://storage.googleapis.com/science_book/';;
       const url = this.item.imageUrl;
       if (url && !url.startsWith('http')) {
         return IMAGE_BASE_URL + url;

@@ -72,7 +72,7 @@ import Hashtag from '@/components/tag/HashTag.vue';
 // import TypeTag from '@/components/tag/TypeTag.vue';
 
 // [!!] 1. 이미지 기본 URL 정의
-const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+const IMAGE_BASE_URL = 'https://storage.googleapis.com/science_book/';
 
 export default {
   name: 'InfoSection',

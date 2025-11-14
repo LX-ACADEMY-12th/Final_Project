@@ -94,7 +94,7 @@ export default {
   },
   computed: {
     computedImageUrl() {
-      const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+      const IMAGE_BASE_URL = 'https://storage.googleapis.com/science_book/';
       const url = this.item.imageUrl;
 
       if (url && !url.startsWith('http')) {

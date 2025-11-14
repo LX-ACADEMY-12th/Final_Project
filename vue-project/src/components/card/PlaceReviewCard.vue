@@ -91,7 +91,7 @@ const props = defineProps({
 const emit = defineEmits(['add', 'item-click']);
 
 // [!!] 1. 이미지 기본 URL 정의
-const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+const IMAGE_BASE_URL = 'https://storage.googleapis.com/science_book/';
 
 // [!!] 2. 메인 이미지 URL 계산
 const computedImageUrl = computed(() => {
