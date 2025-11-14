@@ -54,7 +54,7 @@ export default {
       notices: [],
       loading: true,
       error: null,
-      apiBaseUrl: import.meta.env.VITE_API_BASE_URL + "/api",
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL + "/api/admin",
     };
   },
   mounted() {

@@ -73,7 +73,7 @@ public class SecurityConfig {
 
                                 // 공지사항
                                 "/api/notices/**",
-
+                                "/api/admin/**",
                                 // GET 요청만 공개
                                 "/api/admin/reviews/**" // (GET 요청은 하단에서 별도 처리)
                         ).permitAll()
@@ -97,7 +97,7 @@ public class SecurityConfig {
                         // --- 2. 관리자 API (hasRole) ---
                         // (인증 + ADMIN 권한 필요)
                         // /api/admin/으로 시작하는 모든 요청은 ADMIN 권한 필요
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+//                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // --- 3. 나머지 모든 API (authenticated) ---
                         // (인증만 되면 누구나 접근 가능 - USER, ADMIN 등)

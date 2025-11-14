@@ -1,8 +1,8 @@
 <template>
-  <div id="my-page" class="container px-4 py-2">
+  <div id="my-page" class="container px-4 py-4">
     <!-- 헤더 영역 -->
-    <div class="header-section d-flex align-items-center justify-content-between pb-3 border-bottom">
-      <button class="btn me-3 border-0" @click="goBack">
+    <div class="header-section d-flex align-items-center justify-content-between pb-4 border-bottom">
+      <button class="btn p-0 me-3 border-0" @click="goBack">
         <i class="bi bi-arrow-left fs-4"></i>
       </button>
       <h2 class="h5 mb-0 fw-bold text-dark">마이페이지</h2>
@@ -43,8 +43,7 @@
       </div>
 
 
-      <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start"
-        @click="goToStampPage">
+      <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start">
         <div class="d-flex align-items-center mb-2">
           <i class="bi bi-crosshair me-2 fs-5"></i>
           <span class="fw-bold">스탬프 투어</span>
