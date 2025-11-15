@@ -160,8 +160,9 @@
       </div>
     </div>
 
-    <!-- 하단 네비 -->
-    <BottomNavbar :selectedNavItem="selectedNavItem" @navigate="handleNavigation" style="flex-shrink: 0;" />
+    <div class="bottom-navbar-wrapper">
+      <BottomNavbar :selectedNavItem="selectedNavItem" @navigate="handleNavigation" />
+    </div>
     <FilterModal v-if="isModalOpen" :initialSubject="selectedSubject" :initialGrade="selectedGrade"
       @close="isModalOpen = false" @complete="handleFilterComplete" :showLocationOptions="false" />
   </div>
@@ -529,17 +530,21 @@ export default {
 
 /* 전체 레이아웃 */
 .home-root {
+  /* height: 100%와 max-height: 100vh;는 유지 */
   height: 100%;
   max-height: 100vh;
   overflow: hidden;
-  overflow-x: hidden;
+  /* HomeView 자체 스크롤 방지 */
 }
 
-/* 스크롤 영역 */
+/* 🚨 스크롤 영역 (남은 공간 모두 차지) */
 .home-scroll {
   flex: 1 1 auto;
   overflow-y: auto;
+  /* 이 영역만 스크롤됨 */
   min-height: 0;
+
+  /* 하단 네비바에 가려지지 않도록 패딩을 유지합니다. */
   padding-bottom: 80px;
   /* 4 * 20 */
   -webkit-overflow-scrolling: touch;
@@ -550,6 +555,17 @@ export default {
 
 .home-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/* 🚨 하단 네비바 래퍼 스타일 추가 */
+.bottom-navbar-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  /* 다른 콘텐츠 위에 표시 */
+  /* flex-shrink: 0; 속성은 fixed 요소에서는 필요 없습니다. */
 }
 
 /* 헤더 */
