@@ -103,10 +103,10 @@
     </insert>
     <insert id="insertExhibition" parameterType="com.example.demo.dto.AdminExhibitionDetailDTO" useGeneratedKeys="true" keyProperty="exhibitionId" keyColumn="exhibition_id">
         INSERT INTO exhibition (
-        exhibition_name, hall_id, address_detail, latitude, longitude, type, start_date, end_date,
+        exhibition_name, hall_id, latitude, longitude, type, start_date, end_date,
         admission_fee, opening_hours, main_image_url, description, geog
         ) VALUES (
-        #{exhibitionName}, #{hallId}, #{addressDetail}, #{latitude}, #{longitude}, #{type}, #{startDate}, #{endDate},
+        #{exhibitionName}, #{hallId}, #{latitude}, #{longitude}, #{type}, #{startDate}, #{endDate},
         #{admissionFee}, #{openingHours}, #{mainImageUrl}, #{description},
         <include refid="createGeogPoint"/>
         )

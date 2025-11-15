@@ -22,43 +22,45 @@
               <input type="text" class="form-control" v-model="form.name" required>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">주소</label>
-              <div class="input-group">
-                <input type="text" class="form-control" v-model="form.addressDetail"
-                  :class="{ 'is-invalid': geocodingFeedback.type === 'danger' }">
-                <button class="btn btn-outline-secondary" type="button" @click="geocodeAddress" :disabled="isGeocoding">
-                  <span v-if="isGeocoding" class="spinner-border spinner-border-sm" role="status"></span>
-                  좌표 찾기
-                </button>
+            <template v-if="modalType !== 'exhibitions'">
+              <div class="mb-3">
+                <label class="form-label">주소</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" v-model="form.addressDetail"
+                    :class="{ 'is-invalid': geocodingFeedback.type === 'danger' }">
+                  <button class="btn btn-outline-secondary" type="button" @click="geocodeAddress"
+                    :disabled="isGeocoding">
+                    <span v-if="isGeocoding" class="spinner-border spinner-border-sm" role="status"></span>
+                    좌표 찾기
+                  </button>
+                </div>
+                <div v-if="geocodingFeedback.message" class="mt-2"
+                  :class="geocodingFeedback.type === 'success' ? 'text-success' : 'text-danger'">
+                  <small><i class="bi"
+                      :class="geocodingFeedback.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'"></i>
+                    {{ geocodingFeedback.message }}</small>
+                </div>
               </div>
-              <div v-if="geocodingFeedback.message" class="mt-2"
-                :class="geocodingFeedback.type === 'success' ? 'text-success' : 'text-danger'">
-                <small><i class="bi"
-                    :class="geocodingFeedback.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'"></i>
-                  {{ geocodingFeedback.message }}</small>
-              </div>
-            </div>
 
-            <div class="mb-3">
-              <div id="map" style="width:100%; height:250px; border-radius: 0.375rem;"></div>
-              <small class="text-muted">지도를 클릭하거나 핀을 드래그하여 위치를 정확히 설정할 수 있습니다.</small>
-            </div>
-
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label class="form-label">위도</label>
-                <input type="number" step="any" class="form-control" v-model="form.latitude"
-                  :class="{ 'is-valid': geocodingFeedback.type === 'success' }">
+              <div class="mb-3">
+                <div id="map" style="width:100%; height:250px; border-radius: 0.375rem;"></div>
+                <small class="text-muted">지도를 클릭하거나 핀을 드래그하여 위치를 정확히 설정할 수 있습니다.</small>
               </div>
-              <div class="col-md-6">
-                <label class="form-label">경도</label>
-                <input type="number" step="any" class="form-control" v-model="form.longitude"
-                  :class="{ 'is-valid': geocodingFeedback.type === 'success' }">
-              </div>
-            </div>
 
-            <div class="row mb-3" v-if="modalType === 'halls' || modalType === 'exhibitions'">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">위도</label>
+                  <input type="number" step="any" class="form-control" v-model="form.latitude"
+                    :class="{ 'is-valid': geocodingFeedback.type === 'success' }">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">경도</label>
+                  <input type="number" step="any" class="form-control" v-model="form.longitude"
+                    :class="{ 'is-valid': geocodingFeedback.type === 'success' }">
+                </div>
+              </div>
+            </template>
+            <div class="row mb-3" v-if="modalType === 'halls'">
               <label class="form-label">운영 기간</label>
               <div class="col-md-6">
                 <input type="date" class="form-control" v-model="form.startDate">
@@ -67,18 +69,15 @@
                 <input type="date" class="form-control" v-model="form.endDate">
               </div>
             </div>
-
-            <div class="mb-3">
+            <div class="mb-3" v-if="modalType !== 'exhibitions'">
               <label class="form-label">운영 시간</label>
               <input type="text" class="form-control" v-model="form.openingHours"
                 placeholder="예: 09:00 - 18:00 (월요일 휴무)">
             </div>
-
-            <div class="mb-3">
+            <div class="mb-3" v-if="modalType !== 'exhibitions'">
               <label class="form-label">입장료</label>
               <input type="text" class="form-control" v-model="form.admissionFee" placeholder="예: 성인 5,000원">
             </div>
-
             <div class="mb-3">
               <label class="form-label">메인 이미지</label>
               <input type="file" class="form-control" @change="handleFileChange" accept="image/*">
@@ -274,6 +273,11 @@ export default {
         return;
       }
 
+      // exhibitions 모드에서는 지도를 초기화할 필요가 없음 (지도 관련 UI가 없음)
+      if (this.modalType === 'exhibitions') {
+        return;
+      }
+
       const mapContainer = document.getElementById('map');
       let lat = 37.5665; // 기본 위도 (서울시청)
       let lng = 126.9780; // 기본 경도
@@ -309,6 +313,8 @@ export default {
 
     // 2. 지도 이벤트(클릭/드래그) -> 폼 업데이트
     async updateFormFromMapEvent(latLng) {
+      if (this.modalType === 'exhibitions') return; // exhibitions일 때 실행 방지
+
       const newLat = latLng.getLat();
       const newLng = latLng.getLng();
 
@@ -337,7 +343,7 @@ export default {
 
     // 3. 폼 -> 지도로 갱신 (헬퍼)
     setMapCenterAndMarker(lat, lng) {
-      if (!this.mapInstance) return;
+      if (!this.mapInstance || this.modalType === 'exhibitions') return; // exhibitions일 때 실행 방지
 
       const newPos = new window.kakao.maps.LatLng(lat, lng);
       this.mapInstance.panTo(newPos);
@@ -346,6 +352,8 @@ export default {
 
     // 4. '좌표 찾기' 버튼 클릭
     async geocodeAddress() {
+      if (this.modalType === 'exhibitions') return; // exhibitions일 때 실행 방지
+
       if (!this.form.addressDetail) {
         this.geocodingFeedback = { message: '주소를 입력해주세요.', type: 'danger' };
         return;
@@ -410,8 +418,17 @@ export default {
       else if (this.modalType === 'places') dto.placeName = dto.name;
       delete dto.name;
 
-      if (dto.startDate === '') dto.startDate = null;
-      if (dto.endDate === '') dto.endDate = null;
+      // exhibitions 모드에서는 운영기간 필드가 숨겨졌으므로,
+      // halls와 places 모드일 때만 빈 문자열을 null로 변환합니다.
+      if (this.modalType !== 'exhibitions') {
+        if (dto.startDate === '') dto.startDate = null;
+        if (dto.endDate === '') dto.endDate = null;
+      } else {
+        // exhibitions 모드에서는 startDate, endDate는 API 스펙상 유지하고, 폼에서만 숨겼습니다.
+        // 하지만 혹시 모를 경우를 대비하여 여기서도 null 처리 (데이터가 넘어가지 않도록 하는 것이 최선이지만, 안전하게 처리)
+        // 만약 전시 수정 시 기존 데이터가 남아있다면 그대로 전달되어야 하므로 이 부분은 수정하지 않고 유지합니다.
+      }
+
 
       formData.append('dto', JSON.stringify(dto));
 
