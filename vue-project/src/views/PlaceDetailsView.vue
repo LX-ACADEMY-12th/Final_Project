@@ -17,41 +17,6 @@
           @authenticate-visit="handleVisitAuthentication" />
         <hr class="divider" />
 
-        <!-- 가상 실험 버튼 개선 -->
-        <button type="button" class="experiment-toggle-btn" v-if="currentSimulationComponent"
-          @click="showSimulation = !showSimulation">
-          <span class="btn-content">
-            <i class="bi bi-flask-fill"></i>
-            <span class="btn-text">가상 실험</span>
-          </span>
-          <i class="bi chevron-icon" :class="showSimulation ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-        </button>
-
-        <!-- 가상 실험 컨테이너 개선 -->
-        <transition name="slide-fade">
-          <div v-if="showSimulation && currentSimulationComponent" class="simulation-wrapper">
-            <div class="simulation-container">
-              <div class="simulation-inner">
-                <div class="simulation-header">
-                  <div class="header-content">
-                    <div class="header-title">
-                      <i class="bi bi-flask-fill header-icon"></i>
-                      <h5 class="title-text">{{ experimentTitle }}</h5>
-                    </div>
-                    <button type="button" class="btn-close-simulation" @click="showSimulation = false" title="닫기"
-                      aria-label="시뮬레이션 닫기">
-                      <i class="bi bi-x-lg"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="simulation-content">
-                  <component :is="currentSimulationComponent"></component>
-                </div>
-              </div>
-            </div>
-          </div>
-        </transition>
-
         <TabSection :key="currentTab" :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
@@ -289,12 +254,6 @@ import TabSection from '@/components/section/TabSection.vue';
 import ContentDetailView from './ContentDetailView.vue';
 import CourseRecommend from './CourseRecommend.vue';
 
-import ColumnarJoint from '@/components/simulations/ColumnarJoint.vue';
-import StatesOfMatter from '@/components/simulations/StatesOfMatterSimulation.vue';
-import Ecosystem from '@/components/simulations/EcosystemSimulation.vue';
-import MagnetField from '@/components/simulations/MagnetField.vue';
-import ThermalConductivity from '@/components/simulations/ThermalConductivitySim.vue';
-
 // Pinia (로그인 상태 확인)
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
@@ -311,11 +270,6 @@ export default {
     TabSection,
     CourseRecommend,
     ContentDetailView,
-    ColumnarJoint,
-    StatesOfMatter,
-    Ecosystem,
-    MagnetField,
-    ThermalConductivity
   },
 
   // 컴포넌트 라우트 가드
@@ -364,26 +318,7 @@ export default {
     cacheKey() {
       return `course-cache:${this.pageType}:${this.currentId}`;
     },
-    simulationMap() {
-      return {
-        '초등 3학년': {
-          '물리': MagnetField,
-          '화학': StatesOfMatter,
-          '생명': Ecosystem,
-          '지구': ColumnarJoint
-        },
-        '초등 4학년': {
-          '생명': Ecosystem,
-          '지구': ColumnarJoint,
-        },
-        '초등 5학년': {
-          '생명': Ecosystem,
-          '화학': StatesOfMatter,
-          '물리': ThermalConductivity,
-          '지구': ColumnarJoint
-        }
-      };
-    },
+
     currentSimulationComponent() {
       const grade = this.exhibition?.gradeTag;
       const subject = this.exhibition?.mainCategory;
@@ -407,7 +342,6 @@ export default {
 
   data() {
     return {
-      showSimulation: false,
       courseRerenderKey: 0,
       currentId: null,
       pageType: null, // 'exhibition' | 'science_place'
@@ -1226,116 +1160,6 @@ export default {
   transition: transform 0.3s ease;
 }
 
-/* ========================================
-   시뮬레이션 컨테이너 (개선)
-======================================== */
-.simulation-wrapper {
-  margin: 0 20px 20px 20px;
-}
-
-.simulation-container {
-  animation: slideDownIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.simulation-inner {
-  background: linear-gradient(135deg, rgba(74, 124, 236, 0.03) 0%, rgba(16, 185, 129, 0.03) 100%);
-  border: 1px solid rgba(74, 124, 236, 0.12);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(74, 124, 236, 0.08);
-}
-
-.simulation-header {
-  background: linear-gradient(135deg, rgba(74, 124, 236, 0.08), rgba(16, 185, 129, 0.06));
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(74, 124, 236, 0.1);
-  backdrop-filter: blur(10px);
-}
-
-.simulation-header .header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.simulation-header .header-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-}
-
-.simulation-header .header-icon {
-  color: #4A7CEC;
-  font-size: 20px;
-}
-
-.simulation-header .title-text {
-  color: #333;
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.btn-close-simulation {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.btn-close-simulation:hover {
-  background: rgba(255, 255, 255, 1);
-  color: #333;
-  border-color: rgba(0, 0, 0, 0.12);
-}
-
-.simulation-content {
-  padding: 24px 20px;
-  background: #fff;
-}
-
-/* 슬라이드 애니메이션 */
-.slide-fade-enter-active {
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.slide-fade-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 1, 1);
-}
-
-.slide-fade-enter-from {
-  opacity: 0;
-  transform: translateY(-15px);
-}
-
-.slide-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-@keyframes slideDownIn {
-  from {
-    opacity: 0;
-    transform: translateY(-15px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 /* ========================================
    AI 추천 로딩 (대폭 개선)

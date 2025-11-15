@@ -1,117 +1,133 @@
 <template>
-  <div class="d-flex flex-column h-100 bg-white" style="font-family: 'SUIT', sans-serif">
-    <div class="home-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
-      <h2 class="home-header-title h5 mb-0 fw-bold">과학 어디가?</h2>
-      <!-- AI튜터 버튼 텍스트를 아이콘 옆에 배치 -->
-      <button class="ai-tutor-button btn p-0 border-0 d-flex align-items-center gap-2" @click="goToAiTutor">
-        <i class="bi bi-robot fs-5"></i>
+  <div class="home-root d-flex flex-column h-100 bg-white" style="font-family: 'SUIT', sans-serif">
+    <!-- 상단 헤더 -->
+    <div class="home-header">
+      <h2 class="home-header-title">과학 어디가</h2>
+      <button class="ai-tutor-button" @click="goToAiTutor">
+        <i class="bi bi-robot"></i>
         <span>AI튜터</span>
       </button>
     </div>
-    <div class="flex-grow-1" style="overflow-y: auto; min-height: 0;">
-      <div class="px-3 pt-3" @click="goToMyPage()">
-        <div class="profile-card d-flex align-items-center gap-3 p-3 rounded-4 shadow-sm" @click="goToMyPage()"
-          role="button" tabindex="0" @keydown.enter="goToMyPage()" :aria-label="`${userName} 프로필 보기`">
-          <div class="profile-avatar rounded-circle d-flex align-items-center justify-content-center flex-shrink-0">
+
+    <!-- 스크롤 영역 -->
+    <div class="home-scroll flex-grow-1">
+      <!-- 프로필 카드 섹션 -->
+      <div class="home-section home-section--profile">
+        <div class="profile-card" @click="goToMyPage()" role="button" tabindex="0" @keydown.enter="goToMyPage()"
+          :aria-label="`${userName} 프로필 보기`">
+          <!-- 아바타 -->
+          <div class="profile-avatar">
             <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필 이미지" class="profile-image" />
-            <div v-else>
-              <i class="bi bi-person-fill fs-2"></i>
+            <div v-else class="profile-avatar-fallback">
+              <i class="bi bi-person-fill"></i>
             </div>
           </div>
-          <div class="profile-info flex-grow-1">
-            <div class="fw-bold fs-6">안녕하세요</div>
-            <div class="fw-bold fs-5">{{ userName }}</div>
+
+          <!-- 텍스트 영역 -->
+          <div class="profile-info">
+            <div class="profile-greeting">안녕하세요</div>
+            <div class="profile-name">{{ userName }}</div>
+
+            <!-- 학년 / 과목 상태 한줄 요약 -->
+            <div class="profile-status">
+              <button type="button" class="profile-pill" @click.stop.prevent="isModalOpen = true">
+                {{ selectedGrade }}
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <span class="status-dot">·</span>
+              <button type="button" class="profile-pill" @click.stop.prevent="isModalOpen = true">
+                {{ selectedSubject }}
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <span class="status-text">과목 학습 중 입니다.</span>
+            </div>
           </div>
         </div>
-      </div>
-      <!-- 더 자연스러운 문구로 수정 -->
-      <div class="px-3 pt-3">
-        <p class="text-secondary mb-2 ms-1" style="font-size: 0.9rem;">
-          맞춤 콘텐츠를 추천해드려요
+        <!-- 보조 문구 -->
+        <p class="profile-helper">
+          *맞춤 콘텐츠를 추천해드려요
         </p>
-        <div class="fs-5 flex-wrap quick-badge-group">
-          <span>우리 아이는</span>
-          <a href="#" class="text-decoration fw-bold" style="color: #4A7CEC;" @click.prevent="isModalOpen = true">
-            {{ selectedGrade }}
-            <i class="bi bi-chevron-down" style="width: 16px; height: 16px;"></i>
-          </a>
-          <span class="d-none d-sm-inline">학생이며,</span>
-          <a href="#" class="text-decoration fw-bold" style="color: #4A7CEC;" @click.prevent="isModalOpen = true">
-            {{ selectedSubject }}
-            <i class="bi bi-chevron-down" style="width: 16px; height: 16px;"></i>
-          </a>
-          <span>과목을 학습 중입니다</span>
-        </div>
       </div>
 
-      <!-- 칠판 영역 -->
-      <div class="px-3 pt-3">
-        <div class="rounded-3 shadow-sm" style="background-color: #8B5A2B; padding: 10px; border-radius: 12px;">
-          <div style="background-color: #2E4F2F; min-height: 180px; border-radius: 8px; position: relative;"
-            class="p-3 chalkboard-text">
-            <!-- 칠판 헤더: 탭 + 버튼 -->
-            <div class="chalkboard-header d-flex justify-content-between align-items-center mb-2">
+      <!-- 교과 진도 섹션 헤더 (과학관이랑 동일 패턴) -->
+      <div class="home-section-header home-section-header--chalkboard">
+
+        <h5 class="section-title">우리 아이 교과 진도</h5>
+      </div>
+
+      <!-- 교과 진도 카드 섹션 -->
+      <div class="home-section home-section--chalkboard">
+        <div class="chalkboard-frame">
+          <!-- 실제 칠판 -->
+          <div class="chalkboard-text">
+            <!-- 탭 -->
+            <div class="chalkboard-header">
               <div class="chalkboard-tabs">
-                <button type="button" class="chalkboard-tab-button" :class="{ 'active': selectedSemester === '1학기' }"
+                <button type="button" class="chalkboard-tab-button" :class="{ active: selectedSemester === '1학기' }"
                   @click="selectedSemester = '1학기'">
                   1학기
                 </button>
-                <button type="button" class="chalkboard-tab-button" :class="{ 'active': selectedSemester === '2학기' }"
+                <button type="button" class="chalkboard-tab-button" :class="{ active: selectedSemester === '2학기' }"
                   @click="selectedSemester = '2학기'">
                   2학기
                 </button>
               </div>
             </div>
-            <!-- 칠판 내용 -->
+
+            <!-- 내용 -->
             <div v-for="semesterData in chalkboardContent" :key="semesterData.semester">
               <div v-if="(selectedSemester === '1학기' && semesterData.semester.includes('1학기')) ||
                 (selectedSemester === '2학기' && semesterData.semester.includes('2학기'))">
-                <h6 class="fw-bold chalkboard-heading title mt-2">{{ semesterData.semester }}</h6>
+                <h6 class="chalkboard-heading title">
+                  {{ semesterData.semester }}
+                </h6>
+
                 <ul v-if="semesterData.units.length > 0" class="chalkboard-list">
                   <li v-for="(unit, index) in semesterData.units" :key="unit.title">
-                    <span class="index">{{ index + 1 }}</span>
-                    <span>{{ unit.title }}</span>
+                    <span>
+                      <span class="index">{{ index + 1 }}</span>
+                      <span>{{ unit.title }}</span>
+                    </span>
                     <div v-if="unit.description" class="chalkboard-description">
                       {{ unit.description }}
                     </div>
                   </li>
                 </ul>
-                <!-- 메시지 개선 -->
+
                 <p v-else class="chalkboard-no-data">
-                  {{ selectedSemester }}에는 학습 내용이 준비되지 않았어요
+                  {{ selectedSemester }}에는 교과 정보가 준비 중이에요. 다른 학기나 과목을 선택해볼까요?
                 </p>
               </div>
             </div>
-            <div class="chalkboard-stand position-absolute w-100">
-              <div class="chalkboard-eraser position-absolute">
-              </div>
-            </div>
+          </div>
+
+          <!-- 칠판 받침대 + 분필 + 지우개 -->
+          <div class="chalkboard-shelf">
+            <span class="chalk-piece"></span>
+            <span class="chalk-piece brand-soft"></span>
+            <span class="chalk-eraser"></span>
           </div>
         </div>
       </div>
 
+
       <!-- 과학관 섹션 -->
-      <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-0">
-        <h5 class="fw-bold fs-6 mb-0">과학관</h5>
+      <div class="home-section-header">
+        <h5 class="section-title">과학관</h5>
       </div>
-      <div>
-        <div class="card-carousel-container"
-          style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-top: 1rem; padding-bottom: 1rem;">
-          <div v-if="isSearching" class="d-flex justify-content-center align-items-center text-muted w-100"
-            style="min-height: 350px;">
-            <div class="spinner-border text-primary" role="status">
+      <div class="home-section-carousel">
+        <div class="card-carousel-container">
+          <div v-if="isSearching" class="loading-state">
+            <div class="spinner-border text-primary loading-spinner" role="status">
               <span class="visually-hidden">Loading...</span>
             </div>
           </div>
-          <!-- 결과가 없을 때 더 친근한 메시지 -->
-          <div v-else-if="exhibitionItems.length === 0"
-            class="d-flex flex-column justify-content-center align-items-center text-muted w-100"
-            style="min-height: 250px;">
-            <i class="bi bi-inbox fs-1 mb-3" style="color: #D1D5DB;"></i>
-            <p class="mb-2">아직 추천할 과학관이 없어요</p>
-            <p class="small text-muted">다른 학년이나 과목을 선택해보세요</p>
+          <div v-else-if="exhibitionItems.length === 0" class="empty-state">
+            <i class="bi bi-inbox empty-icon"></i>
+            <p class="empty-text-main">아직 추천할 과학관이 없어요</p>
+            <p class="empty-text-sub">다른 학년이나 과목을 선택해보세요</p>
           </div>
-          <div v-else class="d-flex flex-row" style="gap: 16px; padding-left: 1rem; padding-right: 1rem;">
+          <div v-else class="card-row">
             <PlaceReviewCard v-for="item in exhibitionItems" :key="item.id" :item="item" @add="goToDetail(item, '전시')"
               @item-click="goToDetail(item, '전시')" />
           </div>
@@ -119,26 +135,22 @@
       </div>
 
       <!-- 과학 체험 학습 섹션 -->
-      <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-0">
-        <h5 class="fw-bold fs-6 mb-0">과학과 함께하는 여행</h5>
+      <div class="home-section-header">
+        <h5 class="section-title">과학과 함께하는 여행</h5>
       </div>
-      <div>
-        <div class="card-carousel-wrapper position-relative">
-          <div class="card-carousel-container"
-            style="width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-top: 1rem; padding-bottom: 1rem;">
-            <div v-if="isSearching"
-              class="d-flex flex-column justify-content-center align-items-center text-muted w-100"
-              style="min-height: 250px;">
-              <div class="spinner-border text-primary mb-3" role="status">
+      <div class="home-section-carousel">
+        <div class="card-carousel-wrapper">
+          <div class="card-carousel-container">
+            <div v-if="isSearching" class="loading-state">
+              <div class="spinner-border text-primary loading-spinner" role="status">
                 <span class="visually-hidden">Loading...</span>
               </div>
-              <p class="text-muted small">추천 장소를 찾고 있어요...</p>
+              <p class="loading-text">추천 장소를 찾고 있어요...</p>
             </div>
-            <div v-else-if="fieldTripItems.length === 0"
-              class="d-flex justify-content-center align-items-center text-muted w-100" style="min-height: 350px;">
-              추천 현장학습이 없습니다.
+            <div v-else-if="fieldTripItems.length === 0" class="empty-state">
+              <p class="empty-text-main">추천 현장학습이 없습니다.</p>
             </div>
-            <div v-else class="d-flex flex-row" style="gap: 16px; padding-left: 1rem; padding-right: 1rem;">
+            <div v-else class="card-row">
               <PlaceReviewCard v-for="item in fieldTripItems" :key="item.id" :item="item" @add="goToDetail(item, '답사')"
                 @item-click="goToDetail(item, '답사')" />
             </div>
@@ -148,6 +160,7 @@
       </div>
     </div>
 
+    <!-- 하단 네비 -->
     <BottomNavbar :selectedNavItem="selectedNavItem" @navigate="handleNavigation" style="flex-shrink: 0;" />
     <FilterModal v-if="isModalOpen" :initialSubject="selectedSubject" :initialGrade="selectedGrade"
       @close="isModalOpen = false" @complete="handleFilterComplete" :showLocationOptions="false" />
@@ -163,7 +176,6 @@ import eventBus from '@/utils/eventBus';
 import axios from '@/api/axiosSetup';
 import { useCurriculumStore } from '@/stores/curriculumStore';
 
-// 컴포넌트 임포트
 import FilterModal from '@/components/modal/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import PlaceReviewCard from '@/components/card/PlaceReviewCard.vue';
@@ -199,19 +211,14 @@ export default {
     const isModalOpen = ref(false);
     const selectedNavItem = ref('홈');
 
-    // 1학기/2학기 탭 상태
     const selectedSemester = ref('1학기');
 
-    // 검색/데이터 상태
     const displayedItems = ref([]);
     const isSearching = ref(false);
 
     const exhibitionItems = ref([]);
     const fieldTripItems = ref([]);
 
-    /**
-     * 전시와 체험학습 분류
-     */
     const categorizeItems = (items) => {
       const exhibitions = [];
       const fieldTrips = [];
@@ -228,9 +235,6 @@ export default {
       fieldTripItems.value = fieldTrips;
     };
 
-    /**
-     * API 검색 실행 함수
-     */
     const performSearch = async () => {
       console.log('==== Home API 검색 실행 시작 ====');
       isSearching.value = true;
@@ -316,29 +320,8 @@ export default {
           displayedItems.value = itemsWithReviews;
 
           console.log('분류 전 전체 아이템:', itemsWithReviews.length);
-
-          const exhibitions = [];
-          const fieldTrips = [];
-
-          itemsWithReviews.forEach(item => {
-            console.log(`분류 중 - ID: ${item.id}, Type: ${item.itemType}, Title: ${item.title}`);
-
-            if (item.itemType === 'exhibition') {
-              exhibitions.push(item);
-            } else if (item.itemType === 'science_place') {
-              fieldTrips.push(item);
-            } else {
-              console.warn(`알 수 없는 itemType: ${item.itemType}`);
-            }
-          });
-
-          exhibitionItems.value = exhibitions;
-          fieldTripItems.value = fieldTrips;
-
-          console.log('=== 분류 결과 ===');
-          console.log('전시 아이템:', exhibitions.length, exhibitions);
-          console.log('체험학습 아이템:', fieldTrips.length, fieldTrips);
-
+          categorizeItems(itemsWithReviews);
+          console.log('==== 분류 완료 ====');
         } else {
           console.error('API 응답 형식이 잘못되었습니다:', response.data);
           displayedItems.value = [];
@@ -360,9 +343,6 @@ export default {
       }
     };
 
-    /**
-     * 리뷰 날짜 포맷
-     */
     const formatReviewDate = (dateString) => {
       if (!dateString) return '';
       try {
@@ -372,13 +352,11 @@ export default {
           .replace(/\. /g, '.')
           .replace(/\.$/, '');
       } catch (error) {
+        console.log(`${error}`);
         return dateString;
       }
     };
 
-    /**
-     * 컴포넌트 마운트 시 첫 검색 실행
-     */
     onMounted(() => {
       performSearch();
     });
@@ -417,9 +395,6 @@ export default {
       ];
     });
 
-    /**
-     * 상세 페이지로 이동
-     */
     const goToDetail = (item) => {
       console.log(`상세 페이지로 이동:`, item.title);
 
@@ -459,12 +434,12 @@ export default {
       router.push('/mypage');
     }
 
-    /**
-     * 필터 완료 시 API 재호출
-     */
     const handleFilterComplete = (filterData) => {
-      console.log(`필터 선택 완료:`, filterData);
+      console.log('모달에서 받은 데이터:', filterData);
       curriculumStore.setFilter(filterData.grade, filterData.subject);
+      console.log('스토어에 저장된 학년:', curriculumStore.selectedGrade);
+      console.log('스토어에 저장된 과목:', curriculumStore.selectedSubject);
+
       isModalOpen.value = false;
       performSearch();
     };
@@ -533,53 +508,90 @@ export default {
     };
   }
 }
-
 </script>
 
 <style scoped>
-/* =============================
-    HomeView Polished Theme
-    - Palette via CSS variables
-    - Subtle glass & depth
-    - Crisp typography & spacing
-    ============================= */
-:root {
-  --bg: #FFFFFF;
-  --ink: #1F2937;
-  --muted: #6B7280;
-  --brand: #4A7CEC;
-  --brand-ink: #0F172A;
-  --accent: #10B981;
-  --warn: #F59E0B;
-  --danger: #EF4444;
-  --card: #FFFFFF;
-  --card-border: rgba(15, 23, 42, 0.08);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 8px 24px rgba(2, 6, 23, 0.08);
-  --shadow-lg: 0 16px 40px rgba(2, 6, 23, 0.12);
-  --ring: 0 0 0 4px rgba(74, 124, 236, 0.14);
+/* 섹션 헤더: 과학관 / 교과 진도 공통 */
+.home-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 0;
 }
 
+.section-title {
+  margin: 0;
+  color: #111827;
+  font-weight: 700;
+  font-size: 1rem;
+  /* ↑ 섹션 타이틀 원래 느낌 정도로 */
+}
+
+/* 전체 레이아웃 */
+.home-root {
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+  overflow-x: hidden;
+}
+
+/* 스크롤 영역 */
+.home-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: 80px;
+  /* 4 * 20 */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background-color: #FFFFFF;
+}
+
+.home-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* 헤더 */
 .home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  /* 12,16 */
   flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 1020;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.66));
-  backdrop-filter: saturate(1.2) blur(10px);
-  border-bottom: 1px solid var(--card-border);
+  background-color: #FFFFFF;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .home-header-title {
-  letter-spacing: 0.2px;
-  color: var(--brand-ink);
+  margin: 0;
+  letter-spacing: 0.1px;
+  color: #111827;
+  font-weight: 700;
+  font-size: 1.25rem;
+  /* Bootstrap h5 정도 */
 }
 
 .ai-tutor-button {
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  /* ↑ */
   color: #4A7CEC;
-  gap: 2px;
+  cursor: pointer;
   transition: transform .15s ease, opacity .2s ease;
+}
+
+.ai-tutor-button i {
+  font-size: 1.05rem;
 }
 
 .ai-tutor-button:hover {
@@ -587,18 +599,58 @@ export default {
   opacity: .9;
 }
 
+/* 공통 섹션 래퍼 */
+.home-section {
+  padding: 16px 16px 0;
+  /* 16,16,0 */
+}
+
+.home-section--profile {
+  padding-top: 16px;
+}
+
+.home-section--chalkboard {
+  padding-top: 16px;
+}
+
+/* =========================
+   프로필 카드
+   ========================= */
 .profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background-color: #4A7CEC;
-  color: white;
-  box-shadow: 0 8px 24px rgba(74, 124, 236, 0.2) !important;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
   cursor: pointer;
+  border-radius: 20px;
+  padding: 16px;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.15s ease;
+  line-height: 1.4;
+}
+
+.profile-card:hover {
+  transform: translateY(-2px);
+  opacity: 0.99;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
 }
 
 .profile-avatar {
-  width: 48px;
-  height: 48px;
-  background-color: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  background-color: rgba(15, 23, 42, 0.15);
+  border-radius: 999px;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar-fallback i {
+  font-size: 2rem;
 }
 
 .profile-image {
@@ -607,404 +659,378 @@ export default {
   object-fit: cover;
 }
 
-.quick-badge-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  background-color: #F8F9FA;
-  padding: 1rem;
-  border-radius: 16px;
-  border: 1px solid var(--card-border);
-  font-size: 1.15rem;
+.profile-info {
+  flex: 1 1 auto;
 }
 
-.quick-badge-group a {
-  color: var(--brand) !important;
-  font-weight: 600;
+.profile-greeting {
+  font-size: 0.875rem;
+  /* ↑ */
+  opacity: 0.9;
 }
 
-.quick-badge-group .bi {
-  vertical-align: -2px;
+.profile-name {
+  font-size: 1.1rem;
+  /* ↑ */
+  font-weight: 700;
 }
 
-.section-title {
+/* 학년 / 과목 줄 */
+.profile-status {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 800;
-  letter-spacing: .2px;
-  color: var(--brand-ink);
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
 }
 
-.section-title .hint {
-  font-weight: 600;
-  color: var(--muted);
-  font-size: .92rem;
+.profile-pill {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  background-color: rgba(15, 23, 42, 0.18);
+  color: #FFFFFF;
+  font-size: 0.875rem;
+  /* ↑ */
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
 }
 
-.rounded-3.shadow-sm {
-  background: radial-gradient(100% 100% at 100% 0%, rgba(74, 124, 236, 0.06) 0%, rgba(255, 255, 255, 0) 60%), var(--card);
-  border: 1px solid var(--card-border);
-  box-shadow: var(--shadow-sm);
-  transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease;
+.profile-pill i {
+  font-size: 0.875rem;
 }
 
-.rounded-3.shadow-sm:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(2, 6, 23, 0.12);
+.status-dot {
+  font-size: 0.875rem;
+  opacity: 0.9;
 }
 
-/* ===== Chalkboard Section ===== */
-.chalkboard-text {
-  --chalkboard: #213A2A;
-  --chalk-stroke: #F0F7EE;
-  --chalk-green: #B6F2CF;
-  --chalk-yellow: #FFE19C;
-  color: var(--chalk-stroke);
-  background: radial-gradient(120% 120% at 0% 0%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 40%), var(--chalkboard);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(0, 0, 0, .2);
+.status-text {
+  font-size: 0.875rem;
+  opacity: 0.92;
+}
+
+.profile-helper {
+  margin-top: 4px;
+  margin-bottom: 0;
+  font-size: 12px;
+  margin-left: 10px;
+  /* ↑ */
+  opacity: 0.8;
+}
+
+/* =========================
+   교과 진도 카드 = 칠판 프레임 (단일)
+   ========================= */
+.chalkboard-frame {
+  background-color: #3A2518;
+  border-radius: 18px;
+  padding: 8px 8px 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  border: 1px solid #24140E;
   position: relative;
-  overflow: hidden;
-  min-height: 180px;
-  border-radius: 8px;
 }
 
-.chalkboard-text::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.04), transparent 40%),
-    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.03), transparent 50%);
-  pointer-events: none;
+/* 칠판 판넬 */
+.chalkboard-text {
+  background-color: #1A3C34;
+  color: #E8F5E9;
+  border-radius: 9px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  min-height: 128px;
+  padding: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+  line-height: 1.45;
 }
 
-.chalkboard-text .title {
-  font-weight: 800;
-  font-size: 1.1rem;
-  letter-spacing: .4px;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
-}
-
-/* ===== Chalkboard Header ===== */
+/* 헤더 / 탭 */
 .chalkboard-header {
-  padding-bottom: 1rem;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(232, 245, 233, 0.3);
 }
 
-/* ===== Chalkboard Tabs ===== */
 .chalkboard-tabs {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .chalkboard-tab-button {
-  border-radius: 10px;
-  border: 1px dashed rgba(255, 255, 255, .25);
-  background: rgba(0, 0, 0, .15);
-  color: var(--chalk-green);
-  font-weight: 700;
-  padding: 8px 10px;
-  transition: transform .12s ease, background .15s ease, border-color .15s ease;
-  font-family: 'SUIT', sans-serif;
-  font-size: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  background-color: rgba(15, 23, 42, 0.28);
+  color: #E5F9EC;
+  font-weight: 600;
+  padding: 4px 12px;
+  font-size: 0.875rem;
+  /* ↑ */
   cursor: pointer;
   user-select: none;
-}
-
-.chalkboard-tab-button:hover {
-  transform: translateY(-1px);
-  background: rgba(0, 0, 0, .22);
-  border-color: rgba(255, 255, 255, .35);
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .chalkboard-tab-button.active {
-  color: var(--chalk-yellow);
-  border-color: rgba(255, 255, 255, .45);
-  transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 2px rgba(255, 225, 156, 0.3);
+  background-color: rgba(74, 124, 236, 0.9);
+  /* 0.9 정도만 */
+  border-color: rgba(148, 180, 255, 0.95);
+  /* 살짝 밝은 파랑 */
+  border-color: #4A7CEC;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
+  /* 그림자도 살짝 줄임 */
+  transform: translateY(-1px);
 }
 
-/* ===== Virtual Experiment Button ===== */
-.btn-virtual-experiment {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
-  border: 1.5px solid rgba(16, 185, 129, 0.4);
-  color: var(--chalk-yellow);
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.3s ease;
-  font-family: 'SUIT', sans-serif;
-  user-select: none;
+/* 제목 */
+.chalkboard-heading.title {
+  font-size: 0.95rem;
+  /* ↑ */
+  font-weight: 700;
+  color: #F9FAFB;
+  margin-top: 8px;
+  margin-bottom: 0;
 }
 
-.btn-virtual-experiment:hover {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.2));
-  border-color: rgba(16, 185, 129, 0.6);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-}
-
-.btn-virtual-experiment.active {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0.3));
-  border-color: rgba(16, 185, 129, 0.7);
-  color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-.btn-virtual-experiment i {
-  font-size: 1rem;
-}
-
-/* ===== Chalkboard List ===== */
+/* 리스트 */
 .chalkboard-list {
   list-style: none;
-  margin: 10px 0 0 0;
+  margin: 8px 0 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .chalkboard-list li {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 4px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, .18);
-  border: 1px dashed rgba(255, 255, 255, .18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
-  opacity: 0;
-  animation: fadeSlide .32s ease-out forwards;
-  font-size: 1rem;
-  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background-color: rgba(6, 15, 13, 0.65);
+  border: 1px dashed rgba(209, 250, 229, 0.35);
+  font-size: 0.875rem;
+  color: #E9FBE6;
+  animation: fadeSlide 0.2s ease-out both;
 }
 
+/* ▶ 1) 큰 제목(예: 생물의 구조와 에너지) 살짝 더 강조 */
 .chalkboard-list li>span {
-  font-weight: 600;
-  color: var(--chalk-stroke);
   display: flex;
   align-items: center;
   gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  /* 제목 느낌 조금 더 크게 */
 }
 
-.chalkboard-list li .index {
-  font-weight: 800;
-  width: 22px;
-  height: 22px;
+.index {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background-color: rgba(37, 99, 235, 0.22);
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  font-size: 0.78rem;
+  /* 살짝 키움 */
+  color: #DBEAFE;
+  font-weight: 700;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, .08);
-  border-radius: 6px;
-  color: var(--chalk-yellow);
-  border: 1px solid rgba(255, 255, 255, .22);
-  font-size: 0.85rem;
 }
 
+/* ▶ 2) 설명(예: 동물의 생김새, 식물의 생김새) 한 단계 내려서 + 점 표시 */
 .chalkboard-description {
-  font-size: 0.9rem;
-  color: var(--chalk-green);
-  opacity: 0.9;
-  padding-left: 30px;
+  position: relative;
+  margin-top: 2px;
+  padding-left: 28px;
+  /* 왼쪽으로 살짝 들여쓰기 */
+  font-size: 0.8rem;
+  /* 제목보다 살짝 작게 */
+  line-height: 1.4;
+  color: #D1FAE5;
+  opacity: 0.95;
 }
 
-.chalkboard-list li:nth-child(1) {
-  animation-delay: .06s;
-}
-
-.chalkboard-list li:nth-child(2) {
-  animation-delay: .1s;
-}
-
-.chalkboard-list li:nth-child(3) {
-  animation-delay: .14s;
-}
-
-.chalkboard-list li:nth-child(4) {
-  animation-delay: .18s;
-}
-
-.chalkboard-list li:nth-child(5) {
-  animation-delay: .22s;
+/* 앞에 작은 점 찍어주기 */
+.chalkboard-description::before {
+  content: "•";
+  position: absolute;
+  left: 16px;
+  top: 40%;
+  transform: translateY(-50%);
+  /* 정확히 중앙으로 이동 */
+  font-size: 1rem;
+  color: #D1FAE5;
 }
 
 .chalkboard-no-data {
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  /* ↑ */
+  color: #E5E7EB;
   font-weight: 500;
-  padding: 2rem 1rem;
+  padding: 24px 16px;
   text-align: center;
-  opacity: 0;
-  animation: fadeSlide .32s ease-out forwards;
 }
 
-.chalkboard-stand {
-  background-color: #D2B48C;
-  height: 20px;
-  bottom: -20px;
-  left: 0;
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
+/* 받침대 + 분필 + 지우개 */
+.chalkboard-shelf {
+  margin-top: 8px;
+  background-color: #332017;
+  border-radius: 0 0 11px 11px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
-.chalkboard-eraser {
-  background-color: #fff;
+.chalk-piece {
+  width: 20px;
+  height: 4px;
+  border-radius: 999px;
+  background-color: #F9FAFB;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+}
+
+.chalk-piece.brand-soft {
+  background-color: #E3EDFF;
+}
+
+.chalk-eraser {
+  position: relative;
   width: 30px;
-  height: 10px;
-  bottom: 5px;
-  right: 20px;
-  border-radius: 2px;
+  height: 13px;
+  border-radius: 4px;
+  background-color: #9CA3AF;
+  border: 1px solid #4B5563;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-/* ===== Simulation Container ===== */
-.simulation-container {
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  animation: slideDownIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+.chalk-eraser::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 2px;
+  height: 4px;
+  border-radius: 3px 3px 0 0;
+  background-color: #E5E7EB;
 }
 
-.simulation-inner {
-  background: linear-gradient(135deg, rgba(74, 124, 236, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
-  border: 1px solid rgba(74, 124, 236, 0.15);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(74, 124, 236, 0.1);
+/* =========================
+   섹션 타이틀 / 캐러셀
+   ========================= */
+.home-section-carousel {
+  padding: 0 16px 0;
 }
 
-.simulation-header {
-  background: linear-gradient(135deg, rgba(74, 124, 236, 0.1), rgba(16, 185, 129, 0.08));
-  padding: 1.25rem;
-  border-bottom: 1px solid rgba(74, 124, 236, 0.12);
-  backdrop-filter: blur(10px);
-}
-
-.simulation-header h5 {
-  color: var(--brand-ink);
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.simulation-header p {
-  margin: 0;
-  color: #6B7280;
-}
-
-.btn-close-simulation {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  color: #EF4444;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.2rem;
-}
-
-.btn-close-simulation:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.4);
-  transform: scale(1.05);
-}
-
-.simulation-content {
-  padding: 1.5rem;
-  background: #FFFFFF;
-  min-height: 300px;
-}
-
-/* ===== Carousel ===== */
+/* 카드 캐러셀 */
 .card-carousel-wrapper {
   position: relative;
 }
 
-.scroll-hint-gradient {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 60px;
-  height: 100%;
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.9));
-  pointer-events: none;
-  z-index: 1;
-}
-
 .card-carousel-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 16px 0;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  background-color: transparent;
 }
 
 .card-carousel-container::-webkit-scrollbar {
   display: none;
 }
 
-.flex-grow-1[style*="overflow-y: auto"] {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-bottom: 90px;
+.card-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
 }
 
-[style*="overflow-x: auto"] {
-  box-sizing: border-box;
+/* 로딩 / 비어있음 상태 */
+.loading-state,
+.empty-state {
+  min-height: 224px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+  text-align: center;
+  padding: 16px;
 }
 
-.mt-tight {
-  margin-top: 6px;
+.loading-spinner {
+  margin-bottom: 12px;
 }
 
-.mb-tight {
-  margin-bottom: 6px;
+.loading-text {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  /* ↑ */
+  color: #6B7280;
 }
 
-.gap-6 {
-  gap: 1.5rem;
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  color: #D1D5DB;
 }
 
-/* ===== Focus & Interactive ===== */
+.empty-text-main {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  /* ↑ */
+  color: #4B5563;
+}
+
+.empty-text-sub {
+  margin: 0;
+  font-size: 0.875rem;
+  /* ↑ */
+  color: #9CA3AF;
+}
+
+/* 스크롤 힌트 */
+.scroll-hint-gradient {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 100%;
+  background-color: transparent;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 포커스 링 */
 :where(button, [role="button"], .btn, input, a):focus-visible {
   outline: none;
-  box-shadow: var(--ring);
+  box-shadow: 0 0 0 3px rgba(74, 124, 236, 0.25);
 }
 
-/* ===== Animations ===== */
+/* 리스트 애니메이션 */
 @keyframes fadeSlide {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
 
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes slideDownIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-    max-height: 0;
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 1000px;
   }
 }
 
@@ -1014,28 +1040,536 @@ export default {
     transition: none !important;
   }
 }
+</style>
 
-@media (max-width: 768px) {
-  .chalkboard-header {
-    flex-direction: column;
-    gap: 1rem;
+<style scoped>
+/* 섹션 헤더: 과학관 / 교과 진도 공통 */
+.home-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 0;
+}
+
+.section-title {
+  margin: 0;
+  color: #111827;
+  font-weight: 700;
+  font-size: 1rem;
+  /* ↑ 섹션 타이틀 원래 느낌 정도로 */
+}
+
+/* 전체 레이아웃 */
+.home-root {
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+  overflow-x: hidden;
+}
+
+/* 스크롤 영역 */
+.home-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: 80px;
+  /* 4 * 20 */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background-color: #FFFFFF;
+}
+
+.home-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* 헤더 */
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  /* 12,16 */
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.home-header-title {
+  margin: 0;
+  letter-spacing: 0.1px;
+  color: #111827;
+  font-weight: 700;
+  font-size: 1.25rem;
+  /* Bootstrap h5 정도 */
+}
+
+.ai-tutor-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  /* ↑ */
+  color: #4A7CEC;
+  cursor: pointer;
+  transition: transform .15s ease, opacity .2s ease;
+}
+
+.ai-tutor-button i {
+  font-size: 1.05rem;
+}
+
+.ai-tutor-button:hover {
+  transform: translateY(-1px);
+  opacity: .9;
+}
+
+/* 공통 섹션 래퍼 */
+.home-section {
+  padding: 16px 16px 0;
+  /* 16,16,0 */
+}
+
+.home-section--profile {
+  padding-top: 16px;
+}
+
+.home-section--chalkboard {
+  padding-top: 16px;
+}
+
+/* =========================
+   프로필 카드
+   ========================= */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #4A7CEC;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  border-radius: 20px;
+  padding: 16px;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.15s ease;
+  line-height: 1.4;
+}
+
+.profile-card:hover {
+  transform: translateY(-2px);
+  opacity: 0.99;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  background-color: rgba(15, 23, 42, 0.15);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar-fallback i {
+  font-size: 2rem;
+}
+
+.profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-info {
+  flex: 1 1 auto;
+}
+
+.profile-greeting {
+  font-size: 0.875rem;
+  /* ↑ */
+  opacity: 0.9;
+}
+
+.profile-name {
+  font-size: 1.1rem;
+  /* ↑ */
+  font-weight: 700;
+}
+
+/* 학년 / 과목 줄 */
+.profile-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.profile-pill {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  background-color: rgba(15, 23, 42, 0.18);
+  color: #FFFFFF;
+  font-size: 0.875rem;
+  /* ↑ */
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.profile-pill i {
+  font-size: 0.875rem;
+}
+
+.status-dot {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.status-text {
+  font-size: 0.875rem;
+  opacity: 0.92;
+}
+
+.profile-helper {
+  margin-top: 4px;
+  margin-bottom: 0;
+  font-size: 12px;
+  margin-left: 10px;
+  /* ↑ */
+  opacity: 0.8;
+}
+
+/* =========================
+   교과 진도 카드 = 칠판 프레임 (단일)
+   ========================= */
+.chalkboard-frame {
+  background-color: #3A2518;
+  border-radius: 18px;
+  padding: 8px 8px 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  border: 1px solid #24140E;
+  position: relative;
+}
+
+/* 칠판 판넬 */
+.chalkboard-text {
+  background-color: #1A3C34;
+  color: #E8F5E9;
+  border-radius: 9px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  min-height: 128px;
+  padding: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+  line-height: 1.45;
+}
+
+/* 헤더 / 탭 */
+.chalkboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(232, 245, 233, 0.3);
+}
+
+.chalkboard-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chalkboard-tab-button {
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  background-color: rgba(15, 23, 42, 0.28);
+  color: #E5F9EC;
+  font-weight: 600;
+  padding: 4px 12px;
+  font-size: 0.875rem;
+  /* ↑ */
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.chalkboard-tab-button.active {
+  background-color: rgba(74, 124, 236, 0.9);
+  /* 0.9 정도만 */
+  border-color: rgba(148, 180, 255, 0.95);
+  /* 살짝 밝은 파랑 */
+  border-color: #4A7CEC;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
+  /* 그림자도 살짝 줄임 */
+  transform: translateY(-1px);
+}
+
+/* 제목 */
+.chalkboard-heading.title {
+  font-size: 0.95rem;
+  /* ↑ */
+  font-weight: 700;
+  color: #F9FAFB;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+/* 리스트 */
+.chalkboard-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.chalkboard-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background-color: rgba(6, 15, 13, 0.65);
+  border: 1px dashed rgba(209, 250, 229, 0.35);
+  font-size: 0.875rem;
+  color: #E9FBE6;
+  animation: fadeSlide 0.2s ease-out both;
+}
+
+/* ▶ 1) 큰 제목(예: 생물의 구조와 에너지) 살짝 더 강조 */
+.chalkboard-list li>span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  /* 제목 느낌 조금 더 크게 */
+}
+
+.index {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background-color: rgba(37, 99, 235, 0.22);
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  font-size: 0.78rem;
+  /* 살짝 키움 */
+  color: #DBEAFE;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+/* ▶ 2) 설명(예: 동물의 생김새, 식물의 생김새) 한 단계 내려서 + 점 표시 */
+.chalkboard-description {
+  position: relative;
+  margin-top: 2px;
+  padding-left: 28px;
+  /* 왼쪽으로 살짝 들여쓰기 */
+  font-size: 0.8rem;
+  /* 제목보다 살짝 작게 */
+  line-height: 1.4;
+  color: #D1FAE5;
+  opacity: 0.95;
+}
+
+/* 앞에 작은 점 찍어주기 */
+.chalkboard-description::before {
+  content: "•";
+  position: absolute;
+  left: 16px;
+  top: 40%;
+  transform: translateY(-50%);
+  /* 정확히 중앙으로 이동 */
+  font-size: 1rem;
+  color: #D1FAE5;
+}
+
+.chalkboard-no-data {
+  font-size: 0.9rem;
+  /* ↑ */
+  color: #E5E7EB;
+  font-weight: 500;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+/* 받침대 + 분필 + 지우개 */
+.chalkboard-shelf {
+  margin-top: 8px;
+  background-color: #332017;
+  border-radius: 0 0 11px 11px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.chalk-piece {
+  width: 20px;
+  height: 4px;
+  border-radius: 999px;
+  background-color: #F9FAFB;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+}
+
+.chalk-piece.brand-soft {
+  background-color: #E3EDFF;
+}
+
+.chalk-eraser {
+  position: relative;
+  width: 30px;
+  height: 13px;
+  border-radius: 4px;
+  background-color: #9CA3AF;
+  border: 1px solid #4B5563;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.chalk-eraser::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 2px;
+  height: 4px;
+  border-radius: 3px 3px 0 0;
+  background-color: #E5E7EB;
+}
+
+/* =========================
+   섹션 타이틀 / 캐러셀
+   ========================= */
+.home-section-carousel {
+  padding: 0 16px 0;
+}
+
+/* 카드 캐러셀 */
+.card-carousel-wrapper {
+  position: relative;
+}
+
+.card-carousel-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 16px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background-color: transparent;
+}
+
+.card-carousel-container::-webkit-scrollbar {
+  display: none;
+}
+
+.card-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+/* 로딩 / 비어있음 상태 */
+.loading-state,
+.empty-state {
+  min-height: 224px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+  text-align: center;
+  padding: 16px;
+}
+
+.loading-spinner {
+  margin-bottom: 12px;
+}
+
+.loading-text {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  /* ↑ */
+  color: #6B7280;
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  color: #D1D5DB;
+}
+
+.empty-text-main {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  /* ↑ */
+  color: #4B5563;
+}
+
+.empty-text-sub {
+  margin: 0;
+  font-size: 0.875rem;
+  /* ↑ */
+  color: #9CA3AF;
+}
+
+/* 스크롤 힌트 */
+.scroll-hint-gradient {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 100%;
+  background-color: transparent;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 포커스 링 */
+:where(button, [role="button"], .btn, input, a):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 124, 236, 0.25);
+}
+
+/* 리스트 애니메이션 */
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
 
-  .btn-virtual-experiment {
-    width: 100%;
-    justify-content: center;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  .simulation-header {
-    padding: 1rem;
-  }
-
-  .simulation-header h5 {
-    font-size: 1rem;
-  }
-
-  .simulation-content {
-    padding: 1rem;
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
   }
 }
 </style>

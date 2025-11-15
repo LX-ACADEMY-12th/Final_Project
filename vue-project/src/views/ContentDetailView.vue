@@ -1,8 +1,28 @@
 <template>
   <div class="view-detail-page">
 
-    <LocationSection v-if="isPlace" :placeInformation="placeInformation" />
-    <LocationSection v-else :exhibitionInformation="exhibitionInformation" />
+    <div class="simulation-accordion" v-if="currentSimulationComponent">
+
+      <button type="button" class="btn-simulation-toggle" @click="showSimulation = !showSimulation"
+        :class="{ 'is-open': showSimulation }" :aria-expanded="showSimulation">
+        <i class="bi bi-flask"></i>
+        <span>가상 전시물 체험</span>
+        <i class="bi" :class="showSimulation ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+      </button>
+
+      <transition name="slide-fade">
+        <div v-if="showSimulation" class="simulation-content-wrapper">
+          <div class="simulation-inner">
+            <div class="simulation-content">
+              <component :is="currentSimulationComponent"></component>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+    </div>
+    <LocationSection v-if="isPlace" :placeInformation="placeInformation" class="mt-3" />
+    <LocationSection v-else :exhibitionInformation="exhibitionInformation" class="mt-3" />
 
     <hr class="divider" />
 
@@ -40,6 +60,13 @@ import ReviewModal from '@/components/modal/ReviewModal.vue';
 import ConfirmDeleteModal from '@/components/modal/ConfirmDeleteModal.vue';
 import ActivityRecommender from '@/components/recommend/ActivityRecommender.vue';
 
+
+import ColumnarJoint from '@/components/simulations/ColumnarJoint.vue';
+import StatesOfMatter from '@/components/simulations/StatesOfMatterSimulation.vue';
+import Ecosystem from '@/components/simulations/EcosystemSimulation.vue';
+import MagnetField from '@/components/simulations/MagnetField.vue';
+import ThermalConductivity from '@/components/simulations/ThermalConductivitySim.vue';
+
 // API 베이스 (Vite 환경변수 우선)
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -52,6 +79,11 @@ export default {
     ReviewModal,
     ConfirmDeleteModal,
     ActivityRecommender,
+    ColumnarJoint,
+    StatesOfMatter,
+    Ecosystem,
+    MagnetField,
+    ThermalConductivity
   },
 
   // 1. Props 정의
@@ -101,6 +133,7 @@ export default {
     return {
       // **모달 제어 데이터:**
       showReviewModal: false,
+      showSimulation: false,
 
       // === 모달 폼 데이터 ===
       reviewText: '', // 모달 내 후기 텍스트 입력값
@@ -133,6 +166,43 @@ export default {
       const auth = useAuthStore();
       return auth.user?.userId ?? null;
     },
+    // :흰색_확인_표시: --- 여기부터 3개의 computed 속성을 추가합니다 ---
+    simulationMap() {
+      // 맵핑 데이터 (필요에 따라 더 추가하세요)
+      return {
+        '초등 3학년': {
+          '물리': MagnetField,
+          '화학': StatesOfMatter,
+          '생명': Ecosystem,
+          '지구': ColumnarJoint
+        },
+        '초등 4학년': {
+          '생명': Ecosystem,
+          '지구': ColumnarJoint,
+        },
+        '초등 5학년': {
+          '생명': Ecosystem,
+          '화학': StatesOfMatter,
+          '물리': ThermalConductivity,
+          '지구': ColumnarJoint
+        }
+      };
+    },
+    currentSimulationComponent() {
+      // data()의 'exhibition' 객체를 사용합니다.
+      const grade = this.exhibition?.gradeTag; // '4학년' 대신 '초등 4학년'이 필요할 수 있습니다.
+      const subject = this.exhibition?.mainCategory;
+      // :느낌표:️ 중요: 'this.exhibition.gradeTag'에 '초등 3학년'처럼 '초등'이 포함되어 있는지,
+      // 'this.exhibition.mainCategory'에 '물리', '생명' 등이 정확히 들어있는지 확인하세요.
+      // 맵의 키(key)와 데이터 값이 정확히 일치해야 합니다.
+      console.log(`[Sim Match] Grade: ${grade}, Subject: ${subject}`);
+      if (grade && subject && this.simulationMap[grade] && this.simulationMap[grade][subject]) {
+        return this.simulationMap[grade][subject];
+      }
+      return null;
+    },
+
+    // :흰색_확인_표시: --- 여기까지 추가 ---
   },
 
   // 사용자 정의 함수 (메서드): 모든 로직은 여기서 처리됩니다.
@@ -345,20 +415,16 @@ export default {
 <style scoped>
 /* === 공통 스타일 === */
 .view-detail-page {
-  /* 전체 페이지의 높이를 뷰포트 높이(화면 높이)로 설정합니다. */
   height: 100%;
-  /* Flexbox를 사용하여 콘텐츠를 쌓고 높이 관리를 용이하게 합니다. */
   display: flex;
   flex-direction: column;
-  padding: 5px;
+  padding: 12px;
+  /* 좌우 여백을 5px -> 12px로 늘림 */
   background-color: #f7f7f7;
 }
 
-/* TabSection 아래, 스크롤이 필요한 영역에 스타일 적용 */
 .scroll-content {
-  /* 남은 모든 공간(높이)을 차지하도록 합니다. */
   flex-grow: 1;
-  /* 필수: 이 영역에서만 스크롤이 발생하도록 합니다. */
   overflow-y: auto;
 }
 
@@ -368,4 +434,169 @@ export default {
   background-color: #f7f7f7;
   margin: 0;
 }
+
+/* ★★★★★
+  [수정]
+  아래 스타일을 모두 적용/수정합니다.
+  ★★★★★
+*/
+
+/* 1. 아코디언 전체 컨테이너 (흰색 배경) */
+.simulation-accordion {
+  background-color: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  /* 둥근 모서리 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 8px;
+  overflow: hidden;
+  /* 중요: 자식 컨텐츠가 둥근 모서리를 넘지 않게 함 */
+  transition: all 0.3s ease-out;
+}
+
+/* 2. 토글 버튼 (아코디언 헤더) */
+.btn-simulation-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 아이콘과 텍스트 간격 */
+
+  background-color: transparent;
+  /* 배경색 없음 (부모 흰색 사용) */
+  border: none;
+
+  width: 100%;
+  /* 부모 꽉 채움 */
+  padding: 16px;
+  /* 넉넉한 클릭 영역 */
+
+  color: #4A7CEC;
+  /* 앱의 메인 컬러 */
+  font-size: 0.95rem;
+  /* 살짝 키움 */
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-simulation-toggle:hover {
+  background-color: #f8f9fa;
+  /* 마우스 오버 시 살짝 회색 */
+}
+
+/* 3. 버튼 안의 아이콘/텍스트 정렬 */
+.btn-simulation-toggle .bi-flask {
+  font-size: 1.1rem;
+}
+
+.btn-simulation-toggle span {
+  flex-grow: 1;
+  /* 텍스트가 남은 공간 다 차지 (왼쪽 정렬) */
+  text-align: left;
+}
+
+.btn-simulation-toggle .bi-chevron-down,
+.btn-simulation-toggle .bi-chevron-up {
+  font-size: 1rem;
+}
+
+/* 4. 펼쳐지는 컨텐츠 래퍼 */
+.simulation-content-wrapper {
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid #E5E7EB;
+  /* 헤더와 컨텐츠 구분선 */
+  /* 트랜지션을 위해 overflow: hidden이 필요합니다 */
+  overflow: hidden;
+}
+
+/* 5. 트랜지션 (슬라이드+페이드) */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+  max-height: 500px;
+  /* 시뮬레이션 최대 높이 (필요시 조절) */
+}
+
+.slide-fade-leave-active {
+  transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
+  max-height: 500px;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+  max-height: 0px;
+}
+
+.slide-fade-enter-to,
+.slide-fade-leave-from {
+  opacity: 1;
+  max-height: 500px;
+  transform: translateY(0);
+}
+
+
+/* --- (이하 시뮬레이션 컨테이너 스타일은 그대로 유지) --- */
+
+/* [수정]
+   .simulation-container는 제거되었으므로,
+   .simulation-inner에 직접 스타일을 적용합니다.
+*/
+.simulation-inner {
+  /* [수정]
+    부모(.simulation-accordion)가 둥근 모서리를 관리하므로,
+    자식의 둥근 모서리는 모두 0으로 설정합니다.
+  */
+  background: linear-gradient(135deg, rgba(74, 124, 236, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: none;
+  border-radius: 0;
+  /* 부모가 둥근 모서리 관리 */
+  overflow: hidden;
+  box-shadow: none;
+  /* 부모가 그림자 관리 */
+}
+
+.simulation-header {
+  background: linear-gradient(135deg, rgba(74, 124, 236, 0.1), rgba(16, 185, 129, 0.08));
+  padding: 16px;
+  border-bottom: 1px solid rgba(74, 124, 236, 0.12);
+  backdrop-filter: blur(10px);
+  align-items: center;
+  /* 헤더의 상단 둥근 모서리 제거 */
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.btn-close-simulation {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.2rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.btn-close-simulation:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  transform: scale(1.05);
+}
+
+.simulation-content {
+  padding: 1.5rem;
+  background: #FFFFFF;
+  min-height: 300px;
+}
+
+/* [제거] @keyframes slideDownIn는 <transition>으로 대체됨 */
 </style>
