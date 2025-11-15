@@ -29,7 +29,7 @@ const props = defineProps({
     type: Number,
     default: 5
   },
-  // 🚨 [추가] 부모로부터 코스 타입을 받아 경로 로직을 분기합니다.
+  // 🚨 부모로부터 코스 타입을 받아 경로 로직을 분기합니다.
   pageType: {
     type: String,
     default: 'place' // 'place' (답사)가 기본, 'exhibition' (전시)는 직선 경로
@@ -221,8 +221,9 @@ const drawCourseOnMap = async (items) => {
 
   bounds = new window.kakao.maps.LatLngBounds();
 
-  items.forEach((item, index) => {
 
+  items.forEach((item, index) => {
+    // 🚨 [유효성 검사]: 좌표가 없거나 NaN이면 건너뜁니다.
     if (item.lat == null || item.lng == null || isNaN(Number(item.lat)) || isNaN(Number(item.lng))) {
       console.error(`[CourseMap] 아이템 ${index}의 좌표가 유효하지 않습니다. 마커 생성을 건너뜁니다.`, item);
       return;
@@ -247,7 +248,7 @@ const drawCourseOnMap = async (items) => {
         { offset: new window.kakao.maps.Point(12, 35) }
       );
     } catch (imgError) {
-      console.error(`[CourseMap]  아이템 ${index} MarkerImage 생성 중 오류 발생:`, imgError);
+      console.error(`[CourseMap] 아이템 ${index} MarkerImage 생성 중 오류 발생:`, imgError);
       return;
     }
 
@@ -262,57 +263,64 @@ const drawCourseOnMap = async (items) => {
       straightPath.push(position);
       bounds.extend(position);
     } catch (markerError) {
-      console.error(`[CourseMap]  아이템 ${index} 마커 생성 중 오류 발생:`, markerError);
+      console.error(`[CourseMap] 아이템 ${index} 마커 생성 중 오류 발생:`, markerError);
     }
   });
 
   markers.value = newMarkers;
 
-  // 🚨 [핵심 수정] pageType이 'exhibition'이면 API 호출 없이 straightPath 사용
-  let polylinePath = straightPath;
-  if (props.pageType !== 'exhibition') {
-    const apiPath = await getRoutePathFromAPI(items);
-    // API 경로가 성공하면 그것을 사용하고, 실패하면 straightPath를 사용
-    if (apiPath) {
-      polylinePath = apiPath;
-      console.log('[CourseMap] API 경로 사용 완료.');
+  // 🚨 --- 2. 단일 위치 모드일 때 경로 생성 로직 건너뛰기 (핵심 수정) ---
+  if (props.isSingleLocation) {
+    console.log('[CourseMap] 단일 위치 모드. 경로를 그리지 않고 마커만 표시합니다.');
+  } else {
+    // 🚨 [핵심 수정] pageType이 'exhibition'이면 API 호출 없이 straightPath 사용
+    let polylinePath = straightPath;
+    if (props.pageType !== 'exhibition') {
+      const apiPath = await getRoutePathFromAPI(items);
+      // API 경로가 성공하면 그것을 사용하고, 실패하면 straightPath를 사용
+      if (apiPath) {
+        polylinePath = apiPath;
+        console.log('[CourseMap] API 경로 사용 완료.');
+      } else {
+        console.log('[CourseMap] API 경로 실패. 직선 경로로 대체합니다.');
+      }
     } else {
-      console.log('[CourseMap] API 경로 실패. 직선 경로로 대체합니다.');
+      console.log('[CourseMap] "exhibition" 타입이므로 직선 경로를 사용합니다.');
     }
-  } else {
-    console.log('[CourseMap] "exhibition" 타입이므로 직선 경로를 사용합니다.');
-  }
 
-  // --- 폴리라인(선) 생성 ---
-  if (polylinePath.length > 1) {
-    try {
-      const newPolyline = new window.kakao.maps.Polyline({
-        path: polylinePath,
-        strokeWeight: 4,
-        strokeColor: '#4A7CEC',
-        strokeOpacity: 0.8,
-        strokeStyle: 'solid',
-      });
-      newPolyline.setMap(map.value);
-      polyline.value = newPolyline;
-      console.log('[CourseMap] 폴리라인 생성 및 추가 완료.');
-    } catch (polyError) {
-      console.error('[CourseMap]  폴리라인 생성 중 오류 발생:', polyError, polylinePath);
+    // --- 폴리라인(선) 생성 ---
+    if (polylinePath.length > 1) {
+      try {
+        const newPolyline = new window.kakao.maps.Polyline({
+          path: polylinePath,
+          strokeWeight: 4,
+          strokeColor: '#4A7CEC',
+          strokeOpacity: 0.8,
+          strokeStyle: 'solid',
+        });
+        newPolyline.setMap(map.value);
+        polyline.value = newPolyline;
+        console.log('[CourseMap] 폴리라인 생성 및 추가 완료.');
+      } catch (polyError) {
+        console.error('[CourseMap] 폴리라인 생성 중 오류 발생:', polyError, polylinePath);
+      }
+    } else {
+      console.log('[CourseMap] 폴리라인을 그리기에 점이 부족합니다.');
     }
-  } else {
-    console.log('[CourseMap] 폴리라인을 그리기에 점이 부족합니다.');
   }
-
+  // --- 3. 지도 범위/중심 설정 (공통) ---
   if (!bounds.isEmpty()) {
     if (props.isSingleLocation) {
+      // 단일 모드일 때: 중심점 설정 + 고정 줌 레벨
       const centerPosition = new window.kakao.maps.LatLng(Number(items[0].lat), Number(items[0].lng));
       map.value.setCenter(centerPosition);
       map.value.setLevel(props.defaultZoomLevel);
     } else {
       try {
+        // 복수 모드일 때: 경계 설정
         map.value.setBounds(bounds);
       } catch (boundsError) {
-        console.error('[CourseMap]  지도 범위 설정 중 오류 발생:', boundsError, bounds);
+        console.error('[CourseMap] 지도 범위 설정 중 오류 발생:', boundsError, bounds);
       }
     }
   } else {
@@ -395,8 +403,8 @@ const createMarkerImage = (number, color) => {
 </style>
 <style>
 /* [중요]
-  CustomOverlay의 스타일은 <style scoped>가 아닌
-  일반 <style> 태그에 정의해야 카카오맵이 인식할 수 있습니다.
+ CustomOverlay의 스타일은 <style scoped>가 아닌
+ 일반 <style> 태그에 정의해야 카카오맵이 인식할 수 있습니다.
 */
 .custom-marker {
   /* [요청 1] 동그란 핀 */

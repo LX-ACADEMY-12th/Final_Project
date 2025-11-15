@@ -100,12 +100,11 @@ import { useCurriculumStore } from '@/stores/curriculumStore';
 const router = useRouter();
 const activeItemId = ref(null);
 
-// 🟢 [추가] 시연을 위한 대전 시청 고정 좌표
+// 🟢 시연을 위한 대전 시청 고정 좌표
 const DEMO_LOCATION = { lat: 36.3504119, lng: 127.3845475 };
 
-// 🟢 [추가] Pinia 스토어 초기화 및 상태 가져오기
+// 🟢 Pinia 스토어 초기화 및 상태 가져오기
 const authStore = useAuthStore();
-// user 객체와 isLoggedIn 상태를 반응형으로 가져옵니다.
 const { user } = storeToRefs(authStore);
 const curriculumStore = useCurriculumStore();
 const { selectedGrade, selectedSubject } = storeToRefs(curriculumStore);
@@ -120,7 +119,8 @@ const markers = ref([]);
 const currentLocationMarker = ref(null);
 
 const infoOverlay = ref(null);
-const directionsPolyline = ref(null);
+// 🚨 경로 선을 배열로 저장하도록 초기화
+const directionsPolyline = ref([]);
 const routeMarkers = ref([]);
 const KAKAO_REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
 
@@ -154,7 +154,6 @@ const searchRadius = ref(5);
 const selectedRegion = ref('');
 
 const currentUserLocation = ref(null);
-const displayedItems = ref([]);
 const isSearching = ref(false);
 
 //'전체' 데이터를 보관할 새 Ref
@@ -216,20 +215,35 @@ const goToDetail = (item) => {
 // 카드 클릭 핸들러 개선
 const handleItemClick = (item) => {
   activeItemId.value = item.id;
+  // 지도 이동
   smoothPanTo(item.lat, item.lng);
-  highlightMarker(item);
 
   setTimeout(() => {
+    // 🚨 맵 이동 후 충분한 시간을 주고 애니메이션 호출
+    highlightMarker(item);
     showDirectionsToItem(item);
-  }, 500);
+  }, 500); // 맵 이동 시간(300ms) + 추가 지연 200ms
 };
 
 // 마커 하이라이트 함수
 const highlightMarker = (item) => {
+  // 🚨 [핵심 수정] Animation 객체가 존재하는지 안전하게 확인
+  const BOUNCE_ANIMATION = window.kakao?.maps?.Animation?.BOUNCE;
+
+  if (!BOUNCE_ANIMATION) {
+    // 객체가 없으면 경고만 출력하고 실행 중단 (TypeError 방지)
+    console.warn("Kakao maps Animation 객체가 로드되지 않았거나 BOUNCE 속성을 찾을 수 없습니다.");
+    return;
+  }
+
+  // 마커 순회 및 하이라이트 적용
   markers.value.forEach(marker => {
     const position = marker.getPosition();
+
+    // 위도와 경도가 일치하는 마커를 찾습니다.
     if (position.getLat() === item.lat && position.getLng() === item.lng) {
-      marker.setAnimation(window.kakao.maps.Animation.BOUNCE);
+
+      marker.setAnimation(BOUNCE_ANIMATION);
 
       setTimeout(() => {
         marker.setAnimation(null);
@@ -271,11 +285,11 @@ const goToCurrentLocation = async () => {
       }
 
       const content = `
-        <div class="current-location-wrapper">
-          <div class="current-location-dot"></div>
-          <div class="current-location-pulse"></div>
-        </div>
-      `;
+    <div class="current-location-wrapper">
+     <div class="current-location-dot"></div>
+     <div class="current-location-pulse"></div>
+    </div>
+   `;
 
       const newOverlay = new window.kakao.maps.CustomOverlay({
         position: currentLatLng,
@@ -308,30 +322,6 @@ const moveMapToItem = (lat, lng) => {
   }
 };
 
-// 부드러운 줌 함수
-const smoothZoom = (targetLevel, step = 1) => {
-  if (!map.value) return;
-
-  const currentLevel = map.value.getLevel();
-
-  if (currentLevel === targetLevel) return;
-
-  const zoomIn = currentLevel > targetLevel;
-  const nextLevel = zoomIn
-    ? Math.max(currentLevel - step, targetLevel)
-    : Math.min(currentLevel + step, targetLevel);
-
-  map.value.setLevel(nextLevel, {
-    animate: {
-      duration: 250
-    }
-  });
-
-  if (nextLevel !== targetLevel) {
-    setTimeout(() => smoothZoom(targetLevel, step), 260);
-  }
-};
-
 /**
  * 길찾기 실행 (Orchestrator)
  */
@@ -360,7 +350,7 @@ const showDirectionsToItem = async (item) => {
 
     if (path.length > 0) {
       drawDirectionsPolyline(path);
-      drawRouteStartEndMarkers(origin, destination);
+      drawRouteStartEndMarkers(origin, destination); // 🚨 마커 생성은 이 함수에서 처리
       map.value.setBounds(bounds);
     }
   } catch (error) {
@@ -423,43 +413,39 @@ const fetchDirections = async (origin, destination) => {
  * 지도에 경로 Polyline 및 마커 그리기
  */
 const drawDirectionsPolyline = (path) => {
-  if (directionsPolyline.value) {
-    directionsPolyline.value.setMap(null);
+  if (directionsPolyline.value.length > 0) {
+    directionsPolyline.value.forEach(p => p.setMap(null));
   }
+  directionsPolyline.value = []; // 배열로 변경
 
-  const polyline = new window.kakao.maps.Polyline({
+  // 1. [배경 경로] 굵고 진한 테마색 선 (밑바탕)
+  const backgroundPolyline = new window.kakao.maps.Polyline({
     path: path,
-    strokeWeight: 5,
-    strokeColor: '#FF0000',
-    strokeOpacity: 0.7,
+    strokeWeight: 6,
+    strokeColor: '#4A7CEC', // 주 테마색 파란색
+    strokeOpacity: 0.9,
     strokeStyle: 'solid'
   });
+  backgroundPolyline.setMap(map.value);
+  directionsPolyline.value.push(backgroundPolyline);
 
-  polyline.setMap(map.value);
-  directionsPolyline.value = polyline;
+  // 2. [트레일 경로] 얇은 흰색 점선 (흐름 강조)
+  const trailPolyline = new window.kakao.maps.Polyline({
+    path: path,
+    strokeWeight: 3,
+    strokeColor: '#FFFFFF', // 흰색 점선
+    strokeOpacity: 1,
+    strokeStyle: 'dashed', // 점선 효과
+  });
+  trailPolyline.setMap(map.value);
+  directionsPolyline.value.push(trailPolyline); // 배열에 모두 저장
 };
 
 // 경로의 시작점과 끝점에 마커를 그리는 함수
 const drawRouteStartEndMarkers = (origin, destination) => {
+  // 🚨 마커 생성 로직을 비활성화하고 배열만 초기화합니다.
   routeMarkers.value.forEach(marker => marker.setMap(null));
   routeMarkers.value = [];
-
-  const startPos = new window.kakao.maps.LatLng(origin.lat, origin.lng);
-  const endPos = new window.kakao.maps.LatLng(destination.lat, destination.lng);
-
-  const startMarker = new window.kakao.maps.Marker({
-    position: startPos,
-    title: '출발지'
-  });
-  startMarker.setMap(map.value);
-  routeMarkers.value.push(startMarker);
-
-  const endMarker = new window.kakao.maps.Marker({
-    position: endPos,
-    title: '도착지'
-  });
-  endMarker.setMap(map.value);
-  routeMarkers.value.push(endMarker);
 };
 
 
@@ -479,10 +465,12 @@ const clearLocationMarkers = () => {
  * [신규] 2. 길찾기 경로선과 출발/도착 마커만 지우는 함수
  */
 const clearDirections = () => {
-  if (directionsPolyline.value) {
-    directionsPolyline.value.setMap(null);
-    directionsPolyline.value = null;
+  // 🚨 배열인지 확인하고, 배열의 각 요소에 대해 setMap(null) 호출
+  if (directionsPolyline.value && Array.isArray(directionsPolyline.value)) {
+    directionsPolyline.value.forEach(p => p.setMap(null));
   }
+  directionsPolyline.value = []; // 배열 초기화
+
   routeMarkers.value.forEach(marker => marker.setMap(null));
   routeMarkers.value = [];
 };
@@ -497,10 +485,11 @@ const clearMapElements = () => {
     infoOverlay.value = null;
   }
 
-  if (directionsPolyline.value) {
-    directionsPolyline.value.setMap(null);
-    directionsPolyline.value = null;
+  // 🚨 길찾기 경로 선 제거 (배열 처리)
+  if (directionsPolyline.value && Array.isArray(directionsPolyline.value)) {
+    directionsPolyline.value.forEach(p => p.setMap(null));
   }
+  directionsPolyline.value = []; // 배열 초기화
 
   routeMarkers.value.forEach(marker => marker.setMap(null));
   routeMarkers.value = [];
@@ -515,9 +504,12 @@ const drawMarkers = (items) => {
   }
 
   items.forEach(item => {
-    const markerImage = (item.itemType === 'exhibition')
-      ? exhibitionMarkerImage
-      : fieldTripMarkerImage;
+    // 🚨 위도/경도가 유효한 숫자인지 확인
+    if (item.lat === null || item.lng === null || isNaN(Number(item.lat)) || isNaN(Number(item.lng))) {
+      console.warn(`[NaN Error] 유효하지 않은 좌표를 건너뜁니다:`, item);
+      return; // 유효하지 않으면 이 아이템은 건너뜁니다.
+    }
+    const markerImage = (item.itemType === 'exhibition') ? exhibitionMarkerImage : fieldTripMarkerImage;
     const markerPosition = new window.kakao.maps.LatLng(item.lat, item.lng);
     const marker = new window.kakao.maps.Marker({
       position: markerPosition,
@@ -532,22 +524,22 @@ const drawMarkers = (items) => {
         infoOverlay.value.setMap(null);
       }
       const content = `
-        <div class="info-window">
-          <div class="info-title">${item.title}</div>
-          <div class="info-line info-rating">
-            <span class="star">:별:</span>
-            <span>${item.rating || 'N/A'} 점 (${item.reviewCount || 0}개)</span>
-          </div>
-          <div class="info-line">
-            <span class="icon"><i class="bi bi-info-circle-fill"></i></span>
-            <span>${item.subject || '분류 없음'}</span>
-          </div>
-          <div class="info-line">
-            <span class="icon"><i class="bi bi-info-circle-fill"></i></span>
-            <span>${item.grade || '학년 없음'}</span>
-          </div>
-        </div>
-      `;
+    <div class="info-window">
+     <div class="info-title">${item.title}</div>
+     <div class="info-line info-rating">
+      <span class="star">:별:</span>
+      <span>${item.rating || 'N/A'} 점 (${item.reviewCount || 0}개)</span>
+     </div>
+     <div class="info-line">
+      <span class="icon"><i class="bi bi-info-circle-fill"></i></span>
+      <span>${item.subject || '분류 없음'}</span>
+     </div>
+     <div class="info-line">
+      <span class="icon"><i class="bi bi-info-circle-fill"></i></span>
+      <span>${item.grade || '학년 없음'}</span>
+     </div>
+    </div>
+   `;
       const overlay = new window.kakao.maps.CustomOverlay({
         map: map.value,
         position: markerPosition,
@@ -706,24 +698,37 @@ onMounted(async () => {
   }
 });
 
-// --- filteredItems 변경 감지 (기존 로직 유지) ---
+// MapComponent.vue의 watch(filteredItems, ...) 핸들러 내부
 watch(filteredItems, (newItems) => {
   if (!map.value) return;
 
   clearMarkersWithAnimation().then(() => {
     drawMarkers(newItems);
 
-    if (newItems.length === 1) {
-      const item = newItems[0];
-      moveMapToItem(item.lat, item.lng);
-    } else if (newItems.length > 1) {
+    if (newItems.length > 0) {
       const bounds = new window.kakao.maps.LatLngBounds();
+      let hasValidItem = false; // 유효한 아이템이 하나라도 있는지 확인
+
       newItems.forEach(item => {
-        bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng));
+        // 🚨 [추가 검증] 유효한 좌표만 bounds에 포함
+        if (item.lat !== null && item.lng !== null && !isNaN(Number(item.lat)) && !isNaN(Number(item.lng))) {
+          bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng));
+          hasValidItem = true;
+        }
       });
-      map.value.panToBounds(bounds, {
-        duration: 500
-      });
+
+      if (hasValidItem) { // 유효한 좌표가 있어야 setBounds 호출
+        if (newItems.length === 1) {
+          // 단일 아이템일 경우, moveMapToItem 호출
+          moveMapToItem(newItems[0].lat, newItems[0].lng);
+        } else {
+          // 여러 아이템일 경우
+          map.value.setBounds(bounds);
+        }
+      } else {
+        // 모든 아이템의 좌표가 무효할 경우
+        console.warn("경계 설정: 유효한 좌표를 가진 아이템이 없어 지도를 이동하지 않습니다.");
+      }
     }
   });
 });
