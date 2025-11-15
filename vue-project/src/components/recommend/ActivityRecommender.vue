@@ -1,60 +1,139 @@
 <template>
   <div class="activity-recommender-section">
-    <h4 class="section-title">
-      🤖 AI 맞춤 체험활동 추천
-    </h4>
 
-    <div class="criteria-summary" v-if="canRecommend">
-      <p class="section-description">
-        이 장소의 <strong class="text-primary">{{ placeMainCategory }}</strong> 과목과
-        <strong class="text-primary">' {{ placeGradeTag }}'</strong> 을 기반으로
-        체험활동을 제안합니다.
-      </p>
+    <!-- 헤더 섹션 개선 -->
+    <div class="section-header">
+      <div class="header-icon-wrapper">
+        <div class="icon-bg">
+          <span class="header-icon">🎯</span>
+        </div>
+      </div>
+      <div class="header-content">
+        <h4 class="section-title">AI 맞춤 체험활동 추천</h4>
+        <p class="section-subtitle">교과 연계 맞춤 활동을 찾아드려요</p>
+      </div>
     </div>
 
-    <div v-else class="criteria-summary">
-      <p class="section-description text-muted">
-        이 장소에 연계된 교과 정보가 부족하여 AI 추천을 제공할 수 없습니다.
-      </p>
+    <!-- 기준 정보 카드 -->
+    <div v-if="canRecommend" class="criteria-card">
+      <div class="criteria-content">
+        <div class="criteria-text">
+          <p class="criteria-description">
+            <span class="highlight-badge">{{ placeGradeTag }}</span>
+            <span class="highlight-badge subject-badge">{{ placeMainCategory }}</span>
+            기준으로 추천합니다
+          </p>
+        </div>
+      </div>
     </div>
 
+    <!-- 정보 부족 안내 -->
+    <div v-else class="criteria-card warning-card">
+      <div class="criteria-content">
+        <div class="criteria-icon warning">
+          <i class="bi bi-exclamation-circle-fill"></i>
+        </div>
+        <div class="criteria-text">
+          <p class="criteria-description">
+            이 장소에 연계된 교과 정보가 부족하여<br>
+            AI 추천을 제공할 수 없습니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 추천 버튼 개선 -->
     <div class="button-wrapper">
-      <button class="btn btn-primary w-100" @click="fetchRecommendations" :disabled="isLoading || !canRecommend">
-        <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        <span v-else>AI 추천 받기</span>
+      <button class="btn-recommend" @click="fetchRecommendations" :disabled="isLoading || !canRecommend"
+        :class="{ 'loading': isLoading, 'disabled': !canRecommend }">
+        <span v-if="isLoading" class="btn-content loading">
+          <span class="spinner"></span>
+          <span class="btn-text">AI가 분석 중...</span>
+        </span>
+        <span v-else class="btn-content">
+          <i class="bi bi-stars"></i>
+          <span class="btn-text">AI 추천 받기</span>
+        </span>
       </button>
     </div>
 
-    <div v-if="isLoading" class="loading-placeholder">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">로딩 중</span>
-      </div>
-      <p>AI가 {{ placeGradeTag }} '{{ placeMainCategory }}' 단원과<br> 관련된 활동을 찾고 있습니다...</p>
-    </div>
-
-    <div class="activity-recommender-section">
-      <div v-if="!isLoading && recommendations.length > 0" class="results-wrapper">
-
-        <div v-for="(rec, index) in recommendations" :key="index" class="recommend-card">
-          <div class="card-header">
-            <span class="card-badge">{{ rec.relatedUnit }}</span>
-            <h5 class="card-title">{{ rec.title }}</h5>
+    <!-- 로딩 상태 개선 -->
+    <transition name="fade">
+      <div v-if="isLoading" class="loading-container">
+        <div class="loading-animation">
+          <div class="robot-icon">
+            <span class="robot-emoji">🤖</span>
+            <div class="loading-pulse"></div>
           </div>
-          <p class="card-description">{{ rec.description }}</p>
-          <div v-if="rec.relatedExhibit" class="card-location">
-            <i class="bi bi-geo-alt-fill"></i>
-            활동 위치: <strong>{{ rec.relatedExhibit }}</strong>
+          <div class="loading-text">
+            <h5 class="loading-title">AI가 분석 중입니다</h5>
+            <p class="loading-description">
+              {{ placeGradeTag }} <strong>{{ placeMainCategory }}</strong> 단원과<br>
+              관련된 체험활동을 찾고 있습니다
+            </p>
+          </div>
+
+          <!-- 로딩 스켈레톤 -->
+          <div class="skeleton-cards">
+            <div v-for="n in 2" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.1}s` }">
+              <div class="skeleton-header">
+                <div class="skeleton-badge"></div>
+              </div>
+              <div class="skeleton-title"></div>
+              <div class="skeleton-desc line-1"></div>
+              <div class="skeleton-desc line-2"></div>
+              <div class="skeleton-location"></div>
+            </div>
           </div>
         </div>
-
-
       </div>
+    </transition>
 
+    <!-- 추천 결과 개선 -->
+    <transition-group name="slide-up" tag="div" class="results-wrapper">
+      <div v-for="(rec, index) in recommendations" :key="`rec-${index}`" class="recommend-card"
+        :style="{ animationDelay: `${index * 0.1}s` }">
+
+        <div class="card-header">
+          <div class="badge-wrapper">
+            <span class="unit-badge">
+              <i class="bi bi-book"></i>
+              {{ rec.relatedUnit }}
+            </span>
+          </div>
+          <h5 class="card-title">{{ rec.title }}</h5>
+        </div>
+
+        <p class="card-description">{{ rec.description }}</p>
+
+        <div v-if="rec.relatedExhibit" class="card-footer">
+          <div class="location-info">
+            <i class="bi bi-geo-alt-fill"></i>
+            <span class="location-label">활동 위치</span>
+            <span class="location-value">{{ rec.relatedExhibit }}</span>
+          </div>
+        </div>
+      </div>
+    </transition-group>
+
+    <!-- 결과 없음 개선 -->
+    <transition name="fade">
       <div v-if="!isLoading && recommendations.length === 0 && hasSearched" class="no-results">
-        <p>아쉽지만, 해당 조건으로 추천할 만한<br> 맞춤 활동을 찾지 못했어요. 😥</p>
-
+        <div class="no-results-icon">
+          <span class="icon-emoji">🔍</span>
+        </div>
+        <h5 class="no-results-title">추천 결과가 없습니다</h5>
+        <p class="no-results-text">
+          해당 조건으로 추천할 만한<br>
+          맞춤 활동을 찾지 못했어요
+        </p>
+        <button class="btn-retry" @click="fetchRecommendations">
+          <i class="bi bi-arrow-clockwise"></i>
+          다시 시도하기
+        </button>
       </div>
-    </div>
+    </transition>
+
   </div>
 </template>
 
@@ -73,7 +152,6 @@ export default {
       type: Array,
       default: () => []
     },
-    // [추가] 학년 태그를 props로 직접 받음
     placeGradeTag: {
       type: String,
       default: ''
@@ -81,34 +159,23 @@ export default {
   },
   data() {
     return {
-      // [제거] selectedGrade, selectedUnit
       isLoading: false,
       hasSearched: false,
       recommendations: []
     };
   },
   computed: {
-    // [제거] availableUnits
-
-    // [추가] "초등 6학년" -> "6"으로 변환하는 헬퍼
     parsedGrade() {
       if (!this.placeGradeTag) return null;
-      // 정규식으로 숫자만 추출
       const match = this.placeGradeTag.match(/(\d+)학년/);
-      return match ? match[1] : null; // "6"
+      return match ? match[1] : null;
     },
-
-    // [추가] 추천이 가능한지 (필수 정보가 있는지) 확인
     canRecommend() {
-      // 장소 ID, 파싱된 학년, 메인 단원 정보가 모두 있어야 함
       return !!this.placeId && !!this.parsedGrade && !!this.placeMainCategory;
     }
   },
-  // [제거] watch (availableUnits)
-
   methods: {
     async fetchRecommendations() {
-      // [수정] canRecommend computed로 유효성 검사
       if (!this.canRecommend) {
         alert('추천에 필요한 교과 정보(학년 또는 단원)가 부족합니다.');
         return;
@@ -121,13 +188,13 @@ export default {
         const response = await axios.get('/api/recommend/activities', {
           params: {
             placeId: this.placeId,
-            // [수정] props에서 파싱한 값 사용
             grade: this.parsedGrade,
             unit: this.placeMainCategory
           }
         });
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 최소 로딩 시간 (UX)
+        await new Promise(resolve => setTimeout(resolve, 1500));
         this.recommendations = response.data;
 
       } catch (error) {
@@ -142,144 +209,688 @@ export default {
 </script>
 
 <style scoped>
-/* === 1. 컴포넌트 기본 레이아웃 === */
+/* ========================================
+   컴포넌트 기본 레이아웃
+======================================== */
 .activity-recommender-section {
-  padding: 20px;
-  background-color: #f8f9fa;
-  /* 상위 섹션(흰색)과 구분되는 배경색 */
-  border-radius: 8px;
+  padding: 24px 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  border-radius: 16px;
+  margin-top: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* ========================================
+   헤더 섹션 개선
+======================================== */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.header-icon-wrapper {
+  flex-shrink: 0;
+}
+
+.icon-bg {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4A7CEC 0%, #5B8EF5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(74, 124, 236, 0.25);
+}
+
+.header-icon {
+  font-size: 28px;
+}
+
+.header-content {
+  flex: 1;
 }
 
 .section-title {
-  font-weight: 600;
-  font-size: 1.1rem;
-  margin-bottom: 15px;
-  /* 제목과 설명 사이 간격 */
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
 }
 
-/* === 2. 추천 기준 요약 (필터 대신) === */
-.criteria-summary .section-description {
-  font-size: 0.95rem;
-  line-height: 1.6;
+.section-subtitle {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ========================================
+   기준 정보 카드
+======================================== */
+.criteria-card {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
+  border: 1px solid rgba(74, 124, 236, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(74, 124, 236, 0.08);
+}
+
+.criteria-card.warning-card {
+  background: linear-gradient(135deg, #fff8f0 0%, #fff4e8 100%);
+  border-color: rgba(255, 152, 0, 0.2);
+}
+
+.criteria-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.criteria-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(74, 124, 236, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.criteria-icon i {
+  font-size: 20px;
+  color: #4A7CEC;
+}
+
+.criteria-icon.warning {
+  background: rgba(255, 152, 0, 0.15);
+}
+
+.criteria-icon.warning i {
+  color: #ff9800;
+}
+
+.criteria-text {
+  flex: 1;
+  padding-top: 2px;
+}
+
+.criteria-description {
+  font-size: 14px;
   color: #333;
-  margin-bottom: 0;
+  line-height: 1.6;
+  margin: 0;
 }
 
-.criteria-summary .text-primary {
-  color: #0d6efd !important;
-  /* 부트스트랩 primary 색상 강조 */
+.highlight-badge {
+  display: inline-block;
+  background: rgba(74, 124, 236, 0.12);
+  color: #4A7CEC;
+  padding: 3px 10px;
+  border-radius: 6px;
   font-weight: 600;
+  font-size: 13px;
+  margin: 0 4px;
 }
 
-.criteria-summary .text-muted {
-  font-size: 0.9rem;
-  line-height: 1.5;
+.highlight-badge.subject-badge {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
 }
 
-/* === 3. 추천 받기 버튼 === */
+/* ========================================
+   추천 버튼 개선
+======================================== */
 .button-wrapper {
+  margin-bottom: 20px;
+}
+
+.btn-recommend {
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #4A7CEC 0%, #5B8EF5 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(74, 124, 236, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-recommend::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-recommend:hover:not(.disabled):not(.loading) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(74, 124, 236, 0.35);
+}
+
+.btn-recommend:hover:not(.disabled):not(.loading)::before {
+  left: 100%;
+}
+
+.btn-recommend:active:not(.disabled):not(.loading) {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(74, 124, 236, 0.2);
+}
+
+.btn-recommend.disabled {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-recommend.loading {
+  cursor: wait;
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-content i {
+  font-size: 18px;
+}
+
+.btn-text {
+  font-size: 15px;
+}
+
+/* 스피너 애니메이션 */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   로딩 상태 개선
+======================================== */
+.loading-container {
   margin-top: 20px;
 }
 
-.btn-primary {
-  font-weight: 600;
-  padding: 0.6rem 0.75rem;
-  /* 버튼 크기 */
-  font-size: 0.95rem;
-}
-
-/* === 4. 로딩 및 결과 없음 === */
-.loading-placeholder,
-.no-results {
+.loading-animation {
   text-align: center;
-  padding: 40px 20px;
-  color: #666;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  padding: 30px 20px;
 }
 
-.loading-placeholder .spinner-border {
-  margin-bottom: 15px;
+.robot-icon {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 20px;
 }
 
-/* (웹 접근성) 스크린 리더용 */
-.visually-hidden {
+.robot-emoji {
+  font-size: 56px;
+  display: inline-block;
+  animation: float 2.5s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.loading-pulse {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
+  border: 3px solid rgba(74, 124, 236, 0.3);
+  border-radius: 50%;
+  animation: pulse-ring 2s ease-out infinite;
 }
 
+@keyframes pulse-ring {
+  0% {
+    width: 70px;
+    height: 70px;
+    opacity: 0.8;
+  }
 
-/* === 5. AI 추천 결과 카드 (v-for) === */
-.results-wrapper {
-  margin-top: 25px;
+  100% {
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+  }
+}
+
+.loading-text {
+  margin-bottom: 24px;
+}
+
+.loading-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.loading-description {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.loading-description strong {
+  color: #4A7CEC;
+  font-weight: 600;
+}
+
+/* 스켈레톤 카드 */
+.skeleton-cards {
+  margin-top: 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* 카드 사이 간격 */
+}
+
+.skeleton-card {
+  background: white;
+  border: 1px solid #efefef;
+  border-radius: 14px;
+  padding: 16px;
+  opacity: 0;
+  animation: skeleton-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes skeleton-slide-up {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.skeleton-header {
+  margin-bottom: 12px;
+}
+
+.skeleton-badge {
+  width: 80px;
+  height: 22px;
+  background: #f5f5f5;
+  border-radius: 11px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-badge::after,
+.skeleton-title::after,
+.skeleton-desc::after,
+.skeleton-location::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: shimmer 1.8s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+
+  100% {
+    left: 100%;
+  }
+}
+
+.skeleton-title {
+  width: 70%;
+  height: 20px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-desc {
+  height: 16px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-desc.line-1 {
+  width: 100%;
+}
+
+.skeleton-desc.line-2 {
+  width: 85%;
+}
+
+.skeleton-location {
+  width: 60%;
+  height: 16px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  margin-top: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ========================================
+   추천 결과 카드 개선
+======================================== */
+.results-wrapper {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .recommend-card {
-  background-color: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  background: white;
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  animation: card-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes card-appear {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .recommend-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(74, 124, 236, 0.15);
+  border-color: rgba(74, 124, 236, 0.3);
 }
 
 .card-header {
+  margin-bottom: 12px;
+}
+
+.badge-wrapper {
   margin-bottom: 10px;
 }
 
-.card-badge {
-  background-color: #e3f2fd;
-  /* 파란 계열 */
-  color: #0366d6;
-  font-size: 0.75rem;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-weight: 500;
-  display: inline-block;
+.unit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1976d2;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.unit-badge i {
+  font-size: 13px;
 }
 
 .card-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin-top: 8px;
-  color: #222;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .card-description {
-  font-size: 0.95rem;
+  font-size: 14px;
   color: #444;
-  line-height: 1.6;
+  line-height: 1.7;
+  margin: 12px 0 0 0;
   white-space: pre-line;
-  /* AI가 \n으로 줄바꿈하면 반영 */
 }
 
-.card-location {
-  font-size: 0.9rem;
+.card-footer {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #e8e8e8;
+}
+
+.location-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   color: #555;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px dashed #eee;
 }
 
-.card-location i {
-  color: #0d6efd;
-  /* 부트스트랩 primary 색상 */
-  margin-right: 4px;
+.location-info i {
+  color: #4A7CEC;
+  font-size: 15px;
+}
+
+.location-label {
+  color: #888;
+  font-weight: 500;
+}
+
+.location-value {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+/* ========================================
+   결과 없음 개선
+======================================== */
+.no-results {
+  text-align: center;
+  padding: 50px 20px;
+  background: white;
+  border-radius: 14px;
+  border: 1px dashed #e0e0e0;
+  margin-top: 20px;
+}
+
+.no-results-icon {
+  margin-bottom: 16px;
+}
+
+.icon-emoji {
+  font-size: 48px;
+  display: inline-block;
+  opacity: 0.7;
+}
+
+.no-results-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.no-results-text {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+}
+
+.btn-retry {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
+  border: 1px solid rgba(74, 124, 236, 0.2);
+  border-radius: 10px;
+  padding: 10px 20px;
+  color: #4A7CEC;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-retry:hover {
+  background: linear-gradient(135deg, #e8f0ff 0%, #dce8ff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 124, 236, 0.15);
+}
+
+.btn-retry i {
+  font-size: 16px;
+}
+
+/* ========================================
+   트랜지션 애니메이션
+======================================== */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.4s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active {
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.slide-up-enter-from {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+/* ========================================
+   반응형 디자인
+======================================== */
+@media (max-width: 480px) {
+  .activity-recommender-section {
+    padding: 20px 16px;
+  }
+
+  .icon-bg {
+    width: 50px;
+    height: 50px;
+  }
+
+  .header-icon {
+    font-size: 24px;
+  }
+
+  .section-title {
+    font-size: 17px;
+  }
+
+  .section-subtitle {
+    font-size: 12px;
+  }
+
+  .criteria-card {
+    padding: 14px;
+  }
+
+  .criteria-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .criteria-icon i {
+    font-size: 18px;
+  }
+
+  .btn-recommend {
+    padding: 12px 18px;
+    font-size: 14px;
+  }
+
+  .robot-emoji {
+    font-size: 48px;
+  }
+
+  .loading-title {
+    font-size: 16px;
+  }
+
+  .loading-description {
+    font-size: 13px;
+  }
+
+  .recommend-card {
+    padding: 16px;
+  }
+
+  .card-title {
+    font-size: 15px;
+  }
+
+  .card-description {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .activity-recommender-section {
+    padding: 18px 14px;
+  }
+
+  .section-header {
+    gap: 12px;
+  }
+
+  .highlight-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+  }
 }
 </style>

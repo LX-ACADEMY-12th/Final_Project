@@ -11,12 +11,12 @@
       </div>
     </div>
 
-    <div class="segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
-      <div class="segmented-control d-flex gap-3">
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-          @click="changeTab('전시')">과학관</button>
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-          @click="changeTab('답사')">과학 답사</button>
+    <div class="segmented-control-wrapper flex-shrink-0">
+      <div class="segmented-control">
+        <button type="button" class="spec-button" :class="{ 'active': selectedTab === '전시' }"
+          @click="changeTab('전시')">전시관</button>
+        <button type="button" class="spec-button" :class="{ 'active': selectedTab === '답사' }"
+          @click="changeTab('답사')">과학 탐험지</button>
       </div>
     </div>
 
@@ -43,7 +43,8 @@
       </div>
 
       <div v-else class="card-list-wrapper">
-        <UserLikeCourseCard v-for="item in filteredItems" :key="item.id" :item="item" @click="goToCourseDetail(item)" />
+        <UserLikeCourseCard v-for="(item, index) in filteredItems" :key="item.id || index" :item="item"
+          @click="goToCourseDetail(item)" />
       </div>
     </div>
 
@@ -88,13 +89,11 @@ export default {
     filteredItems() {
       if (this.selectedTab === '전시') {
         // '전시' 탭일 때
-        // item.type이 '전시'이거나 'inner_course' 등 전시 관련 타입들을 모두 포함
         return this.userLikeCourseCardItem.filter(item =>
           item.type === '전시' || item.type === 'inner_course'
         );
       } else {
         // '답사' 탭일 때
-        // item.type이 '답사'이거나 'ai_course' 등 답사 관련 타입들을 모두 포함
         return this.userLikeCourseCardItem.filter(item =>
           item.type === '답사' || item.type === 'ai_course'
         );
@@ -148,40 +147,39 @@ export default {
             lng: item.longitude,
             type: null, // '상설', '기획'
 
-            scienceCenter: item.scienceCenterName,                 // 과학관 이름
-            hallName: item.hallName,                          // 전시관 이름
+            scienceCenter: item.scienceCenterName,         // 과학관 이름
+            hallName: item.hallName,             // 전시관 이름
             subject: item.mainCategoryNames || [], // 과학 영역 배열
-            grade: item.gradeNames || [],               // 학년 배열
-            hashtags: item.subCategoryNames || [],   // 세부 카테고리 배열,
+            grade: item.gradeNames || [],        // 학년 배열
+            hashtags: item.subCategoryNames || [],  // 세부 카테고리 배열,
             itemType: item.itemType,
             exhibitionList: item.exhibitionList || []
           }));
 
           // UserScheduleDto를 상위 객체 구조로 변환
+          // 🚨 item.id의 안정성 확보: scheduleId가 없을 경우 임시 ID 할당
+          const uniqueId = schedule.scheduleId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
           return {
-            id: schedule.scheduleId,
+            id: uniqueId,
             ExhibitionName: schedule.scheduleName,
             type: schedule.sourceCourseType, // 'inner_course' 또는 'ai_course' (이 값이 탭 필터링에 사용됨)
 
             // --- 첫 번째 아이템 정보로 대표값 설정 ---
             address: mappedCourseItems[0] ? mappedCourseItems[0].place : '정보 없음', // 대표 주소
-            scienceCenter: mappedCourseItems[0] ? mappedCourseItems[0].scienceCenter : '정보 없음',   // 대표 과학관
-            grade: mappedCourseItems[0] ? mappedCourseItems[0].grade?.[0] : null,                    // 대표 학년
-            subject: mappedCourseItems[0] ? mappedCourseItems[0].subject?.[0] : null,                // 대표 과학 영역
+            scienceCenter: mappedCourseItems[0] ? mappedCourseItems[0].scienceCenter : '정보 없음',  // 대표 과학관
+            grade: mappedCourseItems[0] ? mappedCourseItems[0].grade?.[0] : null,          // 대표 학년
+            subject: mappedCourseItems[0] ? mappedCourseItems[0].subject?.[0] : null,        // 대표 과학 영역
 
             // --- 아이템 목록에서 가공 ---
-            coursePlaces: mappedCourseItems.map(item => item.title),     // 아이템 이름 목록
-            courseItems: mappedCourseItems,                              // 변환된 아이템 상세 리스트
-
+            coursePlaces: mappedCourseItems.map(item => item.title),   // 아이템 이름 목록
+            courseItems: mappedCourseItems,               // 변환된 아이템 상세 리스트
           };
         });
-        // --- 👇 [로그 추가] 매핑된 최종 데이터 확인 ---
+
         console.log('✅ fetchUserLikeCourse - 최종 매핑된 데이터 (userLikeCourseCardItem):',
-          // JSON.stringify를 사용하면 중첩된 객체도 펼쳐서 보여줍니다 (선택 사항).
-          // JSON.stringify(this.userLikeCourseCardItem, null, 2)
-          JSON.stringify(this.userLikeCourseCardItem, null, 2)// 객체 그대로 로깅하면 콘솔에서 펼쳐볼 수 있습니다.
+          JSON.stringify(this.userLikeCourseCardItem, null, 2)
         );
-        // --- 👆 [로그 추가] ---
       } catch (err) {
         console.error("관심 코스 조회 실패:", err);
         this.error = "데이터를 불러오는 데 실패했습니다.";
@@ -222,92 +220,17 @@ export default {
 </script>
 
 <style scoped>
-/* 상단 필터 버튼 (전시, 탐험) */
-.spec-button {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  width: 115px;
-  padding: 5px 16px;
-  gap: 8px;
-  position: relative;
-  height: 38px;
-  border-radius: 20px;
-  background: #FFFFFF;
-  color: #333;
-  border: 1px solid #ddd;
-  transition: background-color 0.2s, color 0.2s;
-  font-family: 'SUIT', sans-serif;
-  font-weight: 500;
-}
-
-.spec-button.active {
-  background: #4A7CEC;
-  color: white;
-  border: none;
-  font-weight: 700;
-}
-
-.card-list-wrapper {
-  /* 카드 목록을 세로로 쌓기 위해 flex 설정 (선택 사항이지만 권장) */
-  display: flex;
-  flex-direction: column;
-  /* 카드 사이의 간격을 16px로 설정 */
-  gap: 16px;
-
-  /* 만약 gap 속성이 지원되지 않는 환경이라면 아래 margin 사용 */
-  /* padding-bottom: 16px; */
-  /* 마지막 카드 아래 여백 확보 */
-}
-
+/* -------------------- 레이아웃 및 컨테이너 -------------------- */
 .page-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-}
-
-/* ------------------------------------------------------------- */
-/* [핵심 수정 부분] content-container에 스크롤 속성 적용 */
-/* ------------------------------------------------------------- */
-.content-container {
-  flex: 1;
-  /* 남은 수직 공간을 모두 차지하도록 설정 */
-  overflow-y: auto;
-  /* 내용이 넘칠 때 세로 스크롤 생성 */
-  padding: 16px;
-  /* 상하좌우 여백 */
   background-color: #f9f9f9;
-  /* 배경색 설정 (옵션) */
-
-  /* 스크롤바 숨기기 (사용자님 요청) */
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-/* 로딩/에러/빈 상태 메시지가 중앙에 오도록 설정 */
-.status-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  /* content-container의 높이를 상속받아 사용 */
 }
 
 .chat-header {
   position: relative;
-}
-
-.chat-header .header-left,
-.chat-header .header-right {
-  flex: 1;
 }
 
 .chat-header .header-center {
@@ -316,21 +239,89 @@ export default {
   font-weight: 600;
 }
 
-.user-like-course {
+/* -------------------- 🚨 개선된 탭 영역 스타일 🚨 -------------------- */
+.segmented-control-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+  background-color: white;
+  border-bottom: 1px solid #eee;
+}
+
+.segmented-control {
+  display: flex;
+  width: 90%;
+  max-width: 327px;
+  background-color: #e0e0e0;
+  border-radius: 20px;
+  /* gap 제거 */
+}
+
+.spec-button {
+  flex: 1;
+  /* 너비를 균등하게 나눔 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 38px;
+  padding: 5px 16px;
+  border-radius: 20px;
+  background: transparent;
+  color: #666;
+  border: none;
+  box-shadow: none;
+  /* 그림자 제거 */
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.spec-button.active {
+  background: #4A7CEC;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* 활성화된 탭에만 은은한 그림자 */
+}
+
+/* -------------------- 콘텐츠 및 스크롤 영역 -------------------- */
+.content-container {
   flex: 1;
   overflow-y: auto;
+  padding: 16px;
+  background-color: #f9f9f9;
 
+  /* 스크롤바 숨기기 */
   &::-webkit-scrollbar {
     display: none;
   }
 
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
 
-  padding: 16px;
-  background-color: #f9f9f9;
+.card-list-wrapper {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-bottom: 16px;
+}
+
+/* 로딩/에러/빈 상태 메시지 중앙 정렬 */
+.status-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+}
+
+/* -------------------- 기타 버튼 스타일 (참조용) -------------------- */
+/* 이 코드는 해당 파일에 직접 사용되지는 않지만, 다른 곳에서 사용될 수 있으므로 남겨둡니다. */
+.btn {
+  /* .status-container 내 다시 시도 버튼 등에서 사용 */
+  border-radius: 30px;
 }
 </style>

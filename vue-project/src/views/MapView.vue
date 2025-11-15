@@ -39,9 +39,9 @@
     </div>
     <div class="position-absolute d-flex flex-row" style="z-index: 10; top: 104px; left: 18px; gap: 8px;">
       <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-        @click="changeTab('전시')">과학관</button>
+        @click="changeTab('전시')">전시관</button>
       <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-        @click="changeTab('답사')">과학과 함께하는 여행</button>
+        @click="changeTab('답사')">과학 탐험지</button>
     </div>
 
     <div class="position-absolute d-flex flex-column" style="

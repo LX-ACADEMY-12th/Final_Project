@@ -352,11 +352,31 @@ public class AdminContentService {
             storage.delete(BlobId.of(bucketName, existing.getMainImageUrl()));
         }
 
-        // 2. DB에서 자식/부모 레코드 삭제 (기존 로직)
+        // --- [외래 키 종속성 해결을 위한 2단계 필수 추가] ---
+
+        // 2-A. 삭제할 exhibition에 연결된 모든 AI 코스 ID 목록을 조회합니다.
+        List<Long> aiCourseIdsToDelete = adminContentMapper.findAiCourseIdsByExhibitionId(id);
+
+        if (!aiCourseIdsToDelete.isEmpty()) {
+            // 2-B. [필수] ai_recommended_course를 참조하는 final_schedule 데이터를 먼저 삭제합니다.
+            adminContentMapper.deleteFinalSchedulesByAiCourseIds(aiCourseIdsToDelete);
+
+            // 2-C. [필수] ai_recommended_course를 참조하는 ai_course_item 데이터를 삭제합니다.
+            adminContentMapper.deleteAiCourseItemsByAiCourseIds(aiCourseIdsToDelete);
+        }
+
+        // ----------------------------------------------------
+
+        // 3. DB에서 자식/부모 레코드 삭제 (역순으로 진행)
+
+        // (4) exhibition 테이블의 직접적인 자식들 삭제 (순서 유연, FK보다 먼저 실행)
         adminContentMapper.deleteExhibitionGradeMappings(id);
         adminContentMapper.deleteExhibitionCurriculumMappings(id);
-        adminContentMapper.deleteAiCourseItemsByExhibitionId(id);
+
+        // (5) ai_recommended_course 삭제 (앞서 final_schedule 정리가 완료되었으므로 이제 성공해야 함)
         adminContentMapper.deleteAiCoursesByExhibitionId(id);
+
+        // (6) exhibition 테이블 최종 삭제
         adminContentMapper.deleteExhibition(id);
     }
     @Transactional

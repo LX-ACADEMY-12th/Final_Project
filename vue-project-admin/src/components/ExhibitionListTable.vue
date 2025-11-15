@@ -30,7 +30,7 @@
                                     style="width: 40px; height: 40px;"></span>
                                 {{ exh.title }}
                             </td>
-                            <td>{{ exh.type }}</td>
+                            <td>{{ displayExhibitionType(exh.type) }}</td>
                             <td>{{ exh.subject }}</td>
                             <td>{{ exh.grade }}</td>
                             <td>{{ exh.place }}</td>
@@ -63,6 +63,19 @@ export default {
     },
 
     methods: {
+        // 전시 타입을 한글로 변환하는 메서드
+        displayExhibitionType(type) {
+            switch (type) {
+                case 'PERMANENT':
+                    return '상설';
+                case 'SPECIAL':
+                    return '특별';
+                case 'TEMPORARY':
+                    return '임시';
+                default:
+                    return type;
+            }
+        },
         getFullImageUrl(imageUrl) {
             if (!imageUrl) {
                 return null;

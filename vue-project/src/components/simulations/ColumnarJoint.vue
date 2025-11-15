@@ -84,7 +84,7 @@ const sketch = (p) => {
       // 배경 이미지 비동기 로드 (없어도 정상 동작)
       ; (async () => {
         try {
-          img = await p.loadImage('img/sim/joint1.jpg')
+          img = await p.loadImage('/img/sim/joint1.jpg')
         } catch {
           img = null
         }

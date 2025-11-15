@@ -11,39 +11,46 @@
 
     <div class="scroll-content">
 
-      <!--전시일때-->
       <div v-if="pageType === 'exhibition'">
         <InfoSection :exhibition="exhibition" imageTag="전시 태그" :mainCategory="exhibition.mainCategory"
           :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag"
           @authenticate-visit="handleVisitAuthentication" />
         <hr class="divider" />
-        <button type="button" class="btn btn-outline-primary" v-if="currentSimulationComponent"
+
+        <!-- 가상 실험 버튼 개선 -->
+        <button type="button" class="experiment-toggle-btn" v-if="currentSimulationComponent"
           @click="showSimulation = !showSimulation">
-          <i class="bi bi-flask"></i> 실험
-          <i class="bi" :class="showSimulation ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: 8px;"></i>
+          <span class="btn-content">
+            <i class="bi bi-flask-fill"></i>
+            <span class="btn-text">가상 실험</span>
+          </span>
+          <i class="bi chevron-icon" :class="showSimulation ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </button>
-        <div v-if="showSimulation && currentSimulationComponent" class="mt-3">
-          <div class="simulation-container">
-            <div class="simulation-inner">
-              <div class="simulation-header">
-                <div class="d-flex justify-content-between align-items-start gap-3">
-                  <div class="flex-grow-1">
-                    <h5 class="fw-bold fs-6 mb-1">
-                      <i class="bi bi-flask-fill me-2" style="color: #4A7CEC;"></i>
-                      {{ experimentTitle }}
-                    </h5>
+
+        <!-- 가상 실험 컨테이너 개선 -->
+        <transition name="slide-fade">
+          <div v-if="showSimulation && currentSimulationComponent" class="simulation-wrapper">
+            <div class="simulation-container">
+              <div class="simulation-inner">
+                <div class="simulation-header">
+                  <div class="header-content">
+                    <div class="header-title">
+                      <i class="bi bi-flask-fill header-icon"></i>
+                      <h5 class="title-text">{{ experimentTitle }}</h5>
+                    </div>
+                    <button type="button" class="btn-close-simulation" @click="showSimulation = false" title="닫기"
+                      aria-label="시뮬레이션 닫기">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
                   </div>
-                  <button type="button" class="btn-close-simulation" @click="showSimulation = false" title="닫기">
-                    <i class="bi bi-x"></i>
-                  </button>
                 </div>
-              </div>
-              <div class="simulation-content">
-                <component :is="currentSimulationComponent"></component>
+                <div class="simulation-content">
+                  <component :is="currentSimulationComponent"></component>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </transition>
 
         <TabSection :key="currentTab" :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
@@ -52,70 +59,109 @@
             :target-id="currentId" :target-type="pageType" @review-posted="handleReviewPosted"
             @review-deleted="handleReviewDeleted" :photo-review-count="exhibition.photoReviewCount" />
         </div>
-        <!--코스추천-->
+
+        <!-- AI 추천 탭 개선 -->
         <div v-else-if="currentTab === 'recommend'">
-          <!-- 개선된 AI 추천 로딩 -->
+          <!-- 로딩 상태 -->
           <div v-if="isRecommending" class="recommend-loading-container">
             <div class="loading-content">
-              <!-- AI 아이콘 섹션 -->
+
+              <!-- AI 아이콘 섹션 개선 -->
               <div class="ai-icon-section">
                 <div class="ai-icon-wrapper">
-                  <span class="ai-icon">🤖</span>
-                  <div class="pulse-effect"></div>
+                  <div class="ai-icon-bg">
+                    <span class="ai-icon">🤖</span>
+                  </div>
+                  <div class="pulse-ring"></div>
+                  <div class="pulse-ring-delayed"></div>
                 </div>
               </div>
 
-              <!-- 메시지 섹션 -->
+              <!-- 메시지 섹션 개선 -->
               <div class="loading-message">
-                <h3>AI가 맞춤 코스를 생성 중입니다</h3>
-                <p class="sub-message">{{ loadingMessages[currentMessageIndex] }}</p>
+                <h3 class="main-title">AI가 맞춤 코스를 생성 중입니다</h3>
+                <transition name="fade" mode="out-in">
+                  <p class="sub-message" :key="currentMessageIndex">
+                    {{ loadingMessages[currentMessageIndex] }}
+                  </p>
+                </transition>
               </div>
 
-              <!-- 진행 단계 -->
+              <!-- 프로그레스 바 추가 -->
+              <div class="progress-bar-container">
+                <div class="progress-bar">
+                  <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
+                </div>
+                <p class="progress-text">{{ progressPercentage }}%</p>
+              </div>
+
+              <!-- 진행 단계 개선 -->
               <div class="progress-steps">
+                <div class="step-connector"></div>
                 <div class="step-item" v-for="(step, index) in progressSteps" :key="index"
                   :class="{ active: currentStepIndex >= index, completed: currentStepIndex > index }">
                   <div class="step-dot">
-                    <span v-if="currentStepIndex > index">✓</span>
+                    <transition name="check-fade" mode="out-in">
+                      <i v-if="currentStepIndex > index" class="bi bi-check-lg" key="check"></i>
+                      <span v-else class="step-number" key="number">{{ index + 1 }}</span>
+                    </transition>
                   </div>
                   <span class="step-label">{{ step }}</span>
                 </div>
               </div>
 
-              <!-- 스켈레톤 카드 -->
+              <!-- 스켈레톤 카드 개선 -->
               <div class="skeleton-cards">
-                <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.1}s` }">
-                  <div class="card-number">{{ n + 1 }}</div>
-                  <div class="card-content">
-                    <div class="skeleton-image"></div>
+                <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.15}s` }">
+                  <div class="card-header">
+                    <div class="card-number">
+                      <span class="number-text">{{ n }}</span>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="skeleton-image">
+                      <div class="shimmer"></div>
+                    </div>
                     <div class="skeleton-info">
-                      <div class="skeleton-title"></div>
-                      <div class="skeleton-location"></div>
+                      <div class="skeleton-title">
+                        <div class="shimmer"></div>
+                      </div>
+                      <div class="skeleton-location">
+                        <div class="shimmer"></div>
+                      </div>
                       <div class="skeleton-tags">
-                        <span class="skeleton-tag"></span>
-                        <span class="skeleton-tag"></span>
+                        <span class="skeleton-tag">
+                          <div class="shimmer"></div>
+                        </span>
+                        <span class="skeleton-tag">
+                          <div class="shimmer"></div>
+                        </span>
+                        <span class="skeleton-tag">
+                          <div class="shimmer"></div>
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- 팁 메시지 -->
-              <div class="loading-tip">
-                <span class="tip-emoji">💡</span>
-                <span class="tip-text">{{ tips[currentTipIndex] }}</span>
-              </div>
+              <!-- 팁 메시지 개선 -->
+              <transition name="fade" mode="out-in">
+                <div class="loading-tip" :key="currentTipIndex">
+                  <span class="tip-icon">💡</span>
+                  <span class="tip-text">{{ tips[currentTipIndex] }}</span>
+                </div>
+              </transition>
             </div>
           </div>
 
-          <!-- 실제 추천 결과 -->
+          <!-- 추천 결과 -->
           <CourseRecommend v-else :key="courseRerenderKey" :course-items="courseItems" :type="pageType"
             :is-loading="isRecommending" @request-new-course="fetchRecommendedCourse"
             @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
 
-      <!--장소일때-->
       <div v-else-if="pageType === 'science_place'">
         <InfoSection :exhibition="place" imageTag="장소 태그" :mainCategory="place.mainCategory"
           :subCategories="place.subCategories" :gradeTag="place.gradeTag"
@@ -128,75 +174,111 @@
             :target-type="pageType" :isPlace="true" @review-posted="handleReviewPosted"
             @review-deleted="handleReviewDeleted" :photo-review-count="place.photoReviewCount" />
         </div>
-        <!--코스추천-->
+
         <div v-else-if="currentTab === 'recommend'">
-          <!-- 개선된 AI 추천 로딩 (장소도 동일) -->
+          <!-- 로딩 상태 (전시와 동일) -->
           <div v-if="isRecommending" class="recommend-loading-container">
             <div class="loading-content">
-              <!-- AI 아이콘 섹션 -->
+
               <div class="ai-icon-section">
                 <div class="ai-icon-wrapper">
-                  <span class="ai-icon">🤖</span>
-                  <div class="pulse-effect"></div>
+                  <div class="ai-icon-bg">
+                    <span class="ai-icon">🤖</span>
+                  </div>
+                  <div class="pulse-ring"></div>
+                  <div class="pulse-ring-delayed"></div>
                 </div>
               </div>
 
-              <!-- 메시지 섹션 -->
               <div class="loading-message">
-                <h3>AI가 맞춤 코스를 생성 중입니다</h3>
-                <p class="sub-message">{{ loadingMessages[currentMessageIndex] }}</p>
+                <h3 class="main-title">AI가 맞춤 코스를 생성 중입니다</h3>
+                <transition name="fade" mode="out-in">
+                  <p class="sub-message" :key="currentMessageIndex">
+                    {{ loadingMessages[currentMessageIndex] }}
+                  </p>
+                </transition>
               </div>
 
-              <!-- 진행 단계 -->
+              <div class="progress-bar-container">
+                <div class="progress-bar">
+                  <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
+                </div>
+                <p class="progress-text">{{ progressPercentage }}%</p>
+              </div>
+
               <div class="progress-steps">
+                <div class="step-connector"></div>
                 <div class="step-item" v-for="(step, index) in progressSteps" :key="index"
                   :class="{ active: currentStepIndex >= index, completed: currentStepIndex > index }">
                   <div class="step-dot">
-                    <span v-if="currentStepIndex > index">✓</span>
+                    <transition name="check-fade" mode="out-in">
+                      <i v-if="currentStepIndex > index" class="bi bi-check-lg" key="check"></i>
+                      <span v-else class="step-number" key="number">{{ index + 1 }}</span>
+                    </transition>
                   </div>
                   <span class="step-label">{{ step }}</span>
                 </div>
               </div>
 
-              <!-- 스켈레톤 카드 -->
               <div class="skeleton-cards">
-                <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.1}s` }">
-                  <div class="card-number">{{ n + 1 }}</div>
-                  <div class="card-content">
-                    <div class="skeleton-image"></div>
+                <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.15}s` }">
+                  <div class="card-header">
+                    <div class="card-number">
+                      <span class="number-text">{{ n }}</span>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="skeleton-image">
+                      <div class="shimmer"></div>
+                    </div>
                     <div class="skeleton-info">
-                      <div class="skeleton-title"></div>
-                      <div class="skeleton-location"></div>
+                      <div class="skeleton-title">
+                        <div class="shimmer"></div>
+                      </div>
+                      <div class="skeleton-location">
+                        <div class="shimmer"></div>
+                      </div>
                       <div class="skeleton-tags">
-                        <span class="skeleton-tag"></span>
-                        <span class="skeleton-tag"></span>
+                        <span class="skeleton-tag">
+                          <div class="shimmer"></div>
+                        </span>
+                        <span class="skeleton-tag">
+                          <div class="shimmer"></div>
+                        </span>
+                        <span class="skeleton-tag">
+                          <div class="shimmer"></div>
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- 팁 메시지 -->
-              <div class="loading-tip">
-                <span class="tip-emoji">💡</span>
-                <span class="tip-text">{{ tips[currentTipIndex] }}</span>
-              </div>
+              <transition name="fade" mode="out-in">
+                <div class="loading-tip" :key="currentTipIndex">
+                  <span class="tip-icon">💡</span>
+                  <span class="tip-text">{{ tips[currentTipIndex] }}</span>
+                </div>
+              </transition>
             </div>
           </div>
 
-          <!-- 실제 추천 결과 -->
           <CourseRecommend v-else :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
             @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
 
       <div v-else class="loading-container">
-        <p>데이터를 불러오는 중입니다...</p>
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">데이터를 불러오는 중입니다...</p>
       </div>
 
     </div>
   </div>
 </template>
+
 <script>
 import axios from '@/api/axiosSetup';
 
@@ -282,9 +364,7 @@ export default {
     cacheKey() {
       return `course-cache:${this.pageType}:${this.currentId}`;
     },
-    // :흰색_확인_표시: --- 여기부터 3개의 computed 속성을 추가합니다 ---
     simulationMap() {
-      // 맵핑 데이터 (필요에 따라 더 추가하세요)
       return {
         '초등 3학년': {
           '물리': MagnetField,
@@ -305,12 +385,9 @@ export default {
       };
     },
     currentSimulationComponent() {
-      // data()의 'exhibition' 객체를 사용합니다.
-      const grade = this.exhibition?.gradeTag; // '4학년' 대신 '초등 4학년'이 필요할 수 있습니다.
+      const grade = this.exhibition?.gradeTag;
       const subject = this.exhibition?.mainCategory;
-      // :느낌표:️ 중요: 'this.exhibition.gradeTag'에 '초등 3학년'처럼 '초등'이 포함되어 있는지,
-      // 'this.exhibition.mainCategory'에 '물리', '생명' 등이 정확히 들어있는지 확인하세요.
-      // 맵의 키(key)와 데이터 값이 정확히 일치해야 합니다.
+
       console.log(`[Sim Match] Grade: ${grade}, Subject: ${subject}`);
       if (grade && subject && this.simulationMap[grade] && this.simulationMap[grade][subject]) {
         return this.simulationMap[grade][subject];
@@ -319,8 +396,13 @@ export default {
     },
     experimentTitle() {
       return `가상실험: ${this.exhibition?.gradeTag} ${this.exhibition?.mainCategory}`;
+    },
+    // 프로그레스 퍼센트 계산
+    progressPercentage() {
+      const total = this.progressSteps.length;
+      const current = this.currentStepIndex + 1;
+      return Math.min(Math.round((current / total) * 100), 100);
     }
-    // :흰색_확인_표시: --- 여기까지 추가 ---
   },
 
   data() {
@@ -572,7 +654,7 @@ export default {
         if (!Array.isArray(items) || items.length === 0) return false;
         this.courseItems = items;
         this.hasLoadedRecommendations = true;
-        this.courseRerenderKey = Date.now(); // ⬅️ 자식 강제 리렌더
+        this.courseRerenderKey = Date.now();
         console.log('♻️ 코스 캐시 재사용:', this.courseItems);
         return true;
       } catch (e) {
@@ -646,8 +728,6 @@ export default {
         scienceCenterName: (dto.location || '').split(' ')[0] || '',
         hallId: dto.hallId
       };
-
-      //this.courseItems = [];
     },
 
     // DTO -> 상태 매핑 (Place)
@@ -692,8 +772,6 @@ export default {
         lat: dto.latitude,
         lng: dto.longitude
       };
-
-      //this.courseItems = [];
     },
 
     // Helper: 기간
@@ -708,7 +786,7 @@ export default {
     formatFee(fee) {
       if (fee === null || fee === undefined) return '정보 없음';
       if (fee === 0) return '무료';
-      return `${fee.toLocaleString('ko-KR')}원`;
+      return `${fee.toLocaleString('ko-KR')}`;
     },
 
     /** 전시 상세 조회 */
@@ -895,7 +973,7 @@ export default {
         this.hasLoadedRecommendations = true;
 
         this.saveCourseCache();
-        this.courseRerenderKey = Date.now(); // ⬅️ 자식 강제 리렌더
+        this.courseRerenderKey = Date.now();
       } catch (error) {
         console.error('AI 추천 코스 로딩 실패:', error);
         this.hasLoadedRecommendations = true;
@@ -1058,38 +1136,28 @@ export default {
 </script>
 
 <style scoped>
-/* === 공통 스타일 === */
+/* ========================================
+   공통 레이아웃
+======================================== */
 .exhibition-detail-page {
-  /* 전체 페이지의 높이를 뷰포트 높이(화면 높이)로 설정합니다. */
   height: 100%;
-  /* Flexbox를 사용하여 콘텐츠를 쌓고 높이 관리를 용이하게 합니다. */
   display: flex;
   flex-direction: column;
-
   background-color: #f7f7f7;
 }
 
-/* TabSection 아래, 스크롤이 필요한 영역에 스타일 적용 */
 .scroll-content {
-  /* 남은 모든 공간(높이)을 차지하도록 합니다. */
   flex-grow: 1;
-  /* 이 영역에서만 스크롤이 발생하도록 합니다. */
   overflow-y: auto;
   min-height: 0;
-  /* background-color: #fff; */
-  /* 스크롤 영역 배경색이 필요하다면 추가 */
   padding-bottom: 40px;
 
   /* 스크롤바 숨기기 */
-  /* Chrome, Safari, Edge 등 (웹킷 브라우저) */
   &::-webkit-scrollbar {
     display: none;
   }
 
-  /* Firefox */
   scrollbar-width: none;
-
-  /* IE (구형) */
   -ms-overflow-style: none;
 }
 
@@ -1100,30 +1168,193 @@ export default {
   margin: 0;
 }
 
-/* 로딩 중일 때 스타일 */
 .loading-container {
-  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
   text-align: center;
-  color: #888;
-  font-size: 16px;
+  color: #666;
+  font-size: 15px;
 }
 
-/* === 개선된 AI 추천 로딩 스타일 === */
+/* ========================================
+   가상 실험 버튼 (개선)
+======================================== */
+.experiment-toggle-btn {
+  width: calc(100% - 40px);
+  margin: 0 20px 20px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 12px;
+  border: 1px solid #4A7CEC;
+  color: #4A7CEC;
+  background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
+  box-shadow: 0 2px 8px rgba(74, 124, 236, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.experiment-toggle-btn:hover {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 124, 236, 0.2);
+}
+
+.experiment-toggle-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(74, 124, 236, 0.15);
+}
+
+.experiment-toggle-btn .btn-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.experiment-toggle-btn .bi-flask-fill {
+  font-size: 18px;
+}
+
+.experiment-toggle-btn .chevron-icon {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+/* ========================================
+   시뮬레이션 컨테이너 (개선)
+======================================== */
+.simulation-wrapper {
+  margin: 0 20px 20px 20px;
+}
+
+.simulation-container {
+  animation: slideDownIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.simulation-inner {
+  background: linear-gradient(135deg, rgba(74, 124, 236, 0.03) 0%, rgba(16, 185, 129, 0.03) 100%);
+  border: 1px solid rgba(74, 124, 236, 0.12);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(74, 124, 236, 0.08);
+}
+
+.simulation-header {
+  background: linear-gradient(135deg, rgba(74, 124, 236, 0.08), rgba(16, 185, 129, 0.06));
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(74, 124, 236, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.simulation-header .header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.simulation-header .header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.simulation-header .header-icon {
+  color: #4A7CEC;
+  font-size: 20px;
+}
+
+.simulation-header .title-text {
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.btn-close-simulation {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-close-simulation:hover {
+  background: rgba(255, 255, 255, 1);
+  color: #333;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.simulation-content {
+  padding: 24px 20px;
+  background: #fff;
+}
+
+/* 슬라이드 애니메이션 */
+.slide-fade-enter-active {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.slide-fade-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-15px);
+}
+
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+@keyframes slideDownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   AI 추천 로딩 (대폭 개선)
+======================================== */
 .recommend-loading-container {
-  background-color: #ffffff;
-  min-height: 500px;
-  padding: 40px 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  min-height: 600px;
+  padding: 50px 20px 40px;
 }
 
 .loading-content {
-  max-width: 500px;
+  max-width: 520px;
   margin: 0 auto;
 }
 
-/* AI 아이콘 섹션 */
+/* AI 아이콘 섹션 개선 */
 .ai-icon-section {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 36px;
 }
 
 .ai-icon-wrapper {
@@ -1131,13 +1362,26 @@ export default {
   display: inline-block;
 }
 
+.ai-icon-bg {
+  position: relative;
+  z-index: 2;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4A7CEC 0%, #5B8EF5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(74, 124, 236, 0.25);
+}
+
 .ai-icon {
   font-size: 48px;
   display: inline-block;
-  animation: gentle-bounce 2s ease-in-out infinite;
+  animation: gentle-float 3s ease-in-out infinite;
 }
 
-@keyframes gentle-bounce {
+@keyframes gentle-float {
 
   0%,
   100% {
@@ -1149,81 +1393,116 @@ export default {
   }
 }
 
-.pulse-effect {
+.pulse-ring {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 70px;
-  height: 70px;
-  border: 2px solid rgba(103, 58, 183, 0.3);
+  width: 90px;
+  height: 90px;
+  border: 3px solid rgba(74, 124, 236, 0.4);
   border-radius: 50%;
-  animation: pulse 2s ease-out infinite;
+  animation: pulse-expand 2.5s ease-out infinite;
 }
 
-@keyframes pulse {
+.pulse-ring-delayed {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90px;
+  height: 90px;
+  border: 3px solid rgba(74, 124, 236, 0.3);
+  border-radius: 50%;
+  animation: pulse-expand 2.5s ease-out infinite;
+  animation-delay: 0.8s;
+}
+
+@keyframes pulse-expand {
   0% {
-    width: 70px;
-    height: 70px;
+    width: 90px;
+    height: 90px;
     opacity: 0.8;
   }
 
   100% {
-    width: 100px;
-    height: 100px;
+    width: 140px;
+    height: 140px;
     opacity: 0;
   }
 }
 
-/* 메시지 섹션 */
+/* 메시지 섹션 개선 */
 .loading-message {
   text-align: center;
-  margin-bottom: 35px;
+  margin-bottom: 32px;
 }
 
-.loading-message h3 {
-  color: #333;
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 8px;
+.loading-message .main-title {
+  color: #1a1a1a;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  line-height: 1.3;
 }
 
 .sub-message {
-  color: #666;
-  font-size: 14px;
-  line-height: 1.4;
+  color: #555;
+  font-size: 15px;
+  line-height: 1.5;
   margin: 0;
-  min-height: 20px;
-  animation: fadeIn 0.5s ease-in-out;
+  min-height: 22px;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+/* 프로그레스 바 추가 */
+.progress-bar-container {
+  margin-bottom: 32px;
 }
 
-/* 진행 단계 */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(74, 124, 236, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4A7CEC 0%, #5B8EF5 100%);
+  border-radius: 10px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(74, 124, 236, 0.4);
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4A7CEC;
+  margin: 0;
+}
+
+/* 진행 단계 개선 */
 .progress-steps {
   display: flex;
   justify-content: space-between;
   margin-bottom: 40px;
-  padding: 0 10px;
+  padding: 0 8px;
   position: relative;
 }
 
-.progress-steps::before {
-  content: '';
+.step-connector {
   position: absolute;
-  top: 15px;
-  left: 10%;
-  right: 10%;
-  height: 2px;
-  background: #e0e0e0;
+  top: 18px;
+  left: 12%;
+  right: 12%;
+  height: 3px;
+  background: linear-gradient(90deg,
+      rgba(74, 124, 236, 0.2) 0%,
+      rgba(74, 124, 236, 0.1) 100%);
+  border-radius: 10px;
   z-index: 0;
 }
 
@@ -1233,85 +1512,111 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  opacity: 0.5;
-  transition: opacity 0.3s ease;
+  flex: 1;
+  opacity: 0.4;
+  transition: opacity 0.4s ease;
 }
 
 .step-item.active {
   opacity: 1;
 }
 
+.step-item.completed {
+  opacity: 1;
+}
+
 .step-dot {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #f5f5f5;
-  border: 2px solid #ddd;
+  background: #ffffff;
+  border: 3px solid #E0E0E0;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
-  transition: all 0.3s ease;
-  font-size: 12px;
-  color: #673ab7;
-  font-weight: bold;
+  margin-bottom: 10px;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .step-item.active .step-dot {
-  background: #fff;
-  border-color: #673ab7;
-  animation: scaleIn 0.3s ease;
+  background: #ffffff;
+  border-color: #4A7CEC;
+  box-shadow: 0 4px 12px rgba(74, 124, 236, 0.3);
+  transform: scale(1.15);
 }
 
 .step-item.completed .step-dot {
-  background: #673ab7;
-  border-color: #673ab7;
+  background: linear-gradient(135deg, #4A7CEC 0%, #5B8EF5 100%);
+  border-color: #4A7CEC;
   color: white;
+  box-shadow: 0 4px 12px rgba(74, 124, 236, 0.35);
 }
 
-@keyframes scaleIn {
-  from {
-    transform: scale(0.8);
-  }
+.step-number {
+  font-size: 14px;
+  color: #999;
+  font-weight: 700;
+}
 
-  to {
-    transform: scale(1);
-  }
+.step-item.active .step-number {
+  color: #4A7CEC;
 }
 
 .step-label {
-  font-size: 11px;
+  font-size: 12px;
   color: #999;
   text-align: center;
   white-space: nowrap;
-}
-
-.step-item.active .step-label {
-  color: #666;
   font-weight: 500;
 }
 
-/* 스켈레톤 카드 */
+.step-item.active .step-label {
+  color: #4A7CEC;
+  font-weight: 600;
+}
+
+.step-item.completed .step-label {
+  color: #666;
+  font-weight: 600;
+}
+
+/* 체크 페이드 애니메이션 */
+.check-fade-enter-active,
+.check-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.check-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.check-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+/* 스켈레톤 카드 개선 */
 .skeleton-cards {
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .skeleton-card {
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
+  background: #ffffff;
+  border: 1px solid #efefef;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
   opacity: 0;
-  animation: slideUp 0.4s ease forwards;
+  animation: card-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
-@keyframes slideUp {
+@keyframes card-slide-up {
   from {
-    transform: translateY(15px);
+    transform: translateY(20px);
     opacity: 0;
   }
 
@@ -1321,58 +1626,63 @@ export default {
   }
 }
 
-.card-number {
-  width: 24px;
-  height: 24px;
+.skeleton-card .card-header {
+  margin-bottom: 12px;
+}
+
+.skeleton-card .card-number {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: #673ab7;
+  background: linear-gradient(135deg, #4A7CEC 0%, #5B8EF5 100%);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(74, 124, 236, 0.25);
 }
 
-.card-content {
-  flex: 1;
+.skeleton-card .card-body {
   display: flex;
-  gap: 12px;
+  gap: 14px;
 }
 
 .skeleton-image {
-  width: 56px;
-  height: 56px;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  background: #f5f5f5;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .skeleton-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .skeleton-title {
   height: 18px;
-  width: 70%;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 4px;
-  margin-bottom: 8px;
+  width: 75%;
+  background: #f5f5f5;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
 }
 
 .skeleton-location {
   height: 14px;
-  width: 50%;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 4px;
-  margin-bottom: 10px;
+  width: 55%;
+  background: #f5f5f5;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
 }
 
 .skeleton-tags {
@@ -1381,108 +1691,142 @@ export default {
 }
 
 .skeleton-tag {
-  height: 20px;
-  width: 45px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 10px;
+  height: 22px;
+  width: 52px;
+  background: #f5f5f5;
+  border-radius: 11px;
+  position: relative;
+  overflow: hidden;
 }
 
-@keyframes shimmer {
+/* Shimmer 효과 개선 */
+.shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.6) 50%,
+      transparent 100%);
+  animation: shimmer-slide 1.8s infinite;
+}
+
+@keyframes shimmer-slide {
   0% {
-    background-position: -200% 0;
+    transform: translateX(-100%);
   }
 
   100% {
-    background-position: 200% 0;
+    transform: translateX(100%);
   }
 }
 
-/* 팁 메시지 */
+/* 팁 메시지 개선 */
 .loading-tip {
-  background: #f8f5ff;
-  border-radius: 8px;
-  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
+  border-radius: 12px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  border: 1px solid #e8dfff;
+  gap: 12px;
+  border: 1px solid rgba(74, 124, 236, 0.15);
+  box-shadow: 0 2px 10px rgba(74, 124, 236, 0.08);
 }
 
-.tip-emoji {
-  font-size: 18px;
+.tip-icon {
+  font-size: 22px;
   flex-shrink: 0;
 }
 
 .tip-text {
-  color: #666;
-  font-size: 13px;
-  line-height: 1.5;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
 }
 
-/* 반응형 */
+/* 페이드 트랜지션 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.4s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ========================================
+   반응형 디자인
+======================================== */
 @media (max-width: 480px) {
-  .loading-message h3 {
-    font-size: 18px;
+  .recommend-loading-container {
+    padding: 40px 16px 32px;
+  }
+
+  .loading-message .main-title {
+    font-size: 20px;
   }
 
   .sub-message {
+    font-size: 14px;
+  }
+
+  .ai-icon-bg {
+    width: 80px;
+    height: 80px;
+  }
+
+  .ai-icon {
+    font-size: 42px;
+  }
+
+  .step-dot {
+    width: 32px;
+    height: 32px;
+  }
+
+  .step-label {
+    font-size: 11px;
+  }
+
+  .skeleton-card {
+    padding: 14px;
+  }
+
+  .skeleton-image {
+    width: 56px;
+    height: 56px;
+  }
+
+  .loading-tip {
+    padding: 14px 16px;
+  }
+
+  .tip-text {
     font-size: 13px;
   }
 
+  .experiment-toggle-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 360px) {
   .step-label {
     font-size: 10px;
   }
 
-  .skeleton-card {
-    padding: 12px;
+  .progress-steps {
+    padding: 0 4px;
   }
 
-  .loading-tip {
-    padding: 12px;
-  }
-
-  .tip-text {
-    font-size: 12px;
-  }
-}
-
-.simulation-container {
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  /* (애니메이션) HomeView에서 @keyframes slideDownIn도 가져오세요 */
-  animation: slideDownIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.simulation-inner {
-  background: linear-gradient(135deg, rgba(74, 124, 236, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
-  border: 1px solid rgba(74, 124, 236, 0.15);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(74, 124, 236, 0.1);
-}
-
-.simulation-header {
-  background: linear-gradient(135deg, rgba(74, 124, 236, 0.1), rgba(16, 185, 129, 0.08));
-  padding: 1.25rem;
-  border-bottom: 1px solid rgba(74, 124, 236, 0.12);
-  backdrop-filter: blur(10px);
-}
-
-/* ... (btn-close-simulation, simulation-content 등 나머지 스타일도 모두 복사) ... */
-/* ... (slideDownIn 애니메이션 keyframes도 복사) ... */
-@keyframes slideDownIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-    max-height: 0;
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 1000px;
+  .step-connector {
+    left: 10%;
+    right: 10%;
   }
 }
 </style>

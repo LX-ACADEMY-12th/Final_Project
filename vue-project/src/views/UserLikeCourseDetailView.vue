@@ -24,34 +24,32 @@
     </div>
 
     <template v-else>
-      <CourseMap :items="courseItems" :key="mapKey" class="map-area" />
+      <CourseMap :items="courseItems" :key="mapKey" :pageType="pageType" class="map-area" />
 
-      <div class="course-root-name">
-        <span>
+      <div class="course-root-name-improved">
+        <span class="fw-bolder me-2">
           {{ exhibitionName || '코스 이름 없음' }}
+        </span>
+
+        <span v-if="pageType" class="type-badge"
+          :class="{ 'badge-place': pageType === 'place', 'badge-exhibition': pageType === 'exhibition' }">
+          {{ pageType === 'place' ? '답사 코스' : '전시 코스' }}
         </span>
       </div>
 
       <div class="d-flex justify-content-center align-items-center mt-2 mb-2" v-if="pageType === 'exhibition'">
-        <button class="btn" style="background-color: #6366F1; color: white;" @click="goToVirtualTour">가상 답사
-          시작하기</button>
-      </div>
-
-      <div class="course-add-btn" v-if="pageType === 'place'">
-        <button class="btn btn-primary" @click="openAddModal">
-          <i class="bi bi-plus"></i> 경로추가
+        <button class="btn virtual-tour-btn" @click="goToVirtualTour">
+          가상 관람 시작하기
         </button>
       </div>
 
       <div class="scrollable-content">
         <div class="course-list-container">
-          <!-- 전시 타입: 드래그 없음 -->
           <div v-if="pageType === 'exhibition'">
             <CourseExhibitionCard v-for="course in courseItems" :key="course.id" :item="course" :showControls="true"
               couseType="전시" @delete="handleDelete(course.id)" />
           </div>
 
-          <!-- 답사 타입: 드래그 가능 -->
           <div v-else-if="pageType === 'place'">
             <draggable v-model="courseItems" :animation="200" ghost-class="ghost-item" chosen-class="chosen-item"
               drag-class="drag-item" @start="onDragStart" @end="onDragEnd" @change="onDragChange" item-key="id">
@@ -60,6 +58,12 @@
                   @delete="handleDelete(element.id)" class="draggable-item" />
               </template>
             </draggable>
+
+            <div class="d-flex justify-content-center mt-3">
+              <button class="btn btn-outline-secondary rounded-pill add-item-inline" @click="openAddModal">
+                <i class="bi bi-plus-circle-fill"></i> 장소 추가하기
+              </button>
+            </div>
           </div>
 
           <div v-else>
@@ -68,13 +72,12 @@
         </div>
       </div>
 
-      <!-- 저장 섹션 -->
       <div class="save-section" v-if="hasChanges">
         <div v-if="saveMessage" class="save-status-message"
           :class="`alert-${saveStatus === 'success' ? 'success' : 'danger'}`">
           {{ saveMessage }}
         </div>
-        <button class="btn btn-primary save-btn-bottom" @click="saveChanges" :disabled="!hasChanges || isSaving">
+        <button class="btn save-btn-bottom" @click="saveChanges" :disabled="!hasChanges || isSaving">
           <span v-if="isSaving" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           {{ isSaving ? '저장 중...' : '변경사항 저장' }}
         </button>
@@ -404,6 +407,7 @@ export default {
             this.$router.back();
           }
         });
+        return; // 확인 모달이 열렸으니 여기서 종료
       }
 
       this.$router.back();
@@ -517,13 +521,168 @@ export default {
 </script>
 
 <style scoped>
+/* -------------------- 레이아웃 및 컨테이너 -------------------- */
 .course-recommend-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background-color: #f8f9fa;
+  /* 배경색 통일 */
 }
 
+.chat-header {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-header .header-left,
+.chat-header .header-right {
+  flex: 1;
+}
+
+.chat-header .header-center {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+}
+
+.status-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  text-align: center;
+}
+
+.map-area {
+  height: 200px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.scrollable-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollable-content::-webkit-scrollbar {
+  display: none;
+}
+
+.course-list-container {
+  padding: 24px;
+}
+
+/* -------------------- 제목 영역 개선 -------------------- */
+.course-root-name-improved {
+  display: flex;
+  align-items: center;
+  /* 뱃지와 텍스트 수직 정렬 */
+  font-size: 24px;
+  font-weight: 700;
+  margin: 16px 24px 8px 24px;
+  flex-shrink: 0;
+  color: #212529;
+}
+
+.type-badge {
+  /* 작은 뱃지 스타일 */
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  align-self: flex-start;
+  line-height: 1.5;
+  /* 텍스트 정렬 보정 */
+  margin-top: 3px;
+  /* 제목 폰트 사이즈에 맞게 살짝 아래로 */
+}
+
+.badge-place {
+  background-color: #e0f2fe;
+  /* Light Blue */
+  color: #0c4a6e;
+}
+
+.badge-exhibition {
+  background-color: #fef3c7;
+  /* Light Yellow */
+  color: #92400e;
+}
+
+/* -------------------- 버튼 공통 스타일 -------------------- */
+.btn {
+  /* 기본 버튼 스타일을 재정의하여 아래 전용 버튼 스타일과 충돌 방지 */
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  background-color: #4A7CEC;
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* -------------------- 기능 버튼 스타일 -------------------- */
+
+.virtual-tour-btn {
+  width: 327px;
+  height: 48px;
+  border-radius: 30px;
+  background-color: #6366F1;
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.save-btn-bottom {
+  width: 327px;
+  height: 48px;
+  border-radius: 30px;
+  background-color: #4A7CEC;
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.save-btn-bottom:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* 🚨 경로 추가 인라인 버튼 스타일 */
+.add-item-inline {
+  width: auto;
+  height: 38px;
+  padding: 0.5rem 1.5rem;
+  background-color: transparent;
+  color: #6366F1;
+  border: 1px dashed #6366F1;
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: 30px;
+  /* 둥근 모양 유지 */
+}
+
+.add-item-inline:hover {
+  background-color: #f0f0ff;
+}
+
+/* -------------------- 저장 상태 메시지 -------------------- */
 .save-section {
   padding: 1rem;
   background-color: white;
@@ -555,28 +714,7 @@ export default {
   border: 1px solid #f5c6cb;
 }
 
-.save-btn-bottom {
-  width: 327px;
-  height: 48px;
-  border-radius: 30px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.save-btn-bottom:disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
-
-/* 드래그 관련 스타일 */
+/* -------------------- 드래그 스타일 -------------------- */
 .draggable-item {
   transition: transform 0.2s ease;
   cursor: grab;
@@ -599,86 +737,5 @@ export default {
 .drag-item {
   transform: rotate(5deg);
   opacity: 0.8;
-}
-
-/* 기존 스타일들... */
-.status-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem;
-  text-align: center;
-}
-
-.map-area {
-  height: 200px;
-  width: 100%;
-  flex-shrink: 0;
-}
-
-.course-root-name {
-  display: flex;
-  font-size: large;
-  margin: 16px;
-  flex-shrink: 0;
-}
-
-.course-add-btn {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-shrink: 0;
-  margin-bottom: 1rem;
-}
-
-.chat-header {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.chat-header .header-left,
-.chat-header .header-right {
-  flex: 1;
-}
-
-.chat-header .header-center {
-  flex: 1;
-  text-align: center;
-  font-weight: 600;
-}
-
-.btn {
-  width: 327px;
-  height: 48px;
-  border-radius: 30px;
-  background-color: #4A7CEC;
-  color: white;
-  border: none;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.btn .bi-plus {
-  margin-right: 8px;
-}
-
-.scrollable-content::-webkit-scrollbar {
-  display: none;
-}
-
-.scrollable-content {
-  flex-grow: 1;
-  overflow-y: auto;
-  min-height: 0;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.course-list-container {
-  padding: 24px;
-  background-color: #f8f9fa;
 }
 </style>

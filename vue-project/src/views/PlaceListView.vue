@@ -7,28 +7,30 @@
       <div class="header-center fw-bold fs-6" style="flex: 1; text-align: center;">
         추천 목록
       </div>
-      <div class="header-right" style="flex: 1; text-align: right;">
-        <i class="bi bi-sliders fs-5" style="cursor: pointer;" @click.prevent="isModalOpen = true">
-        </i>
+      <div class="header-right d-flex justify-content-end" style="flex: 1;">
+        <i class="bi bi-sliders filter-icon" style="cursor: pointer;" @click.prevent="isModalOpen = true"></i>
       </div>
     </div>
 
-    <div class="segmented-control-wrapper p-3 d-flex justify-content-center flex-shrink-0">
-      <div class="segmented-control d-flex gap-3">
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '전시' }"
-          @click="changeTab('전시')">과학관 전시</button>
-        <button type="button" class="spec-button shadow-sm" :class="{ 'active': selectedTab === '답사' }"
-          @click="changeTab('답사')">과학 여행</button>
+    <div class="segmented-control-wrapper flex-shrink-0">
+      <div class="segmented-control">
+        <button type="button" class="spec-button" :class="{ 'active': selectedTab === '전시' }"
+          @click="changeTab('전시')">전시관</button>
+        <button type="button" class="spec-button" :class="{ 'active': selectedTab === '답사' }"
+          @click="changeTab('답사')">과학 탐험지</button>
       </div>
     </div>
 
     <div class="user-like-course">
 
-      <div v-if="isSearching" class="text-center p-5 text-muted w-100" style="margin-top: 20px;">
-        검색 중...
+      <div v-if="isSearching" class="text-center p-5 text-muted w-100 status-message">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2 text-muted">검색 중...</p>
       </div>
 
-      <div v-else-if="filteredItems.length === 0" class="text-center p-5 text-muted w-100" sytle="margin-top: 20px;">
+      <div v-else-if="filteredItems.length === 0" class="text-center p-5 text-muted w-100 status-message">
         <div>
           '{{ selectedTab }}' 탭에 표시할 장소가 없습니다.
         </div>
@@ -39,7 +41,7 @@
 
       <template v-else>
 
-        <PlaceCard2 v-for="item in filteredItems" :key="item.id" :item="item" @add="goToDetail(item)"
+        <PlaceCard2 v-for="(item, index) in filteredItems" :key="item.id || index" :item="item" @add="goToDetail(item)"
           @item-click="handleItemClick(item)" />
 
       </template>
@@ -55,7 +57,7 @@
 <script>
 import PlaceCard2 from '@/components/card/PlaceCard2.vue';
 import FilterModal from '@/components/modal/FilterModal.vue';
-import axios from '@/api/axiosSetup'; // [!!] axios 경로 수정 (MapComponent와 동일하게)
+import axios from '@/api/axiosSetup';
 import eventBus from '@/utils/eventBus';
 
 import { mapState, mapActions } from 'pinia';
@@ -72,7 +74,7 @@ export default {
       selectedTab: '전시',
       isModalOpen: false,
 
-      // 3. displayedItems -> allFetchedItems로 이름 변경 (전체 목록)
+      // 전체 목록을 저장
       allFetchedItems: [],
 
       isSearching: false,
@@ -95,14 +97,13 @@ export default {
 
     ...mapActions(useCurriculumStore, ['setFilter']),
 
-    // [!!] 5. changeTab에서 API 호출(performSearch) 제거
+    // 탭 변경 시 API 호출 제거 (performSearch 함수는 필터 변경 시에만 호출)
     changeTab(tabName) {
       this.selectedTab = tabName;
       this.$router.replace({ query: { tab: tabName } });
-      // this.performSearch(); // [!!] 탭 변경 시 API 호출 제거
     },
 
-    // 상세 페이지 이동 함수 (수정 없음)
+    // 상세 페이지 이동 함수
     goToDetail(item) {
       console.log(`상세 페이지로 이동:`, item.title);
       const queryParams = {
@@ -111,7 +112,7 @@ export default {
         gradeTags: this.selectedGrade,
       };
 
-      // [!!] item.itemType을 기준으로 경로 결정 (selectedTab 대신)
+      // item.itemType을 기준으로 경로 결정 (selectedTab 대신)
       if (item.itemType === 'exhibition') {
         console.log(`전시 상세로 이동 (ID: ${item.id}):`, item.title);
         this.$router.push({
@@ -127,12 +128,12 @@ export default {
       }
     },
 
-    // 아이템 클릭 핸들러 (수정 없음)
+    // 아이템 클릭 핸들러
     handleItemClick(item) {
       this.goToDetail(item);
     },
 
-    // 뒤로가기 함수 (수정 없음)
+    // 뒤로가기 함수
     goBack() {
       this.$router.back();
     },
@@ -142,10 +143,10 @@ export default {
       console.log(`필터 선택 완료:`, filterData);
       this.setFilter(filterData.grade, filterData.subject);
       this.isModalOpen = false;
-      this.performSearch(); // [!!] 필터 변경 시에는 API 다시 호출
+      this.performSearch(); // 필터 변경 시에는 API 다시 호출
     },
 
-    // performSearch 로직 수정
+    // 검색 로직 (전시 및 답사 장소 모두 한 번에 호출)
     async performSearch() {
       console.log(`검색 실행 (모든 타입):`, {
         subject: this.selectedSubject,
@@ -153,34 +154,33 @@ export default {
       });
 
       this.isSearching = true;
-      this.allFetchedItems = []; // [!!] allFetchedItems 초기화
+      this.allFetchedItems = []; // allFetchedItems 초기화
 
       const params = {
         searchType: 'all',
-        // [!!] itemType: this.selectedTab, // 'itemType' 파라미터 제거
         subject: this.selectedSubject,
         grade: this.selectedGrade
       };
 
       try {
-        const response = await axios.get('/api/content/search', { params }); // [!!] URL 경로 수정 (MapComponent와 동일하게)
+        const response = await axios.get('/api/content/search', { params });
 
         if (response.data && Array.isArray(response.data)) {
           // API 응답(전체)을 'allFetchedItems'에 저장
-          this.allFetchedItems = response.data;
-
           const processedItems = response.data.map(item => {
+            // item.id가 null일 경우를 대비하여 고유한 임시 키 생성
+            if (!item.id) {
+              item.id = `temp_${item.itemType}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            }
 
-            // 1. 'exhibition' (과학관/전시) 타입인 경우
+            // 'exhibition' (과학관/전시) 타입인 경우 뱃지 레이블 추가
             if (item.itemType === 'exhibition') {
               return {
                 ...item,
-                // 'item.type' ('상설'/'기획') 대신 '과학관' 텍스트를 뱃지로 사용
                 badgeLabel: '과학관'
               };
             }
-            // 2. 'science_place' (답사/과학장소) 타입인 경우
-            // 뱃지 없이 그대로 반환합니다.
+            // 'science_place' (답사/과학장소) 타입인 경우 그대로 반환
             else {
               return item;
             }
@@ -215,56 +215,26 @@ export default {
       this.selectedTab = '전시';
     }
 
-    // [!!] 7. 컴포넌트 생성 시 API 1회 호출 (수정 없음)
+    // 컴포넌트 생성 시 API 1회 호출
     this.performSearch();
   }
 }
 </script>
 
 <style scoped>
-/* 상단 필터 버튼 (전시, 탐험) */
-.spec-button {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  padding: 5px 16px;
-  gap: 8px;
-  position: relative;
-  width: 115px;
-  height: 38px;
-  border-radius: 20px;
-  background: #FFFFFF;
-  color: #333;
-  border: 1px solid #ddd;
-  transition: background-color 0.2s, color 0.2s;
-  font-family: 'SUIT', sans-serif;
-  font-weight: 500;
-}
-
-.spec-button.active {
-  background: #4A7CEC;
-  color: white;
-  border: none;
-  font-weight: 700;
-}
-
+/* -------------------- 레이아웃 및 컨테이너 -------------------- */
 /* 페이지 전체 컨테이너 */
 .page-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background-color: #f9f9f9;
 }
 
 /* 헤더 */
 .chat-header {
   position: relative;
-}
-
-.chat-header .header-left,
-.chat-header .header-right {
-  flex: 1;
 }
 
 .chat-header .header-center {
@@ -273,6 +243,54 @@ export default {
   font-weight: 600;
 }
 
+.filter-icon {
+  font-size: 20px;
+  /* 아이콘 크기 통일 */
+}
+
+/* -------------------- 🚨 개선된 탭 영역 스타일 🚨 -------------------- */
+.segmented-control-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+  background-color: white;
+  border-bottom: 1px solid #eee;
+}
+
+.segmented-control {
+  display: flex;
+  width: 90%;
+  max-width: 327px;
+  background-color: #e0e0e0;
+  border-radius: 20px;
+}
+
+.spec-button {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 38px;
+  padding: 5px 16px;
+  border-radius: 20px;
+  background: transparent;
+  color: #666;
+  border: none;
+  box-shadow: none;
+  /* 그림자 제거 */
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.spec-button.active {
+  background: #4A7CEC;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* -------------------- 콘텐츠 및 스크롤 영역 -------------------- */
 /* 카드 목록 영역 */
 .user-like-course {
   flex: 1;
@@ -286,14 +304,25 @@ export default {
   scrollbar-width: none;
   -ms-overflow-style: none;
 
-  /* 카드 목록이 잘 보이도록 패딩 추가 */
   padding: 16px;
-  /* 목록 배경색 */
   background-color: #f9f9f9;
 
   display: flex;
   flex-direction: column;
   /* 카드 아이템 간 간격 */
   gap: 16px;
+}
+
+/* 로딩/빈 상태 메시지 컨테이너 */
+.status-message {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 200px;
+  margin-top: 0 !important;
+  /* 인라인 스타일 덮어쓰기 */
 }
 </style>

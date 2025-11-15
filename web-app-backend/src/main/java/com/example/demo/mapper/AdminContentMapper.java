@@ -44,6 +44,19 @@ public interface AdminContentMapper {
     int deleteExhibition(Long id);
     int deletePlace(Long id);
 
+    // ====================================================================
+    // 6-A. [추가] 외래 키 종속성 해결을 위한 Mapper 메서드
+    // ====================================================================
+
+    // 6-A-1. AI 코스 ID 목록 조회 (삭제할 AI 코스 목록을 먼저 식별)
+    List<Long> findAiCourseIdsByExhibitionId(Long exhibitionId);
+
+    // 6-A-2. final_schedule에서 AI 코스 ID 목록을 참조하는 행 삭제 (FK 오류 해결)
+    int deleteFinalSchedulesByAiCourseIds(@Param("list") List<Long> aiCourseIds);
+
+    // 6-A-3. ai_course_item에서 AI 코스 ID 목록을 참조하는 행 삭제 (이전 FK 오류 해결)
+    int deleteAiCourseItemsByAiCourseIds(@Param("list") List<Long> aiCourseIds);
+
     // 7. N:M Mappings
     int insertExhibitionGradeMappings(@Param("exhibitionId") Long exhibitionId, @Param("gradeIds") List<Long> gradeIds);
     int insertExhibitionCurriculumMappings(@Param("exhibitionId") Long exhibitionId, @Param("subCategoryIds") List<Long> subCategoryIds);

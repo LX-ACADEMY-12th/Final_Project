@@ -13,7 +13,7 @@
         , source_place_id
     </if>
     <if test="sourceCourseType == 'inner_course'">
-        , source_exhibition_id
+        , source_exhibition_hall_id
     </if>
     )
     VALUES (
@@ -29,7 +29,7 @@
 
     <insert id="insertAiCourseItems" parameterType="java.util.List">
         INSERT
-            INTO ai_course_item (ai_course_id, place_id, sequence, exhibition_id)
+            INTO ai_course_item (ai_course_id, place_id, sequence, exhibition_hall_id)
         VALUES
         <foreach collection="list" item="item" separator=",">
             (#{item.aiCourseId}, #{item.placeId}, #{item.sequence}, #{item.exhibitionId})

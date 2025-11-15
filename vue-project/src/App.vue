@@ -157,10 +157,12 @@ body {
 
 <style scoped>
 #app-container {
-  max-width: 450px;
-  width: 100%;
-  height: calc(100vh - 40px);
-  margin: 20px auto;
+  /* (수정됨) 뷰포트 전체 너비 사용 */
+  width: 100vw;
+  /* (수정됨) 뷰포트 높이 전체를 사용하고, margin을 제거합니다. */
+  height: 100vh;
+  /* (수정됨) 상하좌우 마진을 제거합니다. */
+  margin: 0;
   position: relative;
   background-color: #f0f0f0;
   border: 1px solid #ccc;
@@ -168,6 +170,8 @@ body {
   overflow-y: auto;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   border-radius: 20px;
+  /* (선택 사항) 앱처럼 보이게 하려면 border-radius를 0으로 설정하세요. */
+  border-radius: 0;
   /* 문서의 흐름에 따라 요소 배치 */
   display: flex;
   flex-direction: column;

@@ -197,6 +197,30 @@
             (#{placeId}, #{subCategoryId})
         </foreach>
     </insert>
+    <!-- 1. AI 코스 ID 목록 조회 -->
+    <select id="findAiCourseIdsByExhibitionId" resultType="Long">
+        SELECT ai_course_id
+        FROM ai_recommended_course
+        WHERE source_exhibition_id = #{exhibitionId}
+    </select>
+
+    <!-- 2. final_schedule에서 참조되는 데이터 삭제 -->
+    <delete id="deleteFinalSchedulesByAiCourseIds">
+        DELETE FROM final_schedule
+        WHERE source_inner_course_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 3. ai_course_item에서 참조되는 데이터 삭제 -->
+    <delete id="deleteAiCourseItemsByAiCourseIds">
+        DELETE FROM ai_course_item
+        WHERE exhibition_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 
     <delete id="deleteExhibitionGradeMappings">
         DELETE FROM exhibition_grade_mapping WHERE exhibition_id = #{id}
