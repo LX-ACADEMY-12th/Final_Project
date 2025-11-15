@@ -179,6 +179,7 @@ if (tabFromQuery === '답사') {
 // KeepAlive 활성화 시 네비바 복원
 onActivated(() => {
   selectedNavItem.value = '지도';
+  isNavigating.value = false; // 플래그 초기화
 });
 
 // 탭 변경 함수
@@ -188,8 +189,17 @@ const changeTab = (tabName) => {
   router.replace({ query: { tab: tabName } });
 };
 
+// 🟢 진행 중인 길찾기를 취소하기 위한 플래그 추가
+const isNavigating = ref(false);
+
 // 상세 페이지 이동
 const goToDetail = (item) => {
+  // 🟢 네비게이션 플래그 설정
+  isNavigating.value = true;
+
+  // 모든 지도 요소 (마커, 경로선, 오버레이) 정리
+  clearMapElements();
+  clearDirections();
 
   if (selectedTab.value === '전시') {
     router.push({
@@ -212,17 +222,25 @@ const goToDetail = (item) => {
   }
 };
 
-// 카드 클릭 핸들러 개선
 const handleItemClick = (item) => {
+
+  // 1. [UX] 지도 이동 및 마커 하이라이트 (시각적 피드백 유지)
   activeItemId.value = item.id;
-  // 지도 이동
   smoothPanTo(item.lat, item.lng);
 
+  // 2. [경로 정리] 기존에 그려진 경로 선을 먼저 지웁니다.
+  clearDirections();
+
+  // 3. [하이라이트 및 경로 시작] 맵 이동 후 충분한 시간을 두고 실행합니다.
   setTimeout(() => {
-    // 🚨 맵 이동 후 충분한 시간을 주고 애니메이션 호출
+    // 마커 바운스 애니메이션 시작
     highlightMarker(item);
+
+    // 🚨 경로 찾기 및 그리기 시작 (비동기 함수 호출 복원)
     showDirectionsToItem(item);
-  }, 500); // 맵 이동 시간(300ms) + 추가 지연 200ms
+
+  }, 500);
+
 };
 
 // 마커 하이라이트 함수
@@ -326,6 +344,12 @@ const moveMapToItem = (lat, lng) => {
  * 길찾기 실행 (Orchestrator)
  */
 const showDirectionsToItem = async (item) => {
+  // 🟢 네비게이션 중이면 실행 중단
+  if (isNavigating.value) {
+    console.log('페이지 전환 중이므로 길찾기를 취소합니다.');
+    return;
+  }
+
   if (!currentUserLocation.value) {
     eventBus.emit('show-global-alert', {
       message: '현위치를 먼저 확인해주세요.',
@@ -345,20 +369,35 @@ const showDirectionsToItem = async (item) => {
     lng: item.lng
   };
 
+  // 🟢 맵 인스턴스가 유효한지 최종 검사
+  if (!map.value || !window.kakao?.maps || isNavigating.value) {
+    console.warn("지도 뷰가 DOM에서 제거되어 경로 표시를 취소합니다.");
+    return;
+  }
+
   try {
     const { path, bounds } = await fetchDirections(origin, destination);
 
+    // 🟢 API 호출 후에도 다시 한번 체크
+    if (isNavigating.value || !map.value) {
+      console.log('경로 표시 중 페이지 전환이 발생하여 취소합니다.');
+      return;
+    }
+
     if (path.length > 0) {
       drawDirectionsPolyline(path);
-      drawRouteStartEndMarkers(origin, destination); // 🚨 마커 생성은 이 함수에서 처리
+      drawRouteStartEndMarkers(origin, destination);
       map.value.setBounds(bounds);
     }
   } catch (error) {
-    console.error("길찾기 실패:", error);
-    eventBus.emit('show-global-alert', {
-      message: '경로를 찾는 데 실패했습니다.',
-      type: 'error'
-    });
+    // 🟢 네비게이션 중이면 에러 알림 표시 안 함
+    if (!isNavigating.value) {
+      console.error("길찾기 실패:", error);
+      eventBus.emit('show-global-alert', {
+        message: '경로를 찾는 데 실패했습니다.',
+        type: 'error'
+      });
+    }
   }
 };
 
@@ -405,6 +444,10 @@ const fetchDirections = async (origin, destination) => {
     }
   } catch (error) {
     console.error('Kakao Navi API 호출 에러:', error);
+    // 🚨 에러 응답 객체를 추가로 출력하여 API 실패 원인 확인
+    if (error.response) {
+      console.error('Kakao Navi API 응답 데이터:', error.response.data);
+    }
     throw error;
   }
 };
