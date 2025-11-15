@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -97,7 +98,11 @@ public class StampService {
         // 9. recordId가 채워진 DTO 반환
 		return stampToSave;
 	}
-	
+
+    public List<StampResponseDTO> getStampsByUserId(Long userId) {
+        // 이미 Mapper에 있는 findStampsByUserId 메서드를 호출합니다.
+        return stampMapper.findStampsByUserId(userId);
+    }
 
 	/**
 	 * 두 지점 간의 거리(m) 계산 (Haversine formula)

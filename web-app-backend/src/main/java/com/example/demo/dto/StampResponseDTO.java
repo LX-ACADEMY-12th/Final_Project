@@ -14,4 +14,6 @@ public class StampResponseDTO {
 	private Long targetId;
 	private String authMethod;
 	private Date visitedAt;
+
+    private String targetName;
 }

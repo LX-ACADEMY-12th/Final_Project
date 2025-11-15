@@ -17,6 +17,34 @@
           :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag"
           @authenticate-visit="handleVisitAuthentication" />
         <hr class="divider" />
+        <button type="button" class="btn btn-outline-primary" v-if="currentSimulationComponent"
+          @click="showSimulation = !showSimulation">
+          <i class="bi bi-flask"></i> 실험
+          <i class="bi" :class="showSimulation ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: 8px;"></i>
+        </button>
+        <div v-if="showSimulation && currentSimulationComponent" class="mt-3">
+          <div class="simulation-container">
+            <div class="simulation-inner">
+              <div class="simulation-header">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div class="flex-grow-1">
+                    <h5 class="fw-bold fs-6 mb-1">
+                      <i class="bi bi-flask-fill me-2" style="color: #4A7CEC;"></i>
+                      {{ experimentTitle }}
+                    </h5>
+                  </div>
+                  <button type="button" class="btn-close-simulation" @click="showSimulation = false" title="닫기">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="simulation-content">
+                <component :is="currentSimulationComponent"></component>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <TabSection :key="currentTab" :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
         <div v-if="currentTab === 'detail'">
@@ -179,6 +207,12 @@ import TabSection from '@/components/section/TabSection.vue';
 import ContentDetailView from './ContentDetailView.vue';
 import CourseRecommend from './CourseRecommend.vue';
 
+import ColumnarJoint from '@/components/simulations/ColumnarJoint.vue';
+import StatesOfMatter from '@/components/simulations/StatesOfMatterSimulation.vue';
+import Ecosystem from '@/components/simulations/EcosystemSimulation.vue';
+import MagnetField from '@/components/simulations/MagnetField.vue';
+import ThermalConductivity from '@/components/simulations/ThermalConductivitySim.vue';
+
 // Pinia (로그인 상태 확인)
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
@@ -195,6 +229,11 @@ export default {
     TabSection,
     CourseRecommend,
     ContentDetailView,
+    ColumnarJoint,
+    StatesOfMatter,
+    Ecosystem,
+    MagnetField,
+    ThermalConductivity
   },
 
   // 컴포넌트 라우트 가드
@@ -242,11 +281,51 @@ export default {
     },
     cacheKey() {
       return `course-cache:${this.pageType}:${this.currentId}`;
+    },
+    // :흰색_확인_표시: --- 여기부터 3개의 computed 속성을 추가합니다 ---
+    simulationMap() {
+      // 맵핑 데이터 (필요에 따라 더 추가하세요)
+      return {
+        '초등 3학년': {
+          '물리': MagnetField,
+          '화학': StatesOfMatter,
+          '생명': Ecosystem,
+          '지구': ColumnarJoint
+        },
+        '초등 4학년': {
+          '생명': Ecosystem,
+          '지구': ColumnarJoint,
+        },
+        '초등 5학년': {
+          '생명': Ecosystem,
+          '화학': StatesOfMatter,
+          '물리': ThermalConductivity,
+          '지구': ColumnarJoint
+        }
+      };
+    },
+    currentSimulationComponent() {
+      // data()의 'exhibition' 객체를 사용합니다.
+      const grade = this.exhibition?.gradeTag; // '4학년' 대신 '초등 4학년'이 필요할 수 있습니다.
+      const subject = this.exhibition?.mainCategory;
+      // :느낌표:️ 중요: 'this.exhibition.gradeTag'에 '초등 3학년'처럼 '초등'이 포함되어 있는지,
+      // 'this.exhibition.mainCategory'에 '물리', '생명' 등이 정확히 들어있는지 확인하세요.
+      // 맵의 키(key)와 데이터 값이 정확히 일치해야 합니다.
+      console.log(`[Sim Match] Grade: ${grade}, Subject: ${subject}`);
+      if (grade && subject && this.simulationMap[grade] && this.simulationMap[grade][subject]) {
+        return this.simulationMap[grade][subject];
+      }
+      return null;
+    },
+    experimentTitle() {
+      return `가상실험: ${this.exhibition?.gradeTag} ${this.exhibition?.mainCategory}`;
     }
+    // :흰색_확인_표시: --- 여기까지 추가 ---
   },
 
   data() {
     return {
+      showSimulation: false,
       courseRerenderKey: 0,
       currentId: null,
       pageType: null, // 'exhibition' | 'science_place'
@@ -1366,6 +1445,44 @@ export default {
 
   .tip-text {
     font-size: 12px;
+  }
+}
+
+.simulation-container {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  /* (애니메이션) HomeView에서 @keyframes slideDownIn도 가져오세요 */
+  animation: slideDownIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.simulation-inner {
+  background: linear-gradient(135deg, rgba(74, 124, 236, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid rgba(74, 124, 236, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(74, 124, 236, 0.1);
+}
+
+.simulation-header {
+  background: linear-gradient(135deg, rgba(74, 124, 236, 0.1), rgba(16, 185, 129, 0.08));
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(74, 124, 236, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+/* ... (btn-close-simulation, simulation-content 등 나머지 스타일도 모두 복사) ... */
+/* ... (slideDownIn 애니메이션 keyframes도 복사) ... */
+@keyframes slideDownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 1000px;
   }
 }
 </style>

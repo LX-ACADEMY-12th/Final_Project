@@ -47,7 +47,7 @@
             <label class="btn btn-outline-primary" for="locTypeRadius">내 주변</label>
             <input type="radio" class="btn-check" name="locationType" id="locTypeRegion" autocomplete="off"
               value="region" v-model="localLocationType">
-            <label class="btn btn-outline-primary" for="locTypeRegion">지역 선택</label>
+            <!-- <label class="btn btn-outline-primary" for="locTypeRegion">지역 선택</label> -->
           </div>
 
           <div v-if="localLocationType === 'radius'">

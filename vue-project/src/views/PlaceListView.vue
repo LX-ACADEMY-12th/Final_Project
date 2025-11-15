@@ -58,6 +58,9 @@ import FilterModal from '@/components/modal/FilterModal.vue';
 import axios from '@/api/axiosSetup'; // [!!] axios 경로 수정 (MapComponent와 동일하게)
 import eventBus from '@/utils/eventBus';
 
+import { mapState, mapActions } from 'pinia';
+import { useCurriculumStore } from '@/stores/curriculumStore';
+
 export default {
   name: 'PlaceList',
   components: {
@@ -68,10 +71,8 @@ export default {
     return {
       selectedTab: '전시',
       isModalOpen: false,
-      selectedSubject: '물리',
-      selectedGrade: '초등 3학년',
 
-      // [!!] 3. displayedItems -> allFetchedItems로 이름 변경 (전체 목록)
+      // 3. displayedItems -> allFetchedItems로 이름 변경 (전체 목록)
       allFetchedItems: [],
 
       isSearching: false,
@@ -87,9 +88,12 @@ export default {
         // '답사' 탭일 경우
         return this.allFetchedItems.filter(item => item.itemType === 'science_place');
       }
-    }
+    },
+    ...mapState(useCurriculumStore, ['selectedGrade', 'selectedSubject'])
   },
   methods: {
+
+    ...mapActions(useCurriculumStore, ['setFilter']),
 
     // [!!] 5. changeTab에서 API 호출(performSearch) 제거
     changeTab(tabName) {
@@ -136,8 +140,7 @@ export default {
     // 필터 완료 핸들러
     handleFilterComplete(filterData) {
       console.log(`필터 선택 완료:`, filterData);
-      this.selectedSubject = filterData.subject;
-      this.selectedGrade = filterData.grade;
+      this.setFilter(filterData.grade, filterData.subject);
       this.isModalOpen = false;
       this.performSearch(); // [!!] 필터 변경 시에는 API 다시 호출
     },

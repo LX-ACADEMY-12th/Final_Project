@@ -51,11 +51,11 @@
         /* 하단 UI 요소들(캐러셀, 네비바) 위에 위치 */
         bottom: calc(170px + 63px + 16px);
       ">
-      <button
+      <!-- <button
         class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center">
         <i class="bi bi-geo-alt" style="font-size: 1rem; line-height: 1;"></i>
         <span style="font-size: 0.6rem; margin-top: 2px;">과학관 실내</span>
-      </button>
+      </button> -->
       <button class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center"
         @click="goToCurrentLocation">
         <i class="bi bi-bullseye" style="font-size: 1rem; line-height: 1;"></i>
@@ -125,6 +125,7 @@ import eventBus from '@/utils/eventBus';
 // 🟢 Pinia 스토어 관련 import 추가
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
+import { useCurriculumStore } from '@/stores/curriculumStore';
 
 const router = useRouter();
 const activeItemId = ref(null); // ⬅️ [추가]
@@ -136,6 +137,8 @@ const DEMO_LOCATION = { lat: 36.3504119, lng: 127.3845475 };
 const authStore = useAuthStore();
 // user 객체와 isLoggedIn 상태를 반응형으로 가져옵니다.
 const { user } = storeToRefs(authStore);
+const curriculumStore = useCurriculumStore();
+const { selectedGrade, selectedSubject } = storeToRefs(curriculumStore);
 
 // 상태 Ref
 const selectedTab = ref('전시');
@@ -182,8 +185,6 @@ const userName = computed(() => {
 const locationType = ref('all'); // 'all', 'radius', 'region' (이름 및 기본값 변경)
 const searchRadius = ref(5); // km (모달 기본값과 일치)
 const selectedRegion = ref(''); // 예: "서울시 강남구"
-const selectedSubject = ref('물리');
-const selectedGrade = ref('초등 3학년'); // 모달 기본값과 일치
 
 const currentUserLocation = ref(null); // { lat: number, lng: number }
 const displayedItems = ref([]);      // 최종적으로 화면/지도에 보여줄 목록
@@ -881,8 +882,7 @@ const handleFilterComplete = (filterData) => {
   locationType.value = filterData.locationType;
   searchRadius.value = filterData.radius;
   selectedRegion.value = filterData.region;
-  selectedSubject.value = filterData.subject;
-  selectedGrade.value = filterData.grade;
+  curriculumStore.setFilter(filterData.grade, filterData.subject);
   isModalOpen.value = false;
 
   performSearch(); // performSearch 호출

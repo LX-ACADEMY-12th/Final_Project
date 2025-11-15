@@ -3,7 +3,8 @@
 
     <CourseMap :items="courseItems" />
     <div class="d-flex justify-content-center align-items-center mt-2 mb-2">
-      <button class="btn" style="background-color: #6366F1; color: white;" @click="goToVirtualTour">가상 답사 시작하기</button>
+      <button v-if="type === 'exhibition'" class="btn" style="background-color: #6366F1; color: white;"
+        @click="goToVirtualTour">가상 답사 시작하기</button>
     </div>
 
     <div class="timeline-list">

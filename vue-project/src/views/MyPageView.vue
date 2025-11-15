@@ -43,7 +43,8 @@
       </div>
 
 
-      <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start">
+      <button type="button" class="p-4 mb-4 text-white custom-rounded stamp-card w-100 text-start"
+        @click="goToStampPage">
         <div class="d-flex align-items-center mb-2">
           <i class="bi bi-crosshair me-2 fs-5"></i>
           <span class="fw-bold">스탬프 투어</span>

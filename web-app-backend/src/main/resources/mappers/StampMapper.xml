@@ -24,19 +24,26 @@
 <!-- 사용자의 스탬프 조회 -->
     <select id="findStampsByUserId" parameterType="long" 
             resultType="com.example.demo.dto.StampResponseDTO">
-        SELECT 
-            record_id   AS recordId,
-            user_id     AS userId,
-            target_type AS targetType,
-            target_id   AS targetId,
-            auth_method AS authMethod,
-            visited_at  AS visitedAt
-        FROM 
-            STAMP_RECORD
-        WHERE 
-            user_id = #{userId}
-        ORDER BY 
-            visited_at DESC
+        SELECT
+            s.record_id   AS recordId,
+            s.user_id     AS userId,
+            s.target_type AS targetType,
+            s.target_id   AS targetId,
+            s.auth_method AS authMethod,
+            s.visited_at  AS visitedAt,
+            COALESCE(e.hall_name, p.place_name) AS targetName
+        FROM
+            STAMP_RECORD s
+                LEFT JOIN EXHIBITION_HALL e
+                          ON s.target_id = e.hall_id
+                              AND s.target_type = 'exhibition'
+                LEFT JOIN SCIENCE_PLACE p
+                          ON s.target_id = p.place_id
+                              AND s.target_type = 'science_place'
+        WHERE
+            s.user_id = #{userId}
+        ORDER BY
+            s.visited_at DESC
     </select>
 
 <!-- 중복 확인용 -->

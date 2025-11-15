@@ -18,7 +18,7 @@ public class ScheduleItemDetailDTO {
     private String mainImageUrl;
     private String exhibitionOpeningHours;
     private String placeOpeningHours;
-    private BigDecimal exhibitionAdmissionFee;
+    private String exhibitionAdmissionFee;
     private String placeAdmissionFee;
     private String hallName;
     private String scienceCenterName;

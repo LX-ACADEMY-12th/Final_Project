@@ -61,15 +61,7 @@
                   2학기
                 </button>
               </div>
-
-              <!-- 가상실험 버튼 (시뮬레이션이 있을 때만 표시) -->
-              <button v-if="currentUnitSimulation" type="button" class="btn-virtual-experiment"
-                @click="showSimulation = !showSimulation" :class="{ 'active': showSimulation }">
-                <i class="bi" :class="showSimulation ? 'bi-play-fill' : 'bi-flask'"></i>
-                <span>{{ showSimulation ? '숨기기' : '실험' }}</span>
-              </button>
             </div>
-
             <!-- 칠판 내용 -->
             <div v-for="semesterData in chalkboardContent" :key="semesterData.semester">
               <div v-if="(selectedSemester === '1학기' && semesterData.semester.includes('1학기')) ||
@@ -93,34 +85,6 @@
             <div class="chalkboard-stand position-absolute w-100">
               <div class="chalkboard-eraser position-absolute">
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 시뮬레이션 영역 (토글) -->
-        <div class="simulation-container" v-if="currentUnitSimulation && showSimulation">
-          <div class="simulation-inner">
-            <div class="simulation-header">
-              <div class="d-flex justify-content-between align-items-start gap-3">
-                <div class="flex-grow-1">
-                  <h5 class="fw-bold fs-6 mb-1">
-                    <i class="bi bi-flask-fill me-2" style="color: #4A7CEC;"></i>
-                    가상실험: {{ selectedSemester }} {{ selectedSubject }}
-                  </h5>
-                  <p class="text-muted small mb-0" style="font-size: 0.85rem;">
-                    {{ chalkboardContent[selectedSemester === '1학기' ? 0 : 1]?.units[0]?.title || '학습 내용' }}을(를) 직접
-                    체험해보세요
-                  </p>
-                </div>
-                <button type="button" class="btn-close-simulation" @click="showSimulation = false" title="닫기">
-                  <i class="bi bi-x"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- 동적 컴포넌트 렌더링 -->
-            <div class="simulation-content">
-              <component :is="currentUnitSimulation"></component>
             </div>
           </div>
         </div>
@@ -197,26 +161,19 @@ import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 import eventBus from '@/utils/eventBus';
 import axios from '@/api/axiosSetup';
+import { useCurriculumStore } from '@/stores/curriculumStore';
 
 // 컴포넌트 임포트
 import FilterModal from '@/components/modal/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import PlaceReviewCard from '@/components/card/PlaceReviewCard.vue';
 import { curriculumData } from '@/data/scienceCurriculum';
-import ColumnarJoint from '@/components/simulations/ColumnarJoint.vue';
-import StatesOfMatter from '@/components/simulations/StatesOfMatterSimulation.vue'
-import Ecosystem from '@/components/simulations/EcosystemSimulation.vue'
-import MagnetField from '@/components/simulations/MagnetField.vue'
 
 export default {
   components: {
     FilterModal,
     BottomNavbar,
     PlaceReviewCard,
-    ColumnarJoint,
-    StatesOfMatter,
-    Ecosystem,
-    MagnetField
   },
   data() {
     return {
@@ -227,6 +184,10 @@ export default {
   setup() {
     const authStore = useAuthStore();
     const { user } = storeToRefs(authStore);
+
+    const curriculumStore = useCurriculumStore();
+    const { selectedGrade, selectedSubject } = storeToRefs(curriculumStore);
+
     const userName = computed(() => {
       if (user.value?.name) {
         return `${user.value.name} 학부모님`;
@@ -236,14 +197,11 @@ export default {
 
     const router = useRouter();
     const isModalOpen = ref(false);
-    const selectedSubject = ref('물리');
-    const selectedGrade = ref('초등 3학년');
     const selectedNavItem = ref('홈');
 
     // 1학기/2학기 탭 상태
     const selectedSemester = ref('1학기');
-    // ✅ 시뮬레이션 토글 상태
-    const showSimulation = ref(false);
+
     // 검색/데이터 상태
     const displayedItems = ref([]);
     const isSearching = ref(false);
@@ -506,10 +464,8 @@ export default {
      */
     const handleFilterComplete = (filterData) => {
       console.log(`필터 선택 완료:`, filterData);
-      selectedSubject.value = filterData.subject;
-      selectedGrade.value = filterData.grade;
+      curriculumStore.setFilter(filterData.grade, filterData.subject);
       isModalOpen.value = false;
-      showSimulation.value = false; // 필터 변경 시 시뮬레이션 닫기
       performSearch();
     };
 
@@ -554,25 +510,6 @@ export default {
       router.push('/aitutor');
     }
 
-    // ✅ 현재 선택된 학습 단원의 시뮬레이션 정보
-    const currentUnitSimulation = computed(() => {
-      const gradeKey = selectedGrade.value;
-      const subjectKey = selectedSubject.value;
-      const semesterKey = selectedSemester.value === '1학기' ? '1학기' : '2학기';
-
-      const gradeData = curriculumData[gradeKey];
-      if (!gradeData) return null;
-
-      const semesterData = gradeData[semesterKey];
-      if (!semesterData) return null;
-
-      const units = semesterData[subjectKey];
-      if (!units || units.length === 0) return null;
-
-      const simulation = units[0]?.simulationComponent;
-      return simulation || null;
-    });
-
     return {
       user,
       userName,
@@ -583,12 +520,10 @@ export default {
       carouselItems,
       chalkboardContent,
       selectedSemester,
-      showSimulation,
       displayedItems,
       isSearching,
       exhibitionItems,
       fieldTripItems,
-      currentUnitSimulation,
       goToDetail,
       goToMyPage,
       handleFilterComplete,
