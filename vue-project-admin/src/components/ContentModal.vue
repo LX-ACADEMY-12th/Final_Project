@@ -150,6 +150,12 @@ import axios from 'axios';
 import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL
+});
+
 // 각 타입별 DTO 기본값
 const defaultForm = {
   halls: {
@@ -220,9 +226,9 @@ export default {
       try {
         // Promise.all로 공통 데이터를 병렬로 API 호출
         const [hallsRes, gradesRes, subCategoriesRes] = await Promise.all([
-          axios.get('/api/admin/content/common/halls'),
-          axios.get('/api/admin/content/common/grades'),
-          axios.get('/api/admin/content/common/subcategories')
+          apiClient.get('/api/admin/content/common/halls'),
+          apiClient.get('/api/admin/content/common/grades'),
+          apiClient.get('/api/admin/content/common/subcategories')
         ]);
 
         this.allHalls = hallsRes.data;
@@ -234,7 +240,7 @@ export default {
 
         // [U] 수정 모드
         if (this.isEditMode) {
-          const response = await axios.get(`/api/admin/content/${this.modalType}/${this.itemIdToEdit}`);
+          const response = await apiClient.get(`/api/admin/content/${this.modalType}/${this.itemIdToEdit}`);
           this.form = response.data;
 
           if (this.modalType === 'halls') this.form.name = this.form.hallName;
@@ -326,7 +332,7 @@ export default {
 
       // 좌표 -> 주소 역방향 변환 API 호출
       try {
-        const response = await axios.post('/api/admin/content/reverse-geocode', {
+        const response = await apiClient.post('/api/admin/content/reverse-geocode', {
           latitude: newLat,
           longitude: newLng
         });
@@ -362,7 +368,7 @@ export default {
       this.geocodingFeedback = { message: '', type: '' };
 
       try {
-        const response = await axios.post('/api/admin/content/geocode', {
+        const response = await apiClient.post('/api/admin/content/geocode', {
           address: this.form.addressDetail
         });
 
@@ -434,11 +440,11 @@ export default {
 
       try {
         if (this.isEditMode) {
-          await axios.put(`/api/admin/content/${this.modalType}/${this.itemIdToEdit}`, formData, {
+          await apiClient.put(`/api/admin/content/${this.modalType}/${this.itemIdToEdit}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
         } else {
-          await axios.post(`/api/admin/content/${this.modalType}`, formData, {
+          await apiClient.post(`/api/admin/content/${this.modalType}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
         }

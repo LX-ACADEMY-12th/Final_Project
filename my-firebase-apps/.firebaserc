@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "burnished-form-472201-t1"
+  },
+  "targets": {
+    "burnished-form-472201-t1": {
+      "hosting": {
+        "user-app-target": [
+          "burnished-form-472201-t1"
+        ],
+        "admin-app-target": [
+          "science-book-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

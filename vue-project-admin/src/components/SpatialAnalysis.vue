@@ -124,13 +124,16 @@ export default {
         },
     },
     methods: {
-        // 💡 [신규] 통계 패널 데이터를 계산하는 로직
+        // 💡 통계 패널 데이터를 계산하는 로직
         calculateStats() {
-            if (this.spatialData.length === 0) {
+            // 🚨 [수정된 부분] this.spatialData가 배열인지 확인하는 로직 추가
+            if (!Array.isArray(this.spatialData) || this.spatialData.length === 0) {
+                console.warn("calculateStats: spatialData가 유효한 배열이 아니거나 비어있습니다.");
                 this.analysisStats = { segmentCount: 0, totalDays: 0, topPath: { name: '데이터 없음', count: 0 }, detailedPaths: [] };
                 return;
             }
 
+            // 오류가 발생했던 reduce 호출 부분은 이제 안전하게 실행됩니다.
             const totalSegments = this.spatialData.reduce((sum, s) => sum + s.segmentCount, 0);
 
             // 날짜 차이 계산
@@ -267,7 +270,8 @@ export default {
             this.drawMarkers();
             this.addLegend();
 
-            if (this.spatialData.length === 0) {
+            // 🚨 [추가된 부분] drawPaths에서도 배열 유효성 확인
+            if (!Array.isArray(this.spatialData) || this.spatialData.length === 0) {
                 console.warn("표시할 동선 세그먼트 데이터가 없습니다.");
                 this.map.setView([36.5, 127.8], 7);
                 return;

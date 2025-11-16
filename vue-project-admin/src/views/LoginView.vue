@@ -10,27 +10,14 @@
         <form @submit.prevent="handleLogin">
           <div class="mb-3">
             <label for="loginId" class="form-label">아이디</label>
-            <input
-              type="text"
-              class="form-control"
-              id="loginId"
-              placeholder="아이디를 입력하세요"
-              v-model="loginId"
-              required
-            />
+            <input type="text" class="form-control" id="loginId" placeholder="아이디를 입력하세요" v-model="loginId" required />
           </div>
           <div class="mb-3">
             <label for="password" class="form-label">비밀번호</label>
-            <input
-              type="password"
-              class="form-control"
-              id="password"
-              placeholder="••••••••"
-              v-model="password"
-              required
-            />
+            <input type="password" class="form-control" id="password" placeholder="••••••••" v-model="password"
+              required />
           </div>
-          
+
           <!-- 에러 메시지 표시 -->
           <div v-if="errorMessage" class="alert alert-danger" role="alert">
             {{ errorMessage }}
@@ -49,6 +36,7 @@
 
 <script>
 import axios from 'axios';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export default {
   name: "LoginView",
@@ -67,7 +55,7 @@ export default {
 
       try {
         // 백엔드 로그인 API 호출
-        const response = await axios.post('http://localhost:8080/api/user/login', {
+        const response = await axios.post(`${API_BASE_URL}/api/user/login`, {
           loginId: this.loginId,
           password: this.password
         });
@@ -96,7 +84,7 @@ export default {
 
       } catch (error) {
         console.error('로그인 실패:', error);
-        
+
         if (error.response) {
           // 서버에서 에러 응답이 온 경우
           if (error.response.status === 401) {

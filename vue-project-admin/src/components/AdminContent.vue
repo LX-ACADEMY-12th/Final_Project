@@ -58,6 +58,12 @@ import HallListTable from './HallListTable.vue';
 import ExhibitionListTable from './ExhibitionListTable.vue';
 import PlaceListTable from './PlaceListTable.vue';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL
+});
+
 export default {
   name: "AdminContent",
   components: {
@@ -106,7 +112,7 @@ export default {
           url += `?hallId=${this.filterHallId}`;
         }
 
-        const response = await axios.get(url);
+        const response = await apiClient.get(url);
 
         console.log(JSON.stringify(response, null, 2));
 
@@ -155,7 +161,7 @@ export default {
       if (!confirm(`[ID: ${id}] ${typeName}을(를) 정말 삭제하시겠습니까?`)) return;
 
       try {
-        await axios.delete(`/api/admin/content/${this.activeTab}/${id}`);
+        await apiClient.delete(`/api/admin/content/${this.activeTab}/${id}`);
         alert("삭제되었습니다.");
         this.loadDataForActiveTab(); // 목록 새로고침
       } catch (error) {

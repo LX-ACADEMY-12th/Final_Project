@@ -105,6 +105,12 @@
 import ContentHeader from "./ContentHeader.vue";
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL
+});
+
 export default {
   name: "AdminReviews",
   components: {
@@ -173,7 +179,7 @@ export default {
         return;
       }
       try {
-        await axios.put(`/api/admin/reviews/${reviewId}/reject`);
+        await apiClient.put(`/api/admin/reviews/${reviewId}/reject`);
         alert(`리뷰 ${reviewId}번에 대한 신고가 성공적으로 반려되었습니다.`);
         this.$emit("page-change", this.currentPage);
       } catch (e) {

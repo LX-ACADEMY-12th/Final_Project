@@ -20,8 +20,10 @@ import ContentView from "@/components/ContentView.vue";
 import SpatialAnalysis from "@/components/SpatialAnalysis.vue";
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const apiClient = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: API_BASE_URL
 });
 
 export default {
@@ -84,7 +86,7 @@ export default {
       }
 
       try {
-        const response = await apiClient.get("/admin/stamps/path-analysis", {
+        const response = await apiClient.get("/api/admin/stamps/path-analysis", {
           params: {
             startDate: startDate,
             endDate: endDate,
@@ -114,7 +116,7 @@ export default {
           params.category = category;
         }
 
-        const response = await apiClient.get("/admin/reviews/reported", {
+        const response = await apiClient.get("/api/admin/reviews/reported", {
           params: params,
         });
 
@@ -143,7 +145,7 @@ export default {
 
     async deleteReview(id) {
       try {
-        await apiClient.put(`/admin/reviews/${id}/delete`);
+        await apiClient.put(`/api/admin/reviews/${id}/delete`);
         alert("후기가 삭제되었습니다.");
         console.log("✅ 후기 삭제 성공");
         await this.fetchReviews(this.reviewsCurrentPage);
@@ -155,7 +157,7 @@ export default {
 
     async fetchNotices() {
       try {
-        const response = await apiClient.get("/admin/notices");
+        const response = await apiClient.get("/api/admin/notices");
         this.notices = response.data;
         console.log("✅ 공지사항 조회 성공:", this.notices);
       } catch (error) {
@@ -172,7 +174,7 @@ export default {
           author: "관리자",
         });
 
-        const response = await apiClient.post("/admin/notices", {
+        const response = await apiClient.post("/api/admin/notices", {
           title: noticeData.title,
           content: noticeData.content,
           author: "관리자",
@@ -199,7 +201,7 @@ export default {
 
         // 기존: const response = await apiClient.put(`/notices/${noticeData.id}`, {
         // 수정: 아래처럼 경로 변경
-        const response = await apiClient.put(`/admin/notices/${noticeData.id}`, {
+        const response = await apiClient.put(`/api/admin/notices/${noticeData.id}`, {
           title: noticeData.title,
           content: noticeData.content,
           author: "관리자",
@@ -225,7 +227,7 @@ export default {
 
     async deleteNoticeFromAPI(id) {
       try {
-        await apiClient.delete(`/admin/notices/${id}`);
+        await apiClient.delete(`/api/admin/notices/${id}`);
         this.notices = this.notices.filter((n) => n.id !== id);
         alert("공지사항이 삭제되었습니다.");
         console.log("공지사항 삭제 성공");
@@ -250,7 +252,7 @@ export default {
       }
 
       try {
-        await apiClient.post("/admin/contents", formData, {
+        await apiClient.post("/api/admin/contents", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -274,7 +276,7 @@ export default {
       }
 
       try {
-        await apiClient.put(`/admin/contents/${id}`, formData, {
+        await apiClient.put(`/api/admin/contents/${id}`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -290,7 +292,7 @@ export default {
     async deletePlace(id) {
       if (confirm(`[ID: ${id}] 정말 삭제하시겠습니까?`)) {
         try {
-          await apiClient.delete(`/admin/contents/${id}`);
+          await apiClient.delete(`/api/admin/contents/${id}`);
           alert("삭제되었습니다.");
           await this.fetchPlaces(this.currentPage);
         } catch (error) {
