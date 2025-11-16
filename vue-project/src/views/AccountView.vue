@@ -1,20 +1,19 @@
 <template>
-  <div id="account-settings" class="container px-4 py-4">
+  <div class="mypage-root d-flex flex-column h-100 bg-white" style="font-family: 'SUIT', sans-serif">
 
-    <!-- 헤더 -->
-    <div class="d-flex align-items-center justify-content-between pb-4 border-bottom">
-      <button class="btn p-0 me-3 border-0" @click="goBack">
-        <i class="bi bi-arrow-left fs-4"></i>
-      </button>
-      <h2 class="h5 mb-0 fw-bold text-dark">계정설정</h2>
-      <div class="btn p-0 me-3 border-0" style="visibility: hidden;">
-        <i class="bi bi-arrow-left fs-4"></i>
+    <div class="mypage-header d-flex justify-content-between align-items-center">
+      <div class="header-left" style="flex: 1;">
+        <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
       </div>
+      <div class="header-center fw-bold"
+        style="flex: 1; text-align: center; font-size: 1rem; font-weight: 700; color: #111827;">
+        계정설정
+      </div>
+      <div class="header-right d-flex justify-content-end" style="flex: 1;"></div>
     </div>
 
-    <!-- 스크롤 영역 -->
-    <div class="content-wrapper">
-      <!-- 프로필 업로드 -->
+    <div class="mypage-scroll flex-grow-1">
+
       <div class="d-flex justify-content-center my-4">
         <div class="position-relative">
           <div
@@ -31,7 +30,6 @@
       </div>
       <input type="file" ref="fileInput" @change="onFileSelected" accept="image/*" style="display: none;" />
 
-      <!-- 정보 수정 폼 -->
       <form @submit.prevent="handleUpdate">
         <div class="form-group mb-3">
           <label for="login-id" class="form-label">로그인 아이디</label>
@@ -97,27 +95,24 @@
           <button type="submit" class="btn btn-primary w-100 py-3 fw-bold submit-btn">수정하기</button>
         </div>
       </form>
-    </div>
-    <!-- /content-wrapper -->
 
+    </div>
   </div>
 </template>
 
 <script>
-// Pinia
+// (Script 태그 내용은 변경 사항 없음)
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 import eventBus from '@/utils/eventBus';
 
 export default {
   name: 'AccountSettingsView',
-
   setup() {
     const authStore = useAuthStore();
     const { user, isLoggedIn } = storeToRefs(authStore);
     return { authStore, user, isLoggedIn };
   },
-
   data() {
     return {
       localUser: {
@@ -134,19 +129,15 @@ export default {
       imagePreviewUrl: null,
     };
   },
-
   created() {
     this.initializeFormFromPinia();
     if (this.user && this.user.profileImageUrl) {
       this.imagePreviewUrl = this.user.profileImageUrl;
     }
   },
-
   methods: {
     goBack() { this.$router.back(); },
-
     triggerFileUpload() { this.$refs.fileInput.click(); },
-
     onFileSelected(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -155,7 +146,6 @@ export default {
       reader.onload = (e) => { this.imagePreviewUrl = e.target.result; };
       reader.readAsDataURL(file);
     },
-
     initializeFormFromPinia() {
       if (!this.isLoggedIn) {
         eventBus.emit('show-global-confirm', {
@@ -179,7 +169,6 @@ export default {
         });
       }
     },
-
     async handleUpdate() {
       if (!this.isLoggedIn) {
         eventBus.emit('show-global-confirm', {
@@ -188,7 +177,6 @@ export default {
         });
         return;
       }
-
       const updateData = {
         name: this.localUser.name,
         email: this.localUser.email,
@@ -198,13 +186,11 @@ export default {
         childGrade: this.localUser.childGrade,
         loginId: this.localUser.loginId,
       };
-
       const formData = new FormData();
       formData.append('dto', new Blob([JSON.stringify(updateData)], { type: 'application/json' }));
       if (this.selectedFile) {
         formData.append('profileImage', this.selectedFile, this.selectedFile.name);
       }
-
       try {
         await this.authStore.updateUser(formData);
         eventBus.emit('show-global-alert', { message: '사용자 정보가 성공적으로 수정되었습니다.', type: 'success' });
@@ -215,11 +201,9 @@ export default {
         alert(`정보 수정 실패: ${msg}`);
       }
     },
-
     selectGender(gender) {
       this.localUser.gender = gender === 'male' ? '남성' : '여성';
     },
-
     selectChildGrade(grade) {
       this.localUser.childGrade = grade;
     },
@@ -235,39 +219,60 @@ export default {
   font-style: normal;
 }
 
-/* ── 레이아웃 핵심: 내부 스크롤 구조 ───────────────── */
-#account-settings {
+/* 🟢 [수정]
+  #account-settings -> .mypage-root (MyPageView와 통일)
+*/
+.mypage-root {
   font-family: 'SUIT Variable', sans-serif;
-  max-width: 480px;
-  background-color: #ffffff;
   margin: 0 auto;
-
+  background-color: #ffffff;
+  width: 100%;
   /* 스크롤 구조 핵심 */
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  /* 뷰포트 기준 */
+  height: 100%;
+  max-height: 100vh;
   overflow: hidden;
-  /* 바깥 스크롤 차단 */
 }
 
-.content-wrapper {
+/* 🟢 [추가]
+  MyPageView의 .mypage-header 스타일
+*/
+.mypage-header {
+  display: flex;
+  height: 63px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* 🟢 [수정]
+  .content-wrapper -> .mypage-scroll (MyPageView와 통일)
+  padding-bottom은 하단 탭이 없으므로 80px 대신 24px 정도로 설정
+*/
+.mypage-scroll {
   flex: 1;
-  /* 남은 공간을 모두 차지 */
   min-height: 0;
-  /* overflow가 먹히도록 (중요) */
   overflow-y: auto;
-  /* 내부 스크롤 */
   -webkit-overflow-scrolling: touch;
-  /* iOS */
-  /* 스크롤바 숨김 (원한다면 표시해도 됨) */
+  /* 🟢 MyPageView와 동일한 좌우 여백(16px) 및 하단 여백(24px) 적용 */
+  padding: 12px 16px 24px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.content-wrapper::-webkit-scrollbar {
+.mypage-scroll::-webkit-scrollbar {
   display: none;
 }
+
+
+/* ( ... 이하 폼, 버튼, 드롭다운 등 기존 스타일은 그대로 유지 ... ) */
 
 /* ── 프로필 업로드 ───────────────── */
 .profile-pic {
@@ -276,6 +281,7 @@ export default {
   overflow: hidden;
 }
 
+/* ( ... ) */
 .profile-pic-image {
   width: 100%;
   height: 100%;
@@ -401,7 +407,6 @@ export default {
 .dropup-btn {
   background-color: #fff;
   color: #BDBDBD;
-  /* placeholder 톤 */
   text-align: left;
   border-color: #DEDEDE;
 }

@@ -4,7 +4,7 @@
       <div class="header-left" style="flex: 1;">
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
       </div>
-      <div class="header-center fw-bold fs-6" style="flex: 1; text-align: center;">
+      <div class="header-center fw-bold" style="flex: 1; text-align: center;">
         관심 코스 목록
       </div>
       <div class="header-right" style="flex: 1;">
@@ -236,7 +236,7 @@ export default {
 .chat-header .header-center {
   flex: 1;
   text-align: center;
-  font-weight: 600;
+  font-size: 16px;
 }
 
 /* -------------------- 🚨 개선된 탭 영역 스타일 🚨 -------------------- */

@@ -4,7 +4,7 @@
       <div class="header-left" style="flex: 1;">
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
       </div>
-      <div class="header-center fw-bold fs-6" style="flex: 1; text-align: center;">
+      <div class="header-center fw-bold" style="flex: 1; text-align: center; font-size: 16px;">
         추천 목록
       </div>
       <div class="header-right d-flex justify-content-end" style="flex: 1;">

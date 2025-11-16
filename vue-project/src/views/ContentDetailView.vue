@@ -66,6 +66,8 @@ import StatesOfMatter from '@/components/simulations/StatesOfMatterSimulation.vu
 import Ecosystem from '@/components/simulations/EcosystemSimulation.vue';
 import MagnetField from '@/components/simulations/MagnetField.vue';
 import ThermalConductivity from '@/components/simulations/ThermalConductivitySim.vue';
+import MixtureSeperation from '@/components/simulations/MixtureSeperation.vue';
+import ElectricShow from '@/components/simulations/ElectricShow.vue';
 
 // API 베이스 (Vite 환경변수 우선)
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -83,7 +85,8 @@ export default {
     StatesOfMatter,
     Ecosystem,
     MagnetField,
-    ThermalConductivity
+    ThermalConductivity,
+    ElectricShow
   },
 
   // 1. Props 정의
@@ -171,7 +174,7 @@ export default {
       // 맵핑 데이터 (필요에 따라 더 추가하세요)
       return {
         '초등 3학년': {
-          '물리': MagnetField,
+          '물리': ElectricShow,
           '화학': StatesOfMatter,
           '생명': Ecosystem,
           '지구': ColumnarJoint
@@ -179,13 +182,21 @@ export default {
         '초등 4학년': {
           '생명': Ecosystem,
           '지구': ColumnarJoint,
+          '화학': MixtureSeperation,
+          '물리': ElectricShow
         },
         '초등 5학년': {
           '생명': Ecosystem,
           '화학': StatesOfMatter,
           '물리': ThermalConductivity,
           '지구': ColumnarJoint
-        }
+        },
+        '초등 6학년': {
+          '생명': Ecosystem,
+          '화학': StatesOfMatter,
+          '물리': ThermalConductivity,
+          '지구': ColumnarJoint
+        },
       };
     },
     currentSimulationComponent() {
@@ -593,9 +604,9 @@ export default {
 }
 
 .simulation-content {
-  padding: 1.5rem;
+  padding: 16px;
   background: #FFFFFF;
-  min-height: 300px;
+  min-height: 260px;
 }
 
 /* [제거] @keyframes slideDownIn는 <transition>으로 대체됨 */

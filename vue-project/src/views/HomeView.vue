@@ -2,10 +2,12 @@
   <div class="home-root d-flex flex-column h-100 bg-white" style="font-family: 'SUIT', sans-serif">
     <!-- 상단 헤더 -->
     <div class="home-header">
-      <h2 class="home-header-title">과학 어디가</h2>
+      <div class="header-left-group">
+        <img src="/team4_logo.png" class="header-logo" alt="어플 로고">
+      </div>
       <button class="ai-tutor-button" @click="goToAiTutor">
         <i class="bi bi-robot"></i>
-        <span>AI튜터</span>
+        <span>AI 선생님</span>
       </button>
     </div>
 
@@ -1067,6 +1069,22 @@ export default {
   padding: 16px 16px 0;
 }
 
+/* 🟢 [추가] 로고 + 제목을 묶는 왼쪽 그룹 */
+.header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 로고와 제목 사이 간격 */
+}
+
+/* 🟢 [추가] 로고 이미지 크기 제어 */
+.header-logo {
+  margin-top: 2px;
+  height: 70px;
+  /* 헤더 높이에 맞게 조절 (예: 30px) */
+  width: 70px;
+}
+
 .section-title {
   margin: 0;
   color: #111827;
@@ -1103,6 +1121,7 @@ export default {
 /* 헤더 */
 .home-header {
   display: flex;
+  height: 63px;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;

@@ -25,7 +25,7 @@ export default {
 
   data() {
     return {
-      
+
     };
   },
 
@@ -55,7 +55,7 @@ export default {
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 50px;
+  height: 63px;
 }
 
 .back-btn,
@@ -70,7 +70,7 @@ export default {
 }
 
 .page-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   margin: 0;
 }
