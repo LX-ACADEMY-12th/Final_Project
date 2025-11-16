@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.UserPathAnalysisMapper">
+
+    <select id="selectPlacePathSegmentsByPeriod" parameterType="map" resultType="com.example.demo.dto.UserPathSegmentDTO">
+        WITH UserPlaceSegments AS (
+            SELECT
+                t1.user_id,
+                -- 💡 하루 단위로 파티션
+                LAG(t1.target_id) OVER (PARTITION BY t1.user_id, DATE(t1.visited_at) ORDER BY t1.visited_at) AS start_target_id,
+                t1.target_id AS end_target_id
+            FROM
+                stamp_record AS t1
+            WHERE
+                t1.visited_at BETWEEN #{startDate} AND #{endDate}
+              AND t1.target_type = 'science_place'
+        ),
+             ValidSegments AS (
+                 SELECT start_target_id, end_target_id, COUNT(*) AS segment_count
+                 FROM UserPlaceSegments
+                 WHERE start_target_id IS NOT NULL AND start_target_id != end_target_id
+        GROUP BY start_target_id, end_target_id
+            )
+
+        SELECT
+            vs.segment_count,
+            vs.start_target_id AS startPlaceId,
+            vs.end_target_id AS endPlaceId,
+
+            sp.place_name AS startPlaceName, sp.latitude AS startLat, sp.longitude AS startLng,
+            ep.place_name AS endPlaceName, ep.latitude AS endLat, ep.longitude AS endLng,
+
+            ST_AsGeoJSON(
+                    ST_MakeLine(
+                            ST_SetSRID(ST_MakePoint(sp.longitude, sp.latitude), 4326),
+                            ST_SetSRID(ST_MakePoint(ep.longitude, ep.latitude), 4326)
+                    )
+            ) AS pathGeoJson
+        FROM ValidSegments vs
+                 JOIN science_place AS sp ON vs.start_target_id = sp.place_id
+                 JOIN science_place AS ep ON vs.end_target_id = ep.place_id
+        ORDER BY vs.segment_count DESC;
+    </select>
+
+    <select id="selectExhibitionPathSegmentsByPeriod" parameterType="map" resultType="com.example.demo.dto.UserPathSegmentDTO">
+        WITH UserExhibitSegments AS (
+            SELECT
+                t1.user_id,
+                -- 💡 하루 단위로 파티션
+                LAG(t1.target_id) OVER (PARTITION BY t1.user_id, DATE(t1.visited_at) ORDER BY t1.visited_at) AS start_target_id,
+                t1.target_id AS end_target_id
+            FROM
+                stamp_record AS t1
+            WHERE
+                t1.visited_at BETWEEN #{startDate} AND #{endDate}
+              AND t1.target_type = 'exhibition'
+        ),
+             ValidSegments AS (
+                 SELECT start_target_id, end_target_id, COUNT(*) AS segment_count
+                 FROM UserExhibitSegments
+                 WHERE start_target_id IS NOT NULL AND start_target_id != end_target_id
+        GROUP BY start_target_id, end_target_id
+            )
+
+        SELECT
+            vs.segment_count,
+            vs.start_target_id AS startPlaceId,
+            vs.end_target_id AS endPlaceId,
+
+            -- 💡 EXHIBITION_hall 테이블에서 이름 가져오기
+            se.hall_name AS startPlaceName,
+            ee.hall_name AS endPlaceName,
+
+            -- 💡 EXHIBITION_HALL 테이블에서 좌표 가져오기 (전시관 구역의 좌표를 사용)
+            se.latitude AS startLat, se.longitude AS startLng,
+            ee.latitude AS endLat, ee.longitude AS endLng,
+
+            ST_AsGeoJSON(
+                    ST_MakeLine(
+                            ST_SetSRID(ST_MakePoint(se.longitude, se.latitude), 4326),
+                            ST_SetSRID(ST_MakePoint(ee.longitude, ee.latitude), 4326)
+                    )
+            ) AS pathGeoJson
+        FROM ValidSegments vs
+                 -- 시작 전시관 JOIN
+                 JOIN exhibition_hall AS se ON vs.start_target_id = se.hall_id
+            -- 도착 전시관 JOIN
+                 JOIN exhibition_hall AS ee ON vs.end_target_id = ee.hall_id
+        ORDER BY vs.segment_count DESC;
+    </select>
+</mapper>

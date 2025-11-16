@@ -1,19 +1,23 @@
 <template>
   <div class="d-flex admin-layout">
+
     <Sidebar :currentView="currentView" @change-view="currentView = $event" />
 
+
     <ContentView :currentView="currentView" :stats="stats" :reviews="reviews" :notices="notices" :places="places"
-      :reviewsTotalElements="reviewsTotalElements" :reviewsCurrentPage="reviewsCurrentPage"
-      :reviewsTotalPages="reviewsTotalPages" :totalElements="totalElements" :currentPage="currentPage"
-      :totalPages="totalPages" @review-page-change="handleReviewPageChange" @search-reviews="handleReviewSearch"
-      @page-change="handlePageChange" @delete-review="deleteReview" @edit-place="editPlace" @delete-place="deletePlace"
-      @edit-notice="editNotice" @delete-notice="deleteNotice" @add-notice="addNotice" @add-place="addPlace" />
+      :spatialData="spatialAnalysisData" @review-page-change="handleReviewPageChange"
+      @search-reviews="handleReviewSearch" :reviewsTotalElements="reviewsTotalElements"
+      :reviewsCurrentPage="reviewsCurrentPage" :reviewsTotalPages="reviewsTotalPages" :totalElements="totalElements"
+      :currentPage="currentPage" :totalPages="totalPages" @page-change="handlePageChange" @delete-review="deleteReview"
+      @edit-place="editPlace" @delete-place="deletePlace" @edit-notice="editNotice" @delete-notice="deleteNotice"
+      @add-notice="addNotice" @add-place="addPlace" @reload-data="fetchPathAnalysisData" />
   </div>
 </template>
 
 <script>
 import Sidebar from "@/components/Sidebar.vue";
 import ContentView from "@/components/ContentView.vue";
+import SpatialAnalysis from "@/components/SpatialAnalysis.vue";
 import axios from "axios";
 
 const apiClient = axios.create({
@@ -24,11 +28,17 @@ export default {
   components: {
     Sidebar,
     ContentView,
+    SpatialAnalysis
   },
   name: "AdminLayout",
   data() {
     return {
-      currentView: "reviews",
+      // 초기 화면 뷰
+      currentView: "spatial-analysis",
+      spatialAnalysisData: [], // 동선 분석 결과 저장
+      analysisType: 'PLACE',
+      analysisStartDate: '2025-10-01', // 초기 날짜
+      analysisEndDate: '2025-11-15',   // 초기 날짜
       stats: {
         todayStamps: 120,
         totalStamps: 15880,
@@ -57,6 +67,7 @@ export default {
 
     this.fetchReviews(1, this.reviewsCategoryFilter);
     this.fetchNotices();
+    this.fetchPathAnalysisData(this.analysisStartDate, this.analysisEndDate, this.analysisType);
   },
   watch: {
     currentView(newValue) {
@@ -64,6 +75,32 @@ export default {
     },
   },
   methods: {
+    // 모든 인자(startDate, endDate, type)를 명시적으로 받도록 정의
+    async fetchPathAnalysisData(startDate, endDate, type) {
+      // 유효성 검사 (선택 사항: 인자가 undefined인지 확인)
+      if (!startDate || !endDate || !type) {
+        console.error("❌ 날짜 또는 유형 정보 누락. API 호출을 건너뜁니다.");
+        return;
+      }
+
+      try {
+        const response = await apiClient.get("/admin/stamps/path-analysis", {
+          params: {
+            startDate: startDate,
+            endDate: endDate,
+            type: type // 💡 이제 정확히 PLACE 또는 EXHIBITION 값이 들어옵니다.
+          }
+        });
+        // 💡상태 업데이트
+        this.spatialAnalysisData = response.data;
+        this.analysisStartDate = startDate;
+        this.analysisEndDate = endDate;
+        this.analysisType = type;
+        console.log("✅ 동선 분석 데이터 로드 성공:", this.spatialAnalysisData.length, "개 세그먼트");
+      } catch (error) {
+        console.error("❌ 동선 분석 데이터 로드 실패:", error);
+      }
+    },
     async fetchReviews(page, category = this.reviewsCategoryFilter) {
       if (page < 1) return;
 

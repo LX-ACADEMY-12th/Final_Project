@@ -1055,8 +1055,8 @@ export default {
     getUserCoordinates() {
       console.log('GPS: localhost 임시 좌표 사용');
       const DEMO_LOCATION = {
-        latitude: 36.6448020,
-        longitude: 127.4714750
+        latitude: 36.3504450,
+        longitude: 126.5909010
       };
       return new Promise(resolve => {
         setTimeout(() => {

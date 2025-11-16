@@ -35,9 +35,10 @@
         <div class="nav-item-indicator"></div>
       </a>
 
-      <a href="#" class="nav-item" :class="{ active: currentView === 'stats' }" @click.prevent="changeView('stats')">
+      <a href="#" class="nav-item" :class="{ active: currentView === 'spatial-analysis' }"
+        @click.prevent="changeView('spatial-analysis')">
         <i class="bi bi-bar-chart-fill"></i>
-        <span>후가/스탬프 통계</span>
+        <span>사용자 동선 분석</span>
         <div class="nav-item-indicator"></div>
       </a>
     </nav>

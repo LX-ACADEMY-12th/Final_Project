@@ -12,7 +12,8 @@
       @edit-place="(...args) => $emit('edit-place', ...args)" @delete-place="$emit('delete-place', $event)"
       @add-place="(...args) => $emit('add-place', ...args)" />
 
-    <AdminStats v-else-if="currentView === 'stats'" :stats="stats" />
+    <SpatialAnalysis v-else-if="currentView === 'spatial-analysis'" :spatialData="spatialData"
+      @reload-data="(...args) => $emit('reload-data', ...args)" />
   </main>
 </template>
 
@@ -20,8 +21,8 @@
 import AdminReviews from "./AdminReviews.vue";
 import AdminNotices from "./AdminNotices.vue";
 import AdminPlaces from "./AdminContent.vue";
-import AdminStats from "./AdminStats.vue";
 import AdminContent from "./AdminContent.vue";
+import SpatialAnalysis from "./SpatialAnalysis.vue"; // 💡 [필수] 임포트
 
 export default {
   name: "ContentView",
@@ -29,8 +30,8 @@ export default {
     AdminReviews,
     AdminNotices,
     AdminPlaces,
-    AdminStats,
-    AdminContent
+    AdminContent,
+    SpatialAnalysis
   },
   props: {
     currentView: {
@@ -65,6 +66,10 @@ export default {
       type: Number,
       default: 0,
     },
+    spatialData: { // 💡 [필수] AdminLayout에서 전달받는 동선 데이터 Prop 추가
+      type: Array,
+      default: () => []
+    }
   },
   emits: [
     "delete-review",
@@ -77,6 +82,7 @@ export default {
     "add-notice",
     "add-place",
     "page-change",
+    "reload-data"
   ],
 };
 </script>
