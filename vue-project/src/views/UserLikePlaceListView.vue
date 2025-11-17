@@ -135,11 +135,9 @@ export default {
       this.$router.back();
     },
 
-    // 🟢 찜 목록을 최초에 한 번만 가져오는 함수
+    // :큰_초록색_원: 찜 목록을 최초에 한 번만 가져오는 함수
     async performSearch() {
-
       console.log('performSearch 함수 시작')
-
       // 로그인 상태 확인 (setup에서 반환된 isLoggedIn 사용)
       if (!this.isLoggedIn) {
         console.warn('로그인 상태가 아니므로 찜 목록을 로드하지 않습니다.');
@@ -151,44 +149,42 @@ export default {
         });
         return;
       }
-
       this.isSearching = true;
       this.allWishlistItems = [];
       this.displayedItems = []; // 화면 목록 초기화
-
       try {
-        console.log('🔵 API 호출 시작: /api/wishlist/my-list'); // 디버깅용
+        console.log(':큰_파란색_원: API 호출 시작: /api/wishlist/my-list'); // 디버깅용
         // 백엔드 API 호출
         const response = await axios.get(`/api/wishlist/my-list`);
-
-        console.log('🟢 API 응답 받음:', response); // 전체 응답 확인
-        console.log('🟢 response.data:', response.data); // 데이터 확인
-
+        console.log(':큰_초록색_원: API 응답 받음:', response); // 전체 응답 확인
+        console.log(':큰_초록색_원: response.data:', response.data); // 데이터 확인
         if (response.data && Array.isArray(response.data)) {
-          // API 응답을 원본 데이터 배열에 저장
-          this.allWishlistItems = response.data.map(item => {
+          // [!!] 1. 데이터를 한 번만 가공합니다.
+          const processedItems = response.data.map(item => {
+            // [!!] 2. 뱃지 레이블을 먼저 결정합니다. (targetType 사용)
+            let badgeLabel = null;
+            if (item.targetType === 'exhibition') {
+              badgeLabel = '국립과학관'; // 뱃지 텍스트
+            }
+            // API 응답을 원본 데이터 배열에 저장
             return {
               // PlaceCard2 컴포넌트에 필요한 필드 매핑
               id: item.targetId,
               title: item.title,
               imageUrl: item.mainImageUrl,
-
               subject: item.mainCategory,
               grade: item.gradeTag,
               hashtags: item.subCategories,
-
               type: item.type,                    // 기획 OR 상설
               place: item.place,
-
               // 필터링을 위한 내부 데이터
               itemType: item.targetType,
+              badgeLabel
             };
           });
-
-          console.log('API 응답 결과 (원본): ', this.allWishlistItems.length, '개');
-          this.displayedItems = this.allWishlistItems;
+          console.log('API 응답 결과 (원본): ', processedItems.length, '개');
+          this.displayedItems = processedItems;
           console.log(`[표시 완료] 전체 ${this.displayedItems.length}개`)
-
         } else {
           console.error('API 응답 형식이 잘못되었습니다.', response.data);
           this.allWishlistItems = [];
@@ -205,7 +201,7 @@ export default {
       } finally {
         this.isSearching = false;
       }
-    },
+    }
   },
 
   created() {
