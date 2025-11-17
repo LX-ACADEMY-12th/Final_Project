@@ -177,7 +177,7 @@ export default {
             if (item.itemType === 'exhibition') {
               return {
                 ...item,
-                badgeLabel: '과학관'
+                badgeLabel: '국립과학관'
               };
             }
             // 'science_place' (답사/과학장소) 타입인 경우 그대로 반환

@@ -68,9 +68,9 @@ import MagnetField from '@/components/simulations/MagnetField.vue';
 import ThermalConductivity from '@/components/simulations/ThermalConductivitySim.vue';
 import MixtureSeperation from '@/components/simulations/MixtureSeperation.vue';
 import ElectricShow from '@/components/simulations/ElectricShow.vue';
-
-// API 베이스 (Vite 환경변수 우선)
-const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080';
+import MagneticTrain from '@/components/simulations/MagneticTrain.vue';
+import ElectroClothes from '@/components/simulations/ElectroClothes.vue';
+import AlternatorShow from '@/components/simulations/AlternatorShow.vue';
 
 export default {
   name: 'ViewDetailWithModal',
@@ -86,7 +86,10 @@ export default {
     Ecosystem,
     MagnetField,
     ThermalConductivity,
-    ElectricShow
+    ElectricShow,
+    MagneticTrain,
+    ElectroClothes,
+    AlternatorShow
   },
 
   // 1. Props 정의
@@ -169,51 +172,80 @@ export default {
       const auth = useAuthStore();
       return auth.user?.userId ?? null;
     },
-    // :흰색_확인_표시: --- 여기부터 3개의 computed 속성을 추가합니다 ---
     simulationMap() {
-      // 맵핑 데이터 (필요에 따라 더 추가하세요)
+      // [!!] 맵의 키를 '전시관명'과 '중분류(해시태그)'로 변경합니다.
+      // [!!] 중분류의 '#'는 빼고 텍스트만 키로 사용하는 것이 좋습니다.
       return {
-        '초등 3학년': {
-          '물리': ElectricShow,
-          '화학': StatesOfMatter,
-          '생명': Ecosystem,
-          '지구': ColumnarJoint
+        '창의나래관': { // 예시: '전시관명'
+          '전기와 자기': ElectricShow,     // 예시: '중분류'
+          '자기': MagnetField,
+          '물질의 상태': StatesOfMatter
         },
-        '초등 4학년': {
-          '생명': Ecosystem,
-          '지구': ColumnarJoint,
-          '화학': MixtureSeperation,
-          '물리': ElectricShow
+        '야외전시': {
+          '전기와 자기': MagneticTrain
         },
-        '초등 5학년': {
-          '생명': Ecosystem,
-          '화학': StatesOfMatter,
-          '물리': ThermalConductivity,
-          '지구': ColumnarJoint
+        '과학기술관': {
+          '전기와 자기': ElectroClothes
         },
-        '초등 6학년': {
-          '생명': Ecosystem,
-          '화학': StatesOfMatter,
-          '물리': ThermalConductivity,
-          '지구': ColumnarJoint
+        '미래기술관': {
+          '전기와 자기': AlternatorShow
         },
+        '국립중앙과학관': {
+          '주상절리': ColumnarJoint,
+          '생태계': Ecosystem
+        },
+        '다른 전시관': {
+          '열전도': ThermalConductivity,
+          '혼합물': MixtureSeperation
+        }
+        // ... (필요한 만큼 추가) ...
       };
     },
+    // --- [!!] 3. currentSimulationComponent 로직 수정 ---
     currentSimulationComponent() {
-      // data()의 'exhibition' 객체를 사용합니다.
-      const grade = this.exhibition?.gradeTag; // '4학년' 대신 '초등 4학년'이 필요할 수 있습니다.
-      const subject = this.exhibition?.mainCategory;
-      // :느낌표:️ 중요: 'this.exhibition.gradeTag'에 '초등 3학년'처럼 '초등'이 포함되어 있는지,
-      // 'this.exhibition.mainCategory'에 '물리', '생명' 등이 정확히 들어있는지 확인하세요.
-      // 맵의 키(key)와 데이터 값이 정확히 일치해야 합니다.
-      console.log(`[Sim Match] Grade: ${grade}, Subject: ${subject}`);
-      if (grade && subject && this.simulationMap[grade] && this.simulationMap[grade][subject]) {
-        return this.simulationMap[grade][subject];
+      // 1. [!!] props에서 직접 데이터를 가져옵니다.
+      // (this.isPlace가 true면 this.place, false면 this.exhibition)
+      const item = this.isPlace ? this.place : this.exhibition;
+
+      // 2. [!!] 'undefined' 에러 방지용 가드 (가장 중요!)
+      // (item이 null이거나, title이 아직 '데이터 로딩 중...'일 수 있습니다)
+      if (!item || !item.title || item.title === '데이터 로딩 중...') {
+        return null; // 데이터 로딩 전이므로 null 반환
       }
+
+      const name = item.title; // e.g., "국립과천과학관"
+      const subTagsRaw = item.subCategories; // e.g., ["전기", "발전"]
+
+      if (!subTagsRaw || subTagsRaw.length === 0) {
+        console.log(`[Sim Match] '${name}'의 중분류가 없습니다.`);
+        return null;
+      }
+
+      // 3. 맵에서 '전시관명'으로 1차 조회를 합니다.
+      const subMap = this.simulationMap[name];
+      if (!subMap) {
+        console.log(`[Sim Match] '${name}'에 해당하는 맵이 없습니다.`);
+        return null;
+      }
+
+      // 4. '중분류 배열'을 순회하며 맵에 일치하는 컴포넌트를 찾습니다.
+      // (InfoSection/Hashtag에서 했던 정제 로직을 여기서도 수행)
+      const subTags = Array.isArray(subTagsRaw)
+        ? subTagsRaw.map(tag => (tag || '').replace(/[{}"]/g, ''))
+        : (typeof subTagsRaw === 'string' ? subTagsRaw.split(',').map(s => s.trim().replace(/[{}"]/g, '')) : []);
+
+      for (const tag of subTags) {
+        const key = tag; // 이미 '#'가 없는 "전기"
+
+        if (subMap[key]) {
+          console.log(`[Sim Match] 성공! '${name}' -> '${key}'`);
+          return subMap[key];
+        }
+      }
+
+      console.log(`[Sim Match] '${name}'은(는) 찾았으나, [${subTags.join(', ')}] 중 일치하는 중분류가 없습니다.`);
       return null;
     },
-
-    // :흰색_확인_표시: --- 여기까지 추가 ---
   },
 
   // 사용자 정의 함수 (메서드): 모든 로직은 여기서 처리됩니다.

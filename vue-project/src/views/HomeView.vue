@@ -15,11 +15,12 @@
     <div class="home-scroll flex-grow-1">
       <!-- 프로필 카드 섹션 -->
       <div class="home-section home-section--profile">
-        <div class="profile-card" @click="goToMyPage()" role="button" tabindex="0" @keydown.enter="goToMyPage()"
+        <div class="profile-card" role="button" tabindex="0" @keydown.enter="goToMyPage()"
           :aria-label="`${userName} 프로필 보기`">
           <!-- 아바타 -->
           <div class="profile-avatar">
-            <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필 이미지" class="profile-image" />
+            <img v-if="user?.profileImageUrl" :src="user.profileImageUrl" alt="프로필 이미지" class="profile-image"
+              @click="goToMyPage()" />
             <div v-else class="profile-avatar-fallback">
               <i class="bi bi-person-fill"></i>
             </div>
@@ -115,7 +116,7 @@
 
       <!-- 과학관 섹션 -->
       <div class="home-section-header">
-        <h5 class="section-title">과학관</h5>
+        <h5 class="section-title">우리 아이 맞춤 전시관</h5>
       </div>
       <div class="home-section-carousel">
         <div class="card-carousel-container">
@@ -258,6 +259,11 @@ export default {
         if (response.data && Array.isArray(response.data)) {
           const itemsWithReviews = await Promise.all(
             response.data.slice(0, 20).map(async (item) => {
+
+              let badgeLabel = null;
+              if (item.itemType === 'exhibition') {
+                badgeLabel = '국립과학관';
+              }
               try {
                 const targetType = item.itemType;
 
@@ -293,6 +299,7 @@ export default {
 
                 return {
                   ...item,
+                  badgeLabel: badgeLabel,
                   totalReviews: reviewPage?.totalElements || 0,
                   totalPages: reviewPage?.totalPages || 0,
                   latestReview: latestReview ? {

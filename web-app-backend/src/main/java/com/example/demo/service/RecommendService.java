@@ -2,13 +2,14 @@ package com.example.demo.service;
 
 import com.example.demo.dto.CourseHallDTO;
 import com.example.demo.dto.CourseItemDTO; // [!!] DTO만 import
-import com.example.demo.mapper.ExhibitionMapper;
 import com.example.demo.mapper.ContentMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @Slf4j
@@ -17,10 +18,12 @@ public class RecommendService {
 
     private final ContentMapper contentMapper;
     private final LlmApiService llmApiService; // 범용화된 AI 서비스
+    private final WeatherService weatherService;
 
-    public RecommendService(ContentMapper contentMapper, LlmApiService llmApiService) {
+    public RecommendService(ContentMapper contentMapper, LlmApiService llmApiService, WeatherService weatherService) {
         this.contentMapper = contentMapper;
         this.llmApiService = llmApiService;
+        this.weatherService = weatherService;
     }
 
     public List<CourseItemDTO> getRecommendations(
@@ -80,9 +83,37 @@ public class RecommendService {
                 return List.of();
             }
 
-            // 2. '과학 장소' 추천용 프롬프트 생성 (신규)
-            String prompt = buildSciencePlacePrompt(currentId, candidates, mainCategory, subCategories, grade);
+            // ★★★ 각 장소별 날씨 정보 조회 ★★★
+            Map<Long, String> placeWeatherMap = new HashMap<>();
+
+            for (CourseItemDTO place : candidates) {
+                // 위도/경도가 있는 경우에만 날씨 조회
+                if (place.getLatitude() != null && place.getLongitude() != null) {
+                    String weather = weatherService.getCurrentWeatherByLatLon(
+                            place.getLatitude(),
+                            place.getLongitude()
+                    );
+                    placeWeatherMap.put(place.getPlaceId(), weather);
+
+                    log.info("[RecommendService] 장소 ID={}, 이름={}, 날씨={}",
+                            place.getPlaceId(), place.getPlaceName(), weather);
+                } else {
+                    log.warn("[RecommendService] 장소 ID={}, 이름={} - 위치 정보 없음",
+                            place.getPlaceId(), place.getPlaceName());
+                    placeWeatherMap.put(place.getPlaceId(), "날씨 정보 없음");
+                }
+            }
+
+            // 2. 날씨 정보를 포함한 프롬프트 생성
+            String prompt = buildSciencePlacePromptWithWeather(
+                    currentId, candidates, placeWeatherMap,
+                    mainCategory, subCategories, grade
+            );
             log.info("[RecommendService] AI에게 전송할 최종 프롬프트:\n{}", prompt);
+
+//            // 2. '과학 장소' 추천용 프롬프트 생성 (신규)
+//            String prompt = buildSciencePlacePrompt(currentId, candidates, mainCategory, subCategories, grade);
+//            log.info("[RecommendService] AI에게 전송할 최종 프롬프트:\n{}", prompt);
 
             // 3. AI 호출 (ID 목록만 받음)
             List<Long> recommendedIds = llmApiService.getAiRecommendedIds(prompt);
@@ -138,47 +169,96 @@ public class RecommendService {
     /**
      * AI에게 지시할 프롬프트를 만드는 메소드 ('과학 장소' 추천용)
      */
-    private String buildSciencePlacePrompt(Long currentPlaceId, List<CourseItemDTO> candidates,
-                                           String mainCategory, String subCategories, String grade) {
+    /**
+     * AI에게 지시할 프롬프트를 만드는 메소드 ('과학 장소' 추천용 + 각 장소별 날씨 포함)
+     */
+    private String buildSciencePlacePromptWithWeather(
+            Long currentPlaceId,
+            List<CourseItemDTO> candidates,
+            Map<Long, String> placeWeatherMap,
+            String mainCategory,
+            String subCategories,
+            String grade) {
+
         StringBuilder sb = new StringBuilder();
         sb.append("당신은 과학관의 '야외/특별 장소'를 추천하는 AI 도슨트입니다.\n");
         sb.append("현재 사용자는 ID " + currentPlaceId + " 장소에 있습니다.\n");
-        sb.append(String.format("사용자는 '%s', '%s', '%s' 교과 과정에 관심이 있습니다.\n",
+        sb.append(String.format("사용자는 '%s', '%s', '%s' 교과 과정에 관심이 있습니다.\n\n",
                 grade, mainCategory, (subCategories != null ? subCategories : "전체")));
-        sb.append("아래는 사용자의 관심사와 관련있는 '다음 추천 장소' 후보 목록입니다.\n\n");
 
-        // CourseItemDTO의 필드를 사용하여 프롬프트 구성
+        sb.append("아래는 사용자의 관심사와 관련있는 '다음 추천 장소' 후보 목록입니다.\n");
+        sb.append("**각 장소의 현재 날씨 정보도 함께 제공되니 반드시 고려하세요.**\n\n");
+
+        // ★★★ 각 장소별 정보 + 해당 위치의 날씨 정보 ★★★
         for (CourseItemDTO place : candidates) {
-            sb.append(String.format("- ID: %d, 장소 이름: %s\n", place.getPlaceId(), place.getPlaceName()));
+            sb.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+            sb.append(String.format("📍 ID: %d | 장소 이름: %s\n", place.getPlaceId(), place.getPlaceName()));
 
-            // 버그 수정: '관련 교과 주제'에 'getSubjectName()'을 사용 (getGradeName()이 아님)
+            // 위치 유형 (실내/야외 구분)
+            String locationType = "정보없음";
+            if (place.getPlaceType() != null) {
+                if (place.getPlaceType().contains("야외") ||
+                        place.getPlaceType().toLowerCase().contains("outdoor") ||
+                        place.getPlaceType().contains("실외")) {
+                    locationType = "야외 🌳";
+                } else {
+                    locationType = "실내 🏢";
+                }
+            }
+            sb.append(String.format("   - 위치 유형: %s\n", locationType));
+
+            // ★ 해당 장소의 날씨 정보
+            String weatherInfo = placeWeatherMap.getOrDefault(place.getPlaceId(), "날씨 정보 없음");
+            String weatherRecommendation = weatherService.getWeatherRecommendation(weatherInfo);
+
+            sb.append(String.format("   - 🌤️ 현재 날씨: %s\n", weatherInfo));
+            sb.append(String.format("   - 💡 날씨 가이드: %s\n", weatherRecommendation));
+
+            // 교과 정보
             String subject = (place.getSubjectName() != null) ? place.getSubjectName() : "정보 없음";
-            sb.append(String.format("- 관련 교과 주제: %s\n", subject));
+            sb.append(String.format("   - 관련 교과 주제: %s\n", subject));
 
-            sb.append(String.format("- 관련 세부 단원: %s\n", (place.getHashtags() != null) ? String.join(", ", place.getHashtags()) : "정보 없음"));
+            sb.append(String.format("   - 관련 세부 단원: %s\n",
+                    (place.getHashtags() != null) ? String.join(", ", place.getHashtags()) : "정보 없음"));
 
+            // 장소 설명
             String desc = (place.getDescription() != null) ? place.getDescription() : "설명 없음";
             String truncatedDesc = desc.length() > 500 ? desc.substring(0, 500) + "..." : desc;
-            sb.append(String.format("  - 장소 설명: %s\n\n", truncatedDesc.trim()));
+            sb.append(String.format("   - 장소 설명: %s\n", truncatedDesc.trim()));
+            sb.append("\n");
         }
 
-        sb.append("\n[미션]\n");
-        // 수정 1: "2개만" -> "최대 3개만" (모순 제거)
-        sb.append("이 후보 '장소' 중에서, 사용자가 다음으로 방문하기에 가장 교육적이고 흥미로운 순서로 **최대 3개**만 골라주세요.\n");
-        sb.append("순서를 정할 때는 (1)장소 설명, (2)관련 교과 주제, (3)관련 세부 단원을 중점적으로 고려해야 합니다.\n");
+        sb.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n");
+        sb.append("========== [미션] ==========\n");
+        sb.append("위 후보 '장소' 중에서, 사용자가 다음으로 방문하기에 가장 적합한 순서로 **최대 3개**만 골라주세요.\n\n");
 
-        // 수정 2: 후보가 적을 경우의 가이드라인 명시 (유연성)
-        sb.append("후보가 3개 미만(예: 1개 또는 2개)일 경우, 그 후보들 안에서만 순서를 정해 알려주세요.\n");
+        // ★★★ 날씨를 최우선으로 고려하도록 강조 ★★★
+        sb.append("**추천 순서를 정할 때 다음 우선순위로 고려하세요:**\n\n");
+        sb.append("🥇 **1순위: 각 장소의 현재 날씨 적합성** (가장 중요!)\n");
+        sb.append("   - 각 장소마다 제공된 '현재 날씨'와 '날씨 가이드'를 반드시 확인하세요\n");
+        sb.append("   - 야외 장소인데 비/눈이 오면 → 우선순위에서 제외하거나 후순위로\n");
+        sb.append("   - 실내 장소는 날씨와 무관하게 안전함\n");
+        sb.append("   - 날씨가 좋으면 야외 장소를 적극 추천\n");
+        sb.append("   - 매우 덥거나 추운 날씨면 실내를 우선 추천\n\n");
 
-        // 수정 3: "ID 3개를" -> "ID를" (경직된 요청 제거)
-        sb.append("최종 응답은 추천하는 장소의 ID를 쉼표(,)로 구분해서 순서대로 알려주세요.\n");
-        sb.append("오직 ID와 쉼표 외에는 아무런 설명도 붙이지 마세요.\n");
+        sb.append("🥈 **2순위: 교육적 가치**\n");
+        sb.append("   - 장소 설명의 교육적 가치와 흥미도\n");
+        sb.append("   - 관련 교과 주제와의 연관성\n\n");
 
-        // 수정 4: 예시를 다양하게 제공
-        sb.append("예시 (후보가 3개 이상일 때): 102,105,108\n");
-        sb.append("예시 (후보가 2개 뿐일 때): 102,105\n");
-        sb.append("예시 (후보가 1개 뿐일 때): 102\n");
-        sb.append("예시 (추천할 것이 없을 때):"); // (아무것도 출력하지 않음)
+        sb.append("🥉 **3순위: 교과 연관성**\n");
+        sb.append("   - 관련 세부 단원의 다양성\n\n");
+
+        sb.append("**중요 규칙:**\n");
+        sb.append("- 각 장소의 날씨가 모두 다를 수 있으므로, 반드시 각각 확인하세요!\n");
+        sb.append("- 후보가 3개 미만일 경우, 그 안에서만 순서를 정하세요\n");
+        sb.append("- 최종 응답은 추천하는 장소의 ID만 쉼표(,)로 구분하여 작성\n");
+        sb.append("- **절대 ID와 쉼표 외에는 아무것도 출력하지 마세요!**\n\n");
+
+        sb.append("**응답 형식 예시:**\n");
+        sb.append("- 후보 3개 이상: 102,105,108\n");
+        sb.append("- 후보 2개: 102,105\n");
+        sb.append("- 후보 1개: 102\n");
+        sb.append("- 추천 없음: (공백)\n");
 
         return sb.toString();
     }

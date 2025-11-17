@@ -190,7 +190,7 @@ const sketch = (p) => {
     p.rect(0, h * 0.8, w, h * 0.2)
 
     p.fill(209, 213, 219)
-    p.rect(0, h * 0.78, w, h * 0.02)
+    p.rect(0, h * 0.86, w, h * 0.14)
     p.pop()
   }
 

@@ -301,7 +301,9 @@
             sp.place_name,
             ARRAY_AGG(DISTINCT csc.sub_category_name) AS hashtags,
             ST_Distance(sp.geog, (SELECT geog FROM TargetGeom)) AS distance_meters,
-            sp.description
+            sp.description,
+            sp.latitude,
+            sp.longitude
         FROM
             science_place AS sp
                 JOIN place_curriculum_mapping AS pcm ON pcm.place_id = sp.place_id

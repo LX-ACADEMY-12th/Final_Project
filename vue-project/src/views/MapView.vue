@@ -664,7 +664,19 @@ const performSearch = async () => {
     const response = await axios.get('/api/content/search', { params });
 
     if (response.data && Array.isArray(response.data)) {
-      allFetchedItems.value = response.data;
+
+      const processedItems = response.data.map(item => {
+        if (item.itemType === 'exhibition') {
+          return {
+            ...item,
+            badgeLabel: '국립과학관' // 뱃지 텍스트
+          };
+        }
+        // 그 외 타입은 아이템을 그대로 반환
+        return item;
+      });
+
+      allFetchedItems.value = processedItems; // [!!] 가공이 완료된 데이터를 할당
     } else {
       console.error('API 응답 형식이 잘못되었습니다:', response.data);
       allFetchedItems.value = [];

@@ -1,32 +1,34 @@
 <template>
-  <div class="place-card d-flex flex-row bg-white align-items-center px-3 py-3 rounded-4 shadow gap-3"
-    @click="onItemClick">
-    <div class="image-frame rounded-3 d-flex align-items-center justify-content-center flex-shrink-0">
-      <img v-if="computedImageUrl" :src="computedImageUrl" alt="전시 이미지" class="place-image rounded-3">
+  <div class="place-card d-flex flex-row bg-white align-items-center px-3 py-3 rounded-4 shadow gap-3" style="
+  font-family: 'SUIT' , sans-serif" @click="onItemClick">
+    <div class="image-container">
+      <div v-if="item.badgeLabel" class="card-badge">
+        {{ item.badgeLabel }}
+      </div>
+      <img :src="computedImageUrl" :alt="item.title" class="map-thumbnail" />
     </div>
 
     <div class="content-frame d-flex flex-column flex-grow-1 gap-2 min-w-0">
       <div class="d-flex justify-content-between align-items-center gap-1">
         <div class="d-flex flex-row gap-2 flex-shrink-1 min-w-0">
-          <PillTag :text="item.subject" type="subject" />
-          <PillTag :text="item.grade.replace('초등 ', '')" type="grade" />
+          <PillTag :text="item.subject || ''" type="subject" />
+          <PillTag :text="(item.grade || '').replace('초등 ', '')" type="grade" />
         </div>
+
         <button class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center btn-add flex-shrink-0"
-          @click="onAddClick">
-          <i class="bi bi-plus fs-5"></i>
+          @click.stop="onAddClick"> <i class="bi bi-plus fs-4"></i>
         </button>
       </div>
+
       <div class="text-frame d-flex flex-column gap-1 min-w-0">
         <div class="d-flex align-items-center gap-1 min-w-0">
-          <!-- <TypeTag :text="item.type" class="flex-shrink-0" /> -->
-          <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title }}</h5>
+          <h5 class="fw-bold m-0 text-truncate flex-grow-1 min-w-0">{{ item.title || '' }}</h5>
         </div>
         <div class="d-flex flex-row align-items-center gap-2 min-w-0">
-          <span class="text-truncate flex-grow-1 min-w-0">{{ item.place }}</span>
+          <span class="text-truncate flex-grow-1 min-w-0">{{ item.place || '' }}</span>
         </div>
         <div class="hashtag-container">
           <HashTag v-for="tag in visibleHashtags" :key="tag" :text="tag" />
-
           <span v-if="hasMoreHashtags" class="more-tags">
             +{{ remainingHashtagsCount }}
           </span>
@@ -38,101 +40,125 @@
 
 <script setup>
 import PillTag from '@/components/tag/PillTag.vue';
-// import TypeTag from '@/components/tag/TypeTag.vue';
 import HashTag from '@/components/tag/HashTag.vue';
-
 import { computed } from 'vue';
-// 부모에게 알리는 초인종
+
+// [!!] 1. 부모와 통신 (기존 PlaceCard.vue의 emit 유지)
 const emit = defineEmits(['add', 'item-click']);
 
+// [!!] 2. Props (기존 PlaceCard.vue의 props 유지)
 const props = defineProps({
   item: {
     type: Object,
     required: true
   }
-});
+}); // (iconType prop은 제거됨)
 
-// [!!] 1. 이미지 기본 URL 정의
+// [!!] 3. 이미지 기본 URL 정의
 const IMAGE_BASE_URL = 'https://storage.googleapis.com/science_book/';
 
-// [!!] 2. 이미지 URL을 계산하는 computed 속성 추가
+// [!!] 4. computedImageUrl (기존 PlaceCard.vue의 로직 유지)
+// (부모 MapView가 mainImageUrl을 내려주므로 이 로직이 맞습니다)
 const computedImageUrl = computed(() => {
-  // MapView는 mainImageUrl을 수정해서 보내줍니다.
-  // (혹시 모르니 imageUrl도 확인)
   const url = props.item.mainImageUrl || props.item.imageUrl;
-
   if (url && !url.startsWith('http')) {
     return IMAGE_BASE_URL + url;
   }
   return url;
 });
 
-
-// 1. 최대 2개의 해시태그만 표시
+// [!!] 5. 해시태그 로직 (PlaceCard2/PlaceCard 공통)
 const maxHashtags = 2;
-
-// 2. 2개만 잘라서 보여줄 해시태그 목록
 const visibleHashtags = computed(() => {
   return props.item.hashtags?.slice(0, maxHashtags) || [];
 });
-
-// 3. 더 많은 해시태그가 있는지 여부
 const hasMoreHashtags = computed(() => {
   return props.item.hashtags?.length > maxHashtags;
 });
-
-// 4. 숨겨진 해시태그의 개수
 const remainingHashtagsCount = computed(() => {
   return props.item.hashtags?.length - maxHashtags || 0;
 });
 
-// 카드 더보기 아이콘 클릭 핸들러
+// [!!] 6. 클릭 핸들러 (기존 PlaceCard.vue 로직)
 const onAddClick = () => {
-  // props.item 객체 전체를 부모에게 전달
+  // item 객체 전체를 부모에게 전달
   emit('add', props.item);
 };
 
-// 카드 본체 클릭 핸들러
+// [!!] 7. 카드 본체 클릭 핸들러 (기존 PlaceCard.vue 로직)
 const onItemClick = () => {
   emit('item-click');
-}
+};
 </script>
 
 <style scoped>
+/* --- [!!] 스타일은 PlaceCard2의 것을 기반으로, 146px 높이에 맞게 수정 --- */
+
+/* [카드 전체] */
 .place-card {
-  width: 310px;
-  height: 146px;
-  z-index: 10;
-  flex-shrink: 0;
-  /* 카드 내부 요소들이 넘치지 않도록 */
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  /* 상하 16px 패딩 */
+  gap: 15px;
+  margin: 0 0 0 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   cursor: pointer;
+  transition: box-shadow 0.2s ease;
+
+  /* [!!] 1. 카드 크기는 원본 PlaceCard의 크기(146px)로 고정 */
+  width: 330px;
+  height: 146px;
+  flex-shrink: 0;
 }
 
-/* 이미지 프레임 */
-.image-frame {
-  width: 80px;
-  height: 80px;
-  overflow: hidden;
-  background-color: #f0f0f0;
+.place-card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
-.place-image {
+/* [!!] 2. 이미지 컨테이너 (PlaceCard2 스타일) */
+.image-container {
+  position: relative;
+  /* [!!] 3. 카드 높이(146px) - 패딩(32px) = 114px로 높이 조절 */
+  width: 134px;
+  /* (비율에 맞게 너비도 살짝 조절) */
+  height: 114px;
+  flex-shrink: 0;
+}
+
+/* [!!] 뱃지 (PlaceCard2 스타일) */
+.card-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: #4A7CEC;
+  color: white;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  border-top-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  z-index: 1;
+}
+
+/* [!!] 이미지 (PlaceCard2 스타일) */
+.map-thumbnail {
   width: 100%;
   height: 100%;
-
-  /* [!!] --- 여기가 수정된 부분입니다 --- [!!] */
+  border-radius: 8px;
   object-fit: cover;
-  /* contain -> cover */
+  border: 1px solid #eee;
+  flex-shrink: 0;
 }
 
-/* 콘텐츠 영역 */
+/* [!!] 콘텐츠 영역 (PlaceCard2 스타일) */
 .content-frame {
-  /* 최대 너비 제한으로 오버플로우 방지 */
   min-width: 0;
-  /* 이미지 너비 + gap 제외 */
-  max-width: calc(100% - 80px - 12px);
   min-height: 0;
+  /* [!!] 4. 카드 높이가 줄었으니, 텍스트 영역도 114px로 높이 제한 */
+  height: 114px;
 }
 
 .text-frame {
@@ -140,14 +166,14 @@ const onItemClick = () => {
   min-height: 0;
 }
 
-/* 버튼 스타일 */
+/* [!!] 버튼 스타일 (PlaceCard2 스타일 + PlaceCard 테두리) */
 .btn-add {
   width: 28px;
   height: 28px;
   border: 1.5px solid #C6C6C8;
 }
 
-/* 해시태그 컨테이너 */
+/* [!!] 해시태그 컨테이너 (PlaceCard2 스타일) */
 .hashtag-container {
   display: flex;
   flex-direction: row;
@@ -158,15 +184,11 @@ const onItemClick = () => {
   min-width: 0;
 }
 
-/* '+N' 태그 스타일 추가 */
+/* [!!] '+N' 태그 (PlaceCard2 스타일) */
 .more-tags {
   font-size: 0.7rem;
-  /* 폰트 크기 (HashTag와 유사하게) */
-  color: #6c757d;
-  /* 텍스트 색상 (Bootstrap secondary) */
+  color: #6C757D;
   white-space: nowrap;
-  /* 줄바꿈 방지 */
   flex-shrink: 0;
-  /* 찌그러짐 방지 */
 }
 </style>

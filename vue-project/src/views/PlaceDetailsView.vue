@@ -1,6 +1,7 @@
 <template>
   <div class="exhibition-detail-page">
 
+    <!-- 헤더: 전시관/과학장소에 따라 타이틀 변경 -->
     <div class="header">
       <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시관 상세정보" :isFavorite="computedIsFavorite"
         @toggle-favorite="handleToggleFavorite" />
@@ -9,29 +10,34 @@
       <ExhibitionHeader v-else pageTitle="로딩 중..." />
     </div>
 
+    <!-- 스크롤 가능한 메인 콘텐츠 영역 -->
     <div class="scroll-content">
 
+      <!-- ==================== 전시관 섹션 ==================== -->
       <div v-if="pageType === 'exhibition'">
+        <!-- 기본 정보 섹션 (이미지, 제목, 평점 등) -->
         <InfoSection :exhibition="exhibition" imageTag="전시 태그" :mainCategory="exhibition.mainCategory"
           :subCategories="exhibition.subCategories" :gradeTag="exhibition.gradeTag"
           @authenticate-visit="handleVisitAuthentication" />
         <hr class="divider" />
 
+        <!-- 탭 메뉴 (상세정보 / AI 추천) -->
         <TabSection :key="currentTab" :isPlace="false" :activeTab="currentTab" @updateTab="handleTabChange" />
 
+        <!-- 상세정보 탭 -->
         <div v-if="currentTab === 'detail'">
           <ContentDetailView :exhibitionInformation="exhibitionInformation" :exhibition="exhibition" :isPlace="false"
             :target-id="currentId" :target-type="pageType" @review-posted="handleReviewPosted"
             @review-deleted="handleReviewDeleted" :photo-review-count="exhibition.photoReviewCount" />
         </div>
 
-        <!-- AI 추천 탭 개선 -->
+        <!-- AI 추천 탭 (전시관) -->
         <div v-else-if="currentTab === 'recommend'">
-          <!-- 로딩 상태 -->
+          <!-- 로딩 화면 -->
           <div v-if="isRecommending" class="recommend-loading-container">
             <div class="loading-content">
 
-              <!-- AI 아이콘 섹션 개선 -->
+              <!-- AI 아이콘 애니메이션 -->
               <div class="ai-icon-section">
                 <div class="ai-icon-wrapper">
                   <div class="ai-icon-bg">
@@ -42,9 +48,9 @@
                 </div>
               </div>
 
-              <!-- 메시지 섹션 개선 -->
+              <!-- 로딩 메시지 (전시관용) -->
               <div class="loading-message">
-                <h3 class="main-title">AI가 맞춤 코스를 생성 중입니다</h3>
+                <h3 class="main-title">AI가 맞춤 동선을 생성 중입니다</h3>
                 <transition name="fade" mode="out-in">
                   <p class="sub-message" :key="currentMessageIndex">
                     {{ loadingMessages[currentMessageIndex] }}
@@ -52,7 +58,7 @@
                 </transition>
               </div>
 
-              <!-- 프로그레스 바 추가 -->
+              <!-- 프로그레스 바 -->
               <div class="progress-bar-container">
                 <div class="progress-bar">
                   <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
@@ -60,7 +66,7 @@
                 <p class="progress-text">{{ progressPercentage }}%</p>
               </div>
 
-              <!-- 진행 단계 개선 -->
+              <!-- 진행 단계 표시 -->
               <div class="progress-steps">
                 <div class="step-connector"></div>
                 <div class="step-item" v-for="(step, index) in progressSteps" :key="index"
@@ -75,7 +81,7 @@
                 </div>
               </div>
 
-              <!-- 스켈레톤 카드 개선 -->
+              <!-- 스켈레톤 카드 (로딩 중 미리보기) -->
               <div class="skeleton-cards">
                 <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.15}s` }">
                   <div class="card-header">
@@ -110,7 +116,7 @@
                 </div>
               </div>
 
-              <!-- 팁 메시지 개선 -->
+              <!-- 팁 메시지 (로테이션) -->
               <transition name="fade" mode="out-in">
                 <div class="loading-tip" :key="currentTipIndex">
                   <span class="tip-icon">💡</span>
@@ -120,31 +126,38 @@
             </div>
           </div>
 
-          <!-- 추천 결과 -->
+          <!-- 추천 결과 표시 -->
           <CourseRecommend v-else :key="courseRerenderKey" :course-items="courseItems" :type="pageType"
             :is-loading="isRecommending" @request-new-course="fetchRecommendedCourse"
             @save-recommended-course="handleSaveRecommendedCourse" />
         </div>
       </div>
 
+      <!-- ==================== 과학 장소 섹션 ==================== -->
       <div v-else-if="pageType === 'science_place'">
+        <!-- 기본 정보 섹션 -->
         <InfoSection :exhibition="place" imageTag="장소 태그" :mainCategory="place.mainCategory"
           :subCategories="place.subCategories" :gradeTag="place.gradeTag"
           @authenticate-visit="handleVisitAuthentication" />
         <hr class="divider" />
+
+        <!-- 탭 메뉴 -->
         <TabSection :isPlace="true" :activeTab="currentTab" @updateTab="handleTabChange" />
 
+        <!-- 상세정보 탭 -->
         <div v-if="currentTab === 'detail'">
           <ContentDetailView :placeInformation="placeInformation" :place="place" :target-id="currentId"
             :target-type="pageType" :isPlace="true" @review-posted="handleReviewPosted"
             @review-deleted="handleReviewDeleted" :photo-review-count="place.photoReviewCount" />
         </div>
 
+        <!-- AI 추천 탭 (과학 장소 - 날씨 고려) -->
         <div v-else-if="currentTab === 'recommend'">
-          <!-- 로딩 상태 (전시와 동일) -->
+          <!-- 로딩 화면 -->
           <div v-if="isRecommending" class="recommend-loading-container">
             <div class="loading-content">
 
+              <!-- AI 아이콘 애니메이션 -->
               <div class="ai-icon-section">
                 <div class="ai-icon-wrapper">
                   <div class="ai-icon-bg">
@@ -155,8 +168,9 @@
                 </div>
               </div>
 
+              <!-- 로딩 메시지 (과학 장소용 - 날씨 강조) -->
               <div class="loading-message">
-                <h3 class="main-title">AI가 맞춤 코스를 생성 중입니다</h3>
+                <h3 class="main-title">AI가 날씨를 고려한 맞춤 코스를 생성 중입니다</h3>
                 <transition name="fade" mode="out-in">
                   <p class="sub-message" :key="currentMessageIndex">
                     {{ loadingMessages[currentMessageIndex] }}
@@ -164,6 +178,7 @@
                 </transition>
               </div>
 
+              <!-- 프로그레스 바 -->
               <div class="progress-bar-container">
                 <div class="progress-bar">
                   <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
@@ -171,6 +186,7 @@
                 <p class="progress-text">{{ progressPercentage }}%</p>
               </div>
 
+              <!-- 진행 단계 표시 (5단계) -->
               <div class="progress-steps">
                 <div class="step-connector"></div>
                 <div class="step-item" v-for="(step, index) in progressSteps" :key="index"
@@ -185,6 +201,7 @@
                 </div>
               </div>
 
+              <!-- 스켈레톤 카드 -->
               <div class="skeleton-cards">
                 <div v-for="n in 3" :key="n" class="skeleton-card" :style="{ animationDelay: `${n * 0.15}s` }">
                   <div class="card-header">
@@ -219,6 +236,7 @@
                 </div>
               </div>
 
+              <!-- 팁 메시지 (날씨 관련) -->
               <transition name="fade" mode="out-in">
                 <div class="loading-tip" :key="currentTipIndex">
                   <span class="tip-icon">💡</span>
@@ -228,11 +246,30 @@
             </div>
           </div>
 
-          <CourseRecommend v-else :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
-            @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
+          <!-- ★ 추천 결과 표시 (날씨 카드 포함) -->
+          <div v-else>
+            <!-- 날씨 정보 카드 (과학 장소만 표시) -->
+            <div v-if="weatherInfo" class="weather-info-card">
+              <div class="weather-header">
+                <span class="weather-icon">{{ weatherInfo.icon }}</span>
+                <div class="weather-text">
+                  <h4>오늘의 날씨 정보</h4>
+                  <p>{{ weatherInfo.description }}</p>
+                </div>
+              </div>
+              <div class="weather-recommendation">
+                <i class="bi bi-lightbulb-fill"></i>
+                <span>{{ weatherInfo.recommendation }}</span>
+              </div>
+            </div>
+
+            <CourseRecommend :course-items="courseItems" :type="pageType" :is-loading="isRecommending"
+              @request-new-course="fetchRecommendedCourse" @save-recommended-course="handleSaveRecommendedCourse" />
+          </div>
         </div>
       </div>
 
+      <!-- 초기 로딩 화면 -->
       <div v-else class="loading-container">
         <div class="spinner-border text-primary" role="status">
           <span class="visually-hidden">Loading...</span>
@@ -247,17 +284,18 @@
 <script>
 import axios from '@/api/axiosSetup';
 
-// 하위 컴포넌트들
+// 하위 컴포넌트 import
 import ExhibitionHeader from '@/components/header/ExhibitionHeader.vue';
 import InfoSection from '@/components/section/InfoSection.vue';
 import TabSection from '@/components/section/TabSection.vue';
 import ContentDetailView from './ContentDetailView.vue';
 import CourseRecommend from './CourseRecommend.vue';
 
-// Pinia (로그인 상태 확인)
+// Pinia 스토어 (로그인 상태 관리)
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
+// 유틸리티
 import eventBus from '@/utils/eventBus';
 import { getSceneIdFromTitle } from '@/utils/tourMapper';
 
@@ -272,16 +310,15 @@ export default {
     ContentDetailView,
   },
 
-  // 컴포넌트 라우트 가드
+  /**
+   * 라우트 가드: 가상 투어로 이동 시 코스 캐시 유지
+   */
   beforeRouteLeave(to, from, next) {
     if (this.isTourRoute(to)) {
-      // 떠나기 직전 현재 courseItems 스냅샷 저장
+      // 투어 페이지로 이동하는 경우 캐시 유지
       this.saveCourseCache();
-      // 돌아오면 추천 탭으로 열기
       sessionStorage.setItem('pdv:tabAfterBack', 'recommend');
-      // 추천 카드/지도 캐시도 재사용
       sessionStorage.setItem('pdv:courseCacheKey', this.cacheKey);
-      // (선택) 복귀용 정보
       sessionStorage.setItem(
         'pdv:returnTo',
         JSON.stringify({
@@ -290,18 +327,23 @@ export default {
           query: this.$route.query
         })
       );
-      return next(); // 캐시는 유지
+      return next();
     }
-    // 투어가 아니면 평소처럼 캐시 클리어
+    // 다른 페이지로 이동하는 경우 캐시 클리어
     this.clearCourseCache();
     next();
   },
 
+  /**
+   * keep-alive 활성화 시 탭 복원
+   */
   activated() {
     this.restoreTabIfCameBack();
   },
 
-  // Options API에서 Pinia 사용
+  /**
+   * Pinia 스토어 설정
+   */
   setup() {
     const authStore = useAuthStore();
     const { isLoggedIn, currentUserId } = storeToRefs(authStore);
@@ -312,27 +354,50 @@ export default {
   },
 
   computed: {
+    /**
+     * 찜 상태 반환
+     */
     computedIsFavorite() {
       return this.isWished;
     },
+
+    /**
+     * 세션 스토리지 캐시 키 생성
+     */
     cacheKey() {
       return `course-cache:${this.pageType}:${this.currentId}`;
     },
 
-    currentSimulationComponent() {
-      const grade = this.exhibition?.gradeTag;
-      const subject = this.exhibition?.mainCategory;
+    /**
+     * 진행 단계 (전시관 4단계 / 과학 장소 5단계)
+     */
+    progressSteps() {
+      return this.pageType === 'science_place'
+        ? this.sciencePlaceProgressSteps
+        : this.exhibitionProgressSteps;
+    },
 
-      console.log(`[Sim Match] Grade: ${grade}, Subject: ${subject}`);
-      if (grade && subject && this.simulationMap[grade] && this.simulationMap[grade][subject]) {
-        return this.simulationMap[grade][subject];
-      }
-      return null;
+    /**
+     * 로딩 메시지 (pageType에 따라 다름)
+     */
+    loadingMessages() {
+      return this.pageType === 'science_place'
+        ? this.sciencePlaceLoadingMessages
+        : this.exhibitionLoadingMessages;
     },
-    experimentTitle() {
-      return `가상실험: ${this.exhibition?.gradeTag} ${this.exhibition?.mainCategory}`;
+
+    /**
+     * 팁 메시지 (pageType에 따라 다름)
+     */
+    tips() {
+      return this.pageType === 'science_place'
+        ? this.sciencePlaceTips
+        : this.exhibitionTips;
     },
-    // 프로그레스 퍼센트 계산
+
+    /**
+     * 프로그레스 퍼센트 계산
+     */
     progressPercentage() {
       const total = this.progressSteps.length;
       const current = this.currentStepIndex + 1;
@@ -342,13 +407,15 @@ export default {
 
   data() {
     return {
-      courseRerenderKey: 0,
-      currentId: null,
-      pageType: null, // 'exhibition' | 'science_place'
-      currentTab: 'detail',
-      isWished: false,
+      // ==================== 공통 데이터 ====================
+      courseRerenderKey: 0,           // 코스 컴포넌트 강제 리렌더링용
+      currentId: null,                 // 현재 전시/장소 ID
+      pageType: null,                  // 'exhibition' | 'science_place'
+      currentTab: 'detail',            // 현재 활성 탭
+      isWished: false,                 // 찜 상태
+      isLoading: false,                // 로딩 상태
 
-      // 전시 상세
+      // ==================== 전시관 데이터 ====================
       exhibition: {
         title: '데이터 로딩 중...',
         rating: 0,
@@ -364,7 +431,6 @@ export default {
         visited: false,
         liked: false
       },
-      isLoading: false,
 
       exhibitionInformation: {
         exhibitionLocation: '',
@@ -377,7 +443,7 @@ export default {
         hallId: 0
       },
 
-      // 장소 상세
+      // ==================== 과학 장소 데이터 ====================
       place: {
         title: '데이터 로딩 중...',
         rating: 0,
@@ -402,36 +468,56 @@ export default {
         lng: 0
       },
 
-      // 추천 코스
-      courseItems: [],
-      hasLoadedRecommendations: false,
-      isRecommending: false,
+      // ==================== AI 추천 코스 ====================
+      courseItems: [],                 // 추천 코스 아이템 리스트
+      hasLoadedRecommendations: false, // 추천 로딩 완료 여부
+      isRecommending: false,           // 추천 생성 중 여부
+      weatherInfo: null,               // ★ 날씨 정보
 
-      // 로딩 애니메이션
-      progressSteps: ['데이터 분석', '유사 장소 탐색', '경로 최적화', '코스 완성'],
-      currentStepIndex: 0,
-      stepInterval: null,
-
-      loadingMessages: [
-        '현재 전시/장소의 특징을 분석하고 있어요',
-        '비슷한 테마의 장소들을 찾고 있어요',
-        '최적의 이동 경로를 계산하고 있어요',
-        '추천 코스를 마무리하고 있어요'
+      // ==================== 전시관 로딩 애니메이션 ====================
+      exhibitionProgressSteps: ['데이터 분석', '유사 전시관 탐색', '경로 최적화', '동선 완성'],
+      exhibitionLoadingMessages: [
+        '현재 전시관의 특징을 분석하고 있어요',
+        '비슷한 테마의 전시관들을 찾고 있어요',
+        '최적의 관람 동선을 계산하고 있어요',
+        '추천 동선을 마무리하고 있어요'
       ],
-      currentMessageIndex: 0,
-
-      tips: [
-        'AI는 평점과 리뷰를 기반으로 추천해드려요',
-        '생성된 코스는 관심 코스에 저장할 수 있어요',
-        '날씨와 시간대를 고려한 추천을 제공합니다'
+      exhibitionTips: [
+        '💡 AI는 평점과 리뷰를 기반으로 추천해드려요',
+        '📊 전시 개수와 교육적 가치를 고려해요',
+        '💾 생성된 동선은 관심 코스에 저장할 수 있어요'
       ],
-      currentTipIndex: 0,
-      tipInterval: null
+
+      // ==================== 과학 장소 로딩 애니메이션 (날씨 강조) ====================
+      sciencePlaceProgressSteps: ['날씨 확인', '데이터 분석', '유사 장소 탐색', '경로 최적화', '코스 완성'],
+      sciencePlaceLoadingMessages: [
+        '☀️ 각 장소의 실시간 날씨를 확인하고 있어요',
+        '날씨와 장소의 특징을 함께 분석하고 있어요',
+        '날씨에 적합한 장소들을 찾고 있어요',
+        '날씨를 고려한 최적 경로를 계산하고 있어요',
+        '날씨 기반 맞춤 코스를 완성하고 있어요'
+      ],
+      sciencePlaceTips: [
+        '☀️ 맑은 날에는 야외 체험장을 우선 추천해요',
+        '🌧️ 비 오는 날에는 실내 장소를 중심으로 추천해요',
+        '🌡️ 각 장소의 기온과 강수량을 실시간으로 고려해요',
+        '💾 AI 추천 코스는 관심 코스에 저장할 수 있어요'
+      ],
+
+      // ==================== 애니메이션 상태 ====================
+      currentStepIndex: 0,             // 현재 진행 단계 인덱스
+      currentMessageIndex: 0,          // 현재 메시지 인덱스
+      currentTipIndex: 0,              // 현재 팁 인덱스
+      stepInterval: null,              // 단계 진행 인터벌
+      tipInterval: null                // 팁 로테이션 인터벌
     };
   },
 
+  /**
+   * 컴포넌트 생성 시 데이터 로딩
+   */
   created() {
-    // URL에서 ID/타입 결정
+    // URL에서 ID 추출 및 타입 결정
     const id = this.$route.params.id;
     this.currentId = id;
     const isPlace = this.$route.path.startsWith('/place/');
@@ -447,20 +533,31 @@ export default {
     console.log('[PlaceDetailsView] currentUserId:', this.currentUserId);
   },
 
+  /**
+   * 컴포넌트 마운트 시 이벤트 리스너 등록
+   */
   mounted() {
     this.restoreTabIfCameBack();
-    // 브라우저 bfcache 뒤로가기 케이스 대응
+    // bfcache 대응 (브라우저 뒤로가기)
     this._onPageShow = () => this.restoreTabIfCameBack();
     window.addEventListener('pageshow', this._onPageShow);
   },
 
+  /**
+   * 데이터 변경 감지
+   */
   watch: {
+    /**
+     * URL 파라미터 변경 감지 (다른 전시/장소로 이동)
+     */
     '$route.params.id'(newId, oldId) {
       if (oldId && newId && newId !== oldId) {
+        // 이전 캐시 제거
         const oldKey = `course-cache:${this.pageType}:${oldId}`;
         this.clearCourseCache(oldKey);
         this.hasLoadedRecommendations = false;
 
+        // 새 데이터 로딩
         this.currentId = newId;
         const isPlace = this.$route.path.startsWith('/place/');
         this.pageType = isPlace ? 'science_place' : 'exhibition';
@@ -471,19 +568,29 @@ export default {
         }
       }
     },
+
+    /**
+     * 로그인 상태 변경 감지
+     */
     currentUserId(newUserId, oldUserId) {
+      // 로그인 시 데이터 갱신
       if (newUserId && !oldUserId && this.currentId) {
         if (this.pageType === 'exhibition') {
           this.fetchExhibitionData(this.currentId);
         } else if (this.pageType === 'science_place') {
           this.fetchPlaceData(this.currentId);
         }
-      } else if (!newUserId && oldUserId) {
+      }
+      // 로그아웃 시 찜 상태 초기화
+      else if (!newUserId && oldUserId) {
         this.isWished = false;
       }
     }
   },
 
+  /**
+   * 컴포넌트 언마운트 시 정리
+   */
   beforeUnmount() {
     this.clearLoadingIntervals();
     if (this._onPageShow) window.removeEventListener('pageshow', this._onPageShow);
@@ -491,10 +598,14 @@ export default {
 
   methods: {
 
+    /**
+     * AI 추천 코스 저장 핸들러
+     * @param {Array} items - 저장할 코스 아이템 리스트
+     */
     async handleSaveRecommendedCourse(items) {
       console.log('[Parent] save received, items =', Array.isArray(items) ? items.length : items);
 
-      // 로그인 가드
+      // 로그인 체크
       if (!this.isLoggedIn) {
         eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
@@ -502,6 +613,8 @@ export default {
         });
         return;
       }
+
+      // 아이템 검증
       if (!Array.isArray(items) || items.length === 0) {
         eventBus.emit('show-global-alert', { message: '저장할 코스 정보가 없습니다.', type: 'error' });
         return;
@@ -512,6 +625,7 @@ export default {
         const scheduleName = `AI 추천: ${currentItemData.title || '코스'}`;
         const sourceId = this.currentId;
 
+        // 백엔드 형식으로 변환
         const backendItems = items.map(item => ({
           exhibitionId: this.pageType !== 'science_place' ? item.id : null,
           placeId: this.pageType === 'science_place' ? item.id : null,
@@ -545,7 +659,11 @@ export default {
       }
     },
 
-    // 투어 라우트 감지 (name/path 모두 느슨하게)
+    /**
+     * 가상 투어 라우트 감지
+     * @param {Object} route - Vue Router 라우트 객체
+     * @returns {Boolean} 투어 라우트 여부
+     */
     isTourRoute(route) {
       const n = (route?.name || '').toString().toLowerCase();
       const p = (route?.path || '').toString().toLowerCase();
@@ -558,7 +676,9 @@ export default {
       );
     },
 
-    // 뒤로 복귀 시 탭/캐시 복원
+    /**
+     * 투어에서 복귀 시 탭 및 캐시 복원
+     */
     async restoreTabIfCameBack() {
       const desired = sessionStorage.getItem('pdv:tabAfterBack');
       if (desired === 'recommend') {
@@ -566,26 +686,34 @@ export default {
 
         const key = sessionStorage.getItem('pdv:courseCacheKey');
         if (key && key === this.cacheKey) {
+          // 캐시 재사용 시도
           const reused = this.loadCourseCache();
           if (!reused && !this.hasLoadedRecommendations) {
             this.hasLoadedRecommendations = false;
             this.fetchRecommendedCourse();
           }
         } else {
+          // 캐시가 없으면 새로 로딩
           if (!this.hasLoadedRecommendations) this.fetchRecommendedCourse();
         }
 
+        // 세션 스토리지 정리
         sessionStorage.removeItem('pdv:tabAfterBack');
         sessionStorage.removeItem('pdv:courseCacheKey');
       }
     },
 
+    /**
+     * 코스 캐시 로드
+     * @returns {Boolean} 캐시 로드 성공 여부
+     */
     loadCourseCache() {
       try {
         const raw = sessionStorage.getItem(this.cacheKey);
         if (!raw) return false;
         const { items } = JSON.parse(raw);
         if (!Array.isArray(items) || items.length === 0) return false;
+
         this.courseItems = items;
         this.hasLoadedRecommendations = true;
         this.courseRerenderKey = Date.now();
@@ -597,6 +725,9 @@ export default {
       }
     },
 
+    /**
+     * 코스 캐시 저장
+     */
     saveCourseCache() {
       try {
         const payload = { items: this.courseItems };
@@ -607,6 +738,10 @@ export default {
       }
     },
 
+    /**
+     * 코스 캐시 삭제
+     * @param {String} key - 삭제할 캐시 키 (기본값: 현재 캐시 키)
+     */
     clearCourseCache(key = this.cacheKey) {
       try {
         sessionStorage.removeItem(key);
@@ -616,14 +751,55 @@ export default {
       }
     },
 
-    // DTO -> 상태 매핑 (Exhibition)
+    /**
+     * 날씨 정보를 사용자 친화적 형태로 변환
+     * @param {String} weatherText - 백엔드에서 받은 날씨 텍스트 (예: "맑음, 기온 15.0℃, 습도 60%")
+     * @returns {Object} 날씨 정보 객체
+     */
+    parseWeatherInfo(weatherText) {
+      if (!weatherText) return null;
+
+      // 날씨 상태 파싱
+      let icon = '☀️';
+      let condition = '맑음';
+      let recommendation = '야외 활동하기 좋은 날씨입니다. 실외 체험장도 추천해드렸어요!';
+
+      if (weatherText.includes('비')) {
+        icon = '🌧️';
+        condition = '비';
+        recommendation = '비가 오고 있어요. 실내 장소를 중심으로 추천해드렸어요!';
+      } else if (weatherText.includes('눈')) {
+        icon = '❄️';
+        condition = '눈';
+        recommendation = '눈이 오고 있어요. 따뜻한 실내 장소를 추천해드렸어요!';
+      } else if (weatherText.includes('흐림')) {
+        icon = '☁️';
+        condition = '흐림';
+        recommendation = '흐린 날씨예요. 실내외 모두 즐길 수 있는 장소를 추천해드렸어요!';
+      } else if (weatherText.includes('구름많음')) {
+        icon = '⛅';
+        condition = '구름많음';
+        recommendation = '구름이 많지만 활동하기 좋은 날씨예요!';
+      }
+
+      return {
+        icon,
+        description: weatherText,
+        recommendation
+      };
+    },
+
+    /**
+     * 전시관 DTO를 컴포넌트 상태로 매핑
+     * @param {Object} dto - 백엔드에서 받은 전시관 DTO
+     */
     mapExhibitionDTO(dto) {
       const title = dto.exhibitionHallName ?? '제목 없음';
-
       const category = this.$route.query.mainCategoryTags ?? '';
       const subCategoryData = this.$route.query.subCategoryTags;
       const grade = this.$route.query.gradeTags;
 
+      // 서브카테고리 배열 변환
       let subCategoriesArray = [];
       if (typeof subCategoryData === 'string') {
         subCategoriesArray = subCategoryData
@@ -634,6 +810,7 @@ export default {
         subCategoriesArray = subCategoryData.map(tag => String(tag).trim()).filter(Boolean);
       }
 
+      // 전시관 정보 매핑
       this.exhibition = {
         title,
         rating: dto.averageRating ?? 0,
@@ -652,6 +829,7 @@ export default {
 
       this.isWished = dto.liked ?? false;
 
+      // 전시관 상세 정보 매핑
       this.exhibitionInformation = {
         exhibitionLocation: dto.location ?? '정보 없음',
         operationPeriod: this.formatPeriod(dto.startDate, dto.endDate),
@@ -664,13 +842,17 @@ export default {
       };
     },
 
-    // DTO -> 상태 매핑 (Place)
+    /**
+     * 과학 장소 DTO를 컴포넌트 상태로 매핑
+     * @param {Object} dto - 백엔드에서 받은 과학 장소 DTO
+     */
     mapPlaceDTO(dto) {
       const title = dto.placeName ?? '제목 없음';
       const category = this.$route.query.mainCategoryTags ?? '';
       const subCategoryData = this.$route.query.subCategoryTags;
       const grade = this.$route.query.gradeTags;
 
+      // 서브카테고리 배열 변환
       let subCategoriesArray = [];
       if (typeof subCategoryData === 'string') {
         subCategoriesArray = subCategoryData
@@ -681,6 +863,7 @@ export default {
         subCategoriesArray = subCategoryData.map(tag => String(tag).trim()).filter(Boolean);
       }
 
+      // 장소 정보 매핑
       this.place = {
         title,
         rating: dto.averageRating ?? 0,
@@ -698,6 +881,7 @@ export default {
 
       this.isWished = dto.liked ?? false;
 
+      // 장소 상세 정보 매핑
       this.placeInformation = {
         placeAddress: dto.addressDetail ?? '정보 없음',
         operationPeriod: this.formatPeriod(null, null),
@@ -708,7 +892,12 @@ export default {
       };
     },
 
-    // Helper: 기간
+    /**
+     * 운영 기간 포맷팅
+     * @param {String} start - 시작일
+     * @param {String} end - 종료일
+     * @returns {String} 포맷된 기간 문자열
+     */
     formatPeriod(start, end) {
       if (!start && !end) return '상시 운영';
       if (start && !end) return `${start} ~ 별도 안내까지`;
@@ -716,14 +905,21 @@ export default {
       return `${start} ~ ${end}`;
     },
 
-    // Helper: 요금
+    /**
+     * 입장료 포맷팅
+     * @param {Number} fee - 입장료
+     * @returns {String} 포맷된 입장료 문자열
+     */
     formatFee(fee) {
       if (fee === null || fee === undefined) return '정보 없음';
       if (fee === 0) return '무료';
-      return `${fee.toLocaleString('ko-KR')}`;
+      return `${fee.toLocaleString('ko-KR')}원`;
     },
 
-    /** 전시 상세 조회 */
+    /**
+     * 전시관 상세 데이터 조회
+     * @param {Number} id - 전시관 ID
+     */
     async fetchExhibitionData(id) {
       try {
         const res = await axios.get(`/api/exhibitions`, {
@@ -750,7 +946,10 @@ export default {
       }
     },
 
-    /** 장소 상세 조회 */
+    /**
+     * 과학 장소 상세 데이터 조회
+     * @param {Number} id - 장소 ID
+     */
     async fetchPlaceData(id) {
       try {
         const res = await axios.get(`/api/place`, {
@@ -776,6 +975,9 @@ export default {
       }
     },
 
+    /**
+     * 데이터 갱신 (리뷰 등록/삭제 후)
+     */
     refreshData() {
       if (this.pageType === 'exhibition') {
         this.fetchExhibitionData(this.currentId);
@@ -784,45 +986,70 @@ export default {
       }
     },
 
+    /**
+     * 리뷰 등록 후 핸들러
+     */
     handleReviewPosted() {
       this.refreshData();
     },
 
+    /**
+     * 리뷰 삭제 후 핸들러
+     */
     handleReviewDeleted() {
       this.refreshData();
     },
 
+    /**
+     * 탭 변경 핸들러
+     * @param {String} tabName - 변경할 탭 이름
+     */
     handleTabChange(tabName) {
       this.currentTab = tabName;
 
+      // AI 추천 탭으로 전환 시 처리
       if (tabName === 'recommend') {
+        // 캐시 재사용 시도
         const reused = this.loadCourseCache();
         if (reused) return;
 
+        // 캐시가 없으면 새로 로딩
         if (!this.hasLoadedRecommendations) {
           this.fetchRecommendedCourse();
         }
       }
     },
 
-    // 로딩 애니메이션 제어
+    /**
+     * 로딩 애니메이션 시작
+     * - 과학 장소: 5단계, 700ms 간격
+     * - 전시관: 4단계, 1200ms 간격
+     */
     startLoadingAnimation() {
       this.currentStepIndex = 0;
       this.currentMessageIndex = 0;
 
+      // 과학 장소는 단계가 많아서 조금 빠르게 진행
+      const intervalTime = this.pageType === 'science_place' ? 700 : 1200;
+
+      // 단계 진행 인터벌
       this.stepInterval = setInterval(() => {
         if (this.currentStepIndex < this.progressSteps.length - 1) {
           this.currentStepIndex++;
           this.currentMessageIndex++;
         }
-      }, 1200);
+      }, intervalTime);
 
+      // 팁 로테이션 인터벌
       this.currentTipIndex = 0;
       this.tipInterval = setInterval(() => {
         this.currentTipIndex = (this.currentTipIndex + 1) % this.tips.length;
       }, 2500);
     },
 
+    /**
+     * 로딩 인터벌 정리
+     */
     clearLoadingIntervals() {
       if (this.stepInterval) {
         clearInterval(this.stepInterval);
@@ -834,7 +1061,13 @@ export default {
       }
     },
 
-    // 추천 코스 불러오기
+    /**
+     * AI 추천 코스 조회
+     * - 백엔드에서 추천 코스 가져오기
+     * - 현재 아이템 + AI 추천 아이템 병합
+     * - 과학 장소의 경우 날씨 정보도 함께 처리
+     * - 캐시에 저장
+     */
     async fetchRecommendedCourse() {
       console.log('🤖 AI 추천 코스를 검색합니다...');
 
@@ -853,17 +1086,38 @@ export default {
           gradeTags: this.$route.query.gradeTags
         };
 
+        // 최소 3.5초 로딩 (UX 개선)
         const [res] = await Promise.all([
           axios.get(apiUrl, { params }),
           new Promise(resolve => setTimeout(resolve, 3500))
         ]);
 
-        const aiRecommendedDtos = res.data;
+        // ★ 백엔드 응답에서 날씨 정보 추출
+        const responseData = res.data;
+        let aiRecommendedDtos = [];
+        let weatherText = null;
+
+        // 백엔드가 { recommendations: [...], weatherInfo: "..." } 형태로 반환하는 경우
+        if (responseData.recommendations) {
+          aiRecommendedDtos = responseData.recommendations;
+          weatherText = responseData.weatherInfo;
+        } else {
+          // 기존 방식 (배열만 반환)
+          aiRecommendedDtos = responseData;
+        }
+
+        // ★ 과학 장소인 경우에만 날씨 정보 파싱
+        if (this.pageType === 'science_place' && weatherText) {
+          this.weatherInfo = this.parseWeatherInfo(weatherText);
+        } else {
+          this.weatherInfo = null; // 전시관은 날씨 정보 없음
+        }
 
         const currentItemData = this.pageType === 'science_place' ? this.place : this.exhibition;
         const currentItemInfo =
           this.pageType === 'science_place' ? this.placeInformation : this.exhibitionInformation;
 
+        // 현재 아이템 포맷팅 (첫 번째 아이템)
         const currentItemFormatted = {
           id: this.currentId,
           number: 1,
@@ -887,6 +1141,7 @@ export default {
           sceneId: getSceneIdFromTitle(currentItemData.title)
         };
 
+        // AI 추천 아이템 포맷팅
         const aiItemsFormatted = aiRecommendedDtos.map((item, index) => ({
           id: item.placeId,
           number: index + 2,
@@ -903,9 +1158,11 @@ export default {
           sceneId: getSceneIdFromTitle(item.placeName)
         }));
 
+        // 현재 아이템 + AI 추천 아이템 병합
         this.courseItems = [currentItemFormatted, ...aiItemsFormatted];
         this.hasLoadedRecommendations = true;
 
+        // 캐시에 저장
         this.saveCourseCache();
         this.courseRerenderKey = Date.now();
       } catch (error) {
@@ -917,6 +1174,7 @@ export default {
           type: 'error'
         });
       } finally {
+        // 로딩 종료 (300ms 딜레이로 자연스럽게)
         setTimeout(() => {
           this.clearLoadingIntervals();
           this.isRecommending = false;
@@ -927,8 +1185,13 @@ export default {
       }
     },
 
-    // 찜 토글
+    /**
+     * 찜 토글 핸들러
+     * - 로그인 체크
+     * - 찜 추가/삭제 API 호출
+     */
     async handleToggleFavorite() {
+      // 로그인 체크
       if (!this.isLoggedIn) {
         eventBus.emit('show-global-confirm', {
           message: '로그인이 필요한 기능입니다.',
@@ -954,10 +1217,12 @@ export default {
 
       try {
         if (currentState) {
+          // 찜 삭제
           await axios.delete(`/api/wishlist`, { data: requestData });
           this.isWished = false;
           eventBus.emit('show-global-alert', { message: '찜 목록에서 삭제되었습니다.', type: 'success' });
         } else {
+          // 찜 추가
           await axios.post(`/api/wishlist`, requestData);
           console.log('[wishlist] add payload:', requestData);
           this.isWished = true;
@@ -965,6 +1230,8 @@ export default {
         }
       } catch (error) {
         const status = error.response?.status;
+
+        // 409: 중복 오류 처리
         if (status === 409) {
           eventBus.emit('show-global-alert', {
             message: '중복된 찜 항목입니다. 자동으로 취소합니다.',
@@ -981,12 +1248,16 @@ export default {
               type: 'error'
             });
           }
-        } else if (status === 403) {
+        }
+        // 403: 권한 오류
+        else if (status === 403) {
           eventBus.emit('show-global-alert', {
             message: '로그인이 필요하거나 권한이 없습니다.',
             type: 'error'
           });
-        } else {
+        }
+        // 기타 오류
+        else {
           console.error('찜 처리 중 에러:', error);
           eventBus.emit('show-global-alert', {
             message: '찜 처리에 실패했습니다. 다시 시도해 주세요.',
@@ -998,10 +1269,15 @@ export default {
       }
     },
 
-    // 방문 인증
+    /**
+     * 방문 인증 핸들러
+     * - GPS 좌표 획득
+     * - 스탬프 인증 API 호출
+     */
     async handleVisitAuthentication() {
       console.log('PlaceDetailView: 방문 인증 시작');
       try {
+        // 이미 방문한 장소인지 확인
         const isAlreadyVisited =
           this.pageType === 'exhibition' ? this.exhibition.visited : this.place.visited;
         if (isAlreadyVisited) {
@@ -1009,6 +1285,7 @@ export default {
           return;
         }
 
+        // 로그인 체크
         if (!this.isLoggedIn) {
           eventBus.emit('show-global-confirm', {
             message: '로그인이 필요한 기능입니다.',
@@ -1023,8 +1300,10 @@ export default {
           throw new Error('인증 대상(targetId/targetType)을 식별할 수 없습니다.');
         }
 
+        // GPS 좌표 획득
         const coords = await this.getUserCoordinates();
 
+        // 스탬프 인증 요청
         const requestDTO = {
           userId: this.currentUserId,
           targetType,
@@ -1038,6 +1317,7 @@ export default {
         eventBus.emit('show-global-alert', { message: '스탬프 획득 성공!', type: 'success' });
         console.log('인증 성공:', response.data);
 
+        // 방문 상태 업데이트
         if (this.pageType === 'exhibition') this.exhibition.visited = true;
         else if (this.pageType === 'science_place') this.place.visited = true;
       } catch (error) {
@@ -1051,7 +1331,10 @@ export default {
       }
     },
 
-    // 데모용 좌표 반환(로컬 테스트)
+    /**
+     * GPS 좌표 획득 (데모용)
+     * @returns {Promise<Object>} 좌표 객체 {latitude, longitude}
+     */
     getUserCoordinates() {
       console.log('GPS: localhost 임시 좌표 사용');
       const DEMO_LOCATION = {
@@ -1086,7 +1369,6 @@ export default {
   min-height: 0;
   padding-bottom: 40px;
 
-  /* 스크롤바 숨기기 */
   &::-webkit-scrollbar {
     display: none;
   }
@@ -1114,55 +1396,87 @@ export default {
 }
 
 /* ========================================
-   가상 실험 버튼 (개선)
+   날씨 정보 카드 (NEW!)
 ======================================== */
-.experiment-toggle-btn {
-  width: calc(100% - 40px);
-  margin: 0 20px 20px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 18px;
-  font-weight: 600;
-  font-size: 15px;
-  border-radius: 12px;
-  border: 1px solid #4A7CEC;
-  color: #4A7CEC;
-  background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
-  box-shadow: 0 2px 8px rgba(74, 124, 236, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
+.weather-info-card {
+  margin: 20px 20px 16px 20px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(66, 165, 245, 0.3);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+  animation: slide-down 0.4s ease-out;
 }
 
-.experiment-toggle-btn:hover {
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(74, 124, 236, 0.2);
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.experiment-toggle-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(74, 124, 236, 0.15);
-}
-
-.experiment-toggle-btn .btn-content {
+.weather-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
-.experiment-toggle-btn .bi-flask-fill {
-  font-size: 18px;
+.weather-icon {
+  font-size: 42px;
+  animation: weather-pulse 3s ease-in-out infinite;
 }
 
-.experiment-toggle-btn .chevron-icon {
+@keyframes weather-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.weather-text h4 {
+  margin: 0 0 4px 0;
   font-size: 16px;
-  transition: transform 0.3s ease;
+  font-weight: 700;
+  color: #1565C0;
 }
 
+.weather-text p {
+  margin: 0;
+  font-size: 14px;
+  color: #1976D2;
+  font-weight: 500;
+}
+
+.weather-recommendation {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #0D47A1;
+  font-weight: 600;
+}
+
+.weather-recommendation i {
+  font-size: 18px;
+  color: #FFA726;
+}
 
 /* ========================================
-   AI 추천 로딩 (대폭 개선)
+   AI 추천 로딩
 ======================================== */
 .recommend-loading-container {
   background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
@@ -1175,7 +1489,6 @@ export default {
   margin: 0 auto;
 }
 
-/* AI 아이콘 섹션 개선 */
 .ai-icon-section {
   text-align: center;
   margin-bottom: 36px;
@@ -1256,7 +1569,6 @@ export default {
   }
 }
 
-/* 메시지 섹션 개선 */
 .loading-message {
   text-align: center;
   margin-bottom: 32px;
@@ -1278,7 +1590,6 @@ export default {
   min-height: 22px;
 }
 
-/* 프로그레스 바 추가 */
 .progress-bar-container {
   margin-bottom: 32px;
 }
@@ -1308,7 +1619,6 @@ export default {
   margin: 0;
 }
 
-/* 진행 단계 개선 */
 .progress-steps {
   display: flex;
   justify-content: space-between;
@@ -1406,7 +1716,6 @@ export default {
   font-weight: 600;
 }
 
-/* 체크 페이드 애니메이션 */
 .check-fade-enter-active,
 .check-fade-leave-active {
   transition: all 0.3s ease;
@@ -1422,7 +1731,6 @@ export default {
   transform: scale(0.5);
 }
 
-/* 스켈레톤 카드 개선 */
 .skeleton-cards {
   margin-bottom: 32px;
 }
@@ -1523,7 +1831,6 @@ export default {
   overflow: hidden;
 }
 
-/* Shimmer 효과 개선 */
 .shimmer {
   position: absolute;
   top: 0;
@@ -1547,7 +1854,6 @@ export default {
   }
 }
 
-/* 팁 메시지 개선 */
 .loading-tip {
   background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
   border-radius: 12px;
@@ -1571,7 +1877,6 @@ export default {
   font-weight: 500;
 }
 
-/* 페이드 트랜지션 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.4s ease;
@@ -1633,9 +1938,26 @@ export default {
     font-size: 13px;
   }
 
-  .experiment-toggle-btn {
-    padding: 12px 16px;
-    font-size: 14px;
+  .weather-info-card {
+    margin: 16px;
+    padding: 16px 18px;
+  }
+
+  .weather-icon {
+    font-size: 36px;
+  }
+
+  .weather-text h4 {
+    font-size: 15px;
+  }
+
+  .weather-text p {
+    font-size: 13px;
+  }
+
+  .weather-recommendation {
+    font-size: 12px;
+    padding: 10px 12px;
   }
 }
 
