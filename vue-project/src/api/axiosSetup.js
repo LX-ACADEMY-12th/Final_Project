@@ -10,24 +10,40 @@ const axiosInstance = axios.create({
   baseURL: API_BASE,
 })
 
-// 3. ⭐️ 요청 인터셉터 (Request Interceptor)
+// 3. 요청 인터셉터 (Request Interceptor)
 axiosInstance.interceptors.request.use(
   (config) => {
-    // 4. Pinia 스토어에서 authStore를 가져옵니다.
+    // Pinia 스토어에서 authStore를 가져옵니다.
     const authStore = useAuthStore()
 
-    // 5. 스토어에 accessToken이 있는지 확인합니다.
-    if (authStore.accessToken) {
-      // 6. 헤더에 'Authorization' 토큰을 추가합니다.
-      config.headers['Authorization'] = `Bearer ${authStore.accessToken}`
+    // 메모리에 없으면 localStorage에서 가져오기
+    let token = authStore.accessToken
+
+    if (!token) {
+      // Pinia persist가 아직 로드되지 않았을 수 있으므로 localStorage 직접 확인
+      const persistedAuth = localStorage.getItem('auth')
+      if (persistedAuth) {
+        try {
+          const parsed = JSON.parse(persistedAuth)
+          token = parsed.accessToken
+          console.log('[Axios Interceptor] localStorage에서 accessToken 복원')
+        } catch (e) {
+          console.error('[Axios Interceptor] localStorage 파싱 실패:', e)
+        }
+      }
     }
 
-    // FormData 처리: FormData인 경우 Content-Type을 자동 설정하도록 함
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
+      console.log('[Axios Interceptor] Authorization 헤더 추가됨')
+    } else {
+      console.warn('[Axios Interceptor] accessToken이 없습니다.')
+    }
+
+    // FormData 처리
     if (config.data instanceof FormData) {
-      // FormData의 경우 Content-Type을 삭제 (axios가 자동으로 multipart/form-data 설정)
       delete config.headers['Content-Type']
     } else if (!config.headers['Content-Type']) {
-      // FormData가 아니고 Content-Type이 설정되지 않은 경우에만 application/json 설정
       config.headers['Content-Type'] = 'application/json'
     }
 

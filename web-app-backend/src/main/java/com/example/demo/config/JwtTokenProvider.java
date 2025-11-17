@@ -1,6 +1,7 @@
 package com.example.demo.config;
 
-import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,9 +69,16 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token);
             return true;
+        } catch (ExpiredJwtException expired) {
+            System.err.println("❌ 토큰 만료됨: " + expired.getMessage());
+            return false;
+        } catch (SignatureException signature) { // 👈 SignatureException 추가
+            // 서명 불일치 -> 비밀 키가 다름
+            System.err.println("❌ 서명 불일치 (비밀 키 불일치 유력): " + signature.getMessage());
+            return false;
         } catch (Exception e) {
-            // (JwtException, SecurityException, MalformedJwtException, ExpiredJwtException 등)
-            System.err.println("유효하지 않은 토큰입니다: " + e.getMessage());
+            // 형식 오류, 권한 문제 등 기타 문제
+            System.err.println("❌ 기타 유효하지 않은 토큰 문제: " + e.getMessage());
             return false;
         }
     }
