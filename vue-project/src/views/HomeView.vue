@@ -97,7 +97,7 @@
                 </ul>
 
                 <p v-else class="chalkboard-no-data">
-                  {{ selectedSemester }}에는 교과 정보가 준비 중이에요. 다른 학기나 과목을 선택해볼까요?
+                  {{ selectedSemester }}에는 배우지 않아요!<br>다른 학기나 과목을 선택해볼까요?
                 </p>
               </div>
             </div>
@@ -892,8 +892,9 @@ export default {
   /* ↑ */
   color: #E5E7EB;
   font-weight: 500;
-  padding: 24px 16px;
+  padding: 16px;
   text-align: center;
+  margin: 0;
 }
 
 /* 받침대 + 분필 + 지우개 */

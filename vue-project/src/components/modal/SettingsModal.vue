@@ -81,8 +81,8 @@ export default {
 }
 
 .modal-dialog {
-  width: 90%;
-  max-width: 500px;
+  width: 80%;
+  max-width: 300px;
   height: auto;
   max-height: 90vh;
   background-color: #ffffff;

@@ -80,6 +80,14 @@
             </div>
             <i class="bi bi-chevron-right list-chevron"></i>
           </li>
+        </ul>
+      </section>
+
+      <section class="mypage-section">
+        <div class="mypage-section-header">
+          <h5 class="mypage-section-title">공지사항</h5>
+        </div>
+        <ul class="mypage-list">
           <li class="mypage-list-item" @click="goToNotice">
             <div class="list-left">
               <span class="list-icon bell">
@@ -91,6 +99,7 @@
           </li>
         </ul>
       </section>
+
       <section class="mypage-section">
         <div class="mypage-section-header">
           <h5 class="mypage-section-title">계정</h5>
