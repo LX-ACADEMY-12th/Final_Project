@@ -336,7 +336,7 @@
             COUNT(rr.review_id) AS reportCount,
             -- 대상 이름 조회 (전시 또는 답사 장소 이름)
             CASE r.target_type
-                WHEN 'exhibition' THEN e.exhibition_name
+                WHEN 'exhibition' THEN eh.hall_name
                 WHEN 'science_place' THEN sp.place_name
                 ELSE '알 수 없음'
                 END AS targetName
@@ -350,7 +350,7 @@
             review_report rr ON r.review_id = rr.review_id
                 -- 3. 대상 이름 조회를 위한 LEFT JOIN (전시 테이블)
                 LEFT JOIN
-            exhibition e ON r.target_type = 'exhibition' AND r.target_id = e.exhibition_id
+            exhibition_hall AS eh ON r.target_type = 'exhibition' AND r.target_id = eh.hall_id
                 -- 4. 대상 이름 조회를 위한 LEFT JOIN (답사 장소 테이블)
                 LEFT JOIN
             science_place sp ON r.target_type = 'science_place' AND r.target_id = sp.place_id
@@ -360,7 +360,7 @@
                 AND r.target_type = #{targetType}
             </if>
         GROUP BY
-            r.review_id, u.name, e.exhibition_name, sp.place_name, r.target_type, r.target_id, r.content, r.rating, r.created_at, r.user_id
+            r.review_id, u.name, eh.hall_name, sp.place_name, r.target_type, r.target_id, r.content, r.rating, r.created_at, r.user_id
         ORDER BY
             r.created_at DESC,
             reportCount DESC,
