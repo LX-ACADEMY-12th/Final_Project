@@ -37,40 +37,80 @@ public interface AdminContentMapper {
     int updateExhibition(AdminExhibitionDetailDTO exhibitionDTO);
     int updateSciencePlace(AdminPlaceDetailDTO placeDTO);
 
-    // 6. Delete
+    // 6. Delete (기존 매퍼)
     int deleteHall(Long id);
-    int deleteAiCourseItemsByExhibitionId(Long exhibitionId);
-    int deleteAiCoursesByExhibitionId(Long exhibitionId);
     int deleteExhibition(Long id);
     int deletePlace(Long id);
 
+    // 6. Delete (기존에 있었으나 이제 사용하지 않을 가능성이 높은 단일 삭제 매퍼들)
+    int deleteAiCourseItemsByExhibitionId(Long exhibitionId);
+    int deleteAiCoursesByExhibitionHallId(Long exhibitionId);
+    int deleteExhibitionGradeMappings(Long id);
+    int deleteExhibitionCurriculumMappings(@Param("id") Long id);
+    int deletePlaceGradeMappings(@Param("id") Long id);
+    int deletePlaceCurriculumMappings(@Param("id") Long id);
+
+
     // ====================================================================
-    // 6-A. [추가] 외래 키 종속성 해결을 위한 Mapper 메서드
+    // 6-A. [추가] 외래 키 종속성 해결을 위한 Mapper 메서드 (Hall 로직용)
     // ====================================================================
 
-    // 6-A-1. AI 코스 ID 목록 조회 (삭제할 AI 코스 목록을 먼저 식별)
-    List<Long> findAiCourseIdsByExhibitionId(Long exhibitionId);
+    // A. AI 코스 계층 정리 (Hall ID 기준)
+    @Deprecated
+    List<Long> findAiCourseIdsByHallId(@Param("hallId") Long hallId);
 
-    // 6-A-2. final_schedule에서 AI 코스 ID 목록을 참조하는 행 삭제 (FK 오류 해결)
+    int deleteFinalScheduleItemsByHallId(@Param("hallId") Long hallId);
+    int deleteAiCourseItemsByHallId(@Param("hallId") Long hallId);
+
+    // final_schedule ID 조회 (Hall용 - source_inner_course_id)
+    List<Long> findFinalScheduleIdsByAiCourseIds(@Param("list") List<Long> aiCourseIds);
+    // final_schedule ID 조회 (Place용 - source_ai_course_id)
+    List<Long> findFinalScheduleIdsByAiCourseIds2(@Param("list") List<Long> aiCourseIds);
+
+    // final_schedule 삭제 (Hall용)
     int deleteFinalSchedulesByAiCourseIds(@Param("list") List<Long> aiCourseIds);
+    // final_schedule 삭제 (Place용)
+    int deleteFinalSchedulesByAiCourseIds2(@Param("list") List<Long> aiCourseIds);
 
-    // 6-A-3. ai_course_item에서 AI 코스 ID 목록을 참조하는 행 삭제 (이전 FK 오류 해결)
-    int deleteAiCourseItemsByAiCourseIds(@Param("list") List<Long> aiCourseIds);
+    // final_schedule_item 정리 (schedule_id 기준)
+    int deleteFinalScheduleItemsByScheduleIds(@Param("list") List<Long> aiCourseIds);
 
-    // 7. N:M Mappings
+    int deleteAiCoursesByHallId(@Param("hallId") Long hallId);
+
+
+    // B. Exhibition 계층 정리 (Hall ID 기준)
+    List<Long> findExhibitionIdsByHallId(@Param("hallId") Long hallId);
+    int deleteExhibitionGradeMappingsByExhibitionIds(@Param("list") List<Long> exhibitionIds);
+    int deleteExhibitionCurriculumMappingsByExhibitionIds(@Param("list") List<Long> exhibitionIds);
+    int deleteExhibitionsByIds(@Param("list") List<Long> exhibitionIds);
+
+    // C. Wishlist 정리
+    int deleteWishlistsByTargetIdAndType(@Param("targetId") Long targetId, @Param("targetType") String targetType);
+
+
+    // D. [신규] Place 삭제 전용 매퍼
+    int deleteFinalScheduleItemsByPlaceId(@Param("placeId") Long id);
+    int deleteAiCourseItemsByPlaceId(@Param("placeId") Long id);
+    List<Long> findAiCourseIdsByPlaceId(@Param("placeId") Long id);
+    int deleteAiCoursesByPlaceId(@Param("placeId") Long id);
+
+    // ai_recommend 정리 (ai_recommended_course_id 기준)
+    int deleteAiRecommendItemsByAiCourseIds(@Param("list") List<Long> aiCourseIds);
+    int deleteAiRecommendsByAiCourseIds(@Param("list") List<Long> aiCourseIds);
+
+    // 7. N:M Mappings (Insert)
     int insertExhibitionGradeMappings(@Param("exhibitionId") Long exhibitionId, @Param("gradeIds") List<Long> gradeIds);
     int insertExhibitionCurriculumMappings(@Param("exhibitionId") Long exhibitionId, @Param("subCategoryIds") List<Long> subCategoryIds);
     int insertPlaceGradeMappings(@Param("placeId") Long placeId, @Param("gradeIds") List<Long> gradeIds);
     int insertPlaceCurriculumMappings(@Param("placeId") Long placeId, @Param("subCategoryIds") List<Long> subCategoryIds);
 
-    int deleteExhibitionGradeMappings(Long id);
-    int deleteExhibitionCurriculumMappings(Long id);
-    int deletePlaceGradeMappings(Long id);
-    int deletePlaceCurriculumMappings(Long id);
-
-    // ========== [신규] Modal 공통 데이터 Mappers ==========
-
+    // 8. Modal 공통 데이터 Mappers
     List<AdminSimpleHallDTO> findSimpleHallList();
     List<AdminGradeCategoryDTO> findAllGradeCategories();
     List<AdminSubCategoryDetailDTO> findAllSubCategoryDetails();
+
+    @Deprecated
+    List<Long> findAiCourseIdsByExhibitionHallId(Long exhibitionIHallId);
+    @Deprecated
+    int deleteAiCourseItemsByAiCourseIds(@Param("list") List<Long> aiCourseIds);
 }

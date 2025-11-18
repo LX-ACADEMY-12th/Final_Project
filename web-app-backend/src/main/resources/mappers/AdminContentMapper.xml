@@ -91,6 +91,71 @@
         SELECT sub_category_id FROM place_curriculum_mapping WHERE place_id = #{id}
     </select>
 
+    <select id="findSimpleHallList" resultType="com.example.demo.dto.AdminSimpleHallDTO">
+        SELECT
+            hall_id AS hallId,
+            hall_name AS hallName
+        FROM exhibition_hall
+        ORDER BY hall_name
+    </select>
+
+    <select id="findAllGradeCategories" resultType="com.example.demo.dto.AdminGradeCategoryDTO">
+        SELECT
+            grade_id AS gradeId,
+            grade_name AS gradeName
+        FROM grade_category
+        ORDER BY grade_id
+    </select>
+
+    <select id="findAllSubCategoryDetails" resultType="com.example.demo.dto.AdminSubCategoryDetailDTO">
+        SELECT
+            csc.sub_category_id AS subCategoryId,
+            csc.sub_category_name AS subCategoryName,
+            g.grade_name AS gradeName,
+            cmc.category_name AS mainCategoryName
+        FROM curriculum_sub_category csc
+                 JOIN grade_category g ON csc.grade_id = g.grade_id
+                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
+        ORDER BY g.grade_id, cmc.main_category_id, csc.sub_category_id
+    </select>
+
+    <select id="findAiCourseIdsByHallId" resultType="Long">
+        SELECT ai_course_id
+        FROM ai_recommended_course
+        WHERE source_exhibition_hall_id = #{hallId}
+    </select>
+
+    <select id="findAiCourseIdsByPlaceId" resultType="Long">
+        SELECT ai_course_id
+        FROM ai_recommended_course
+        WHERE source_place_id = #{placeId}
+    </select>
+
+    <select id="findExhibitionIdsByHallId" resultType="Long">
+        SELECT exhibition_id
+        FROM exhibition
+        WHERE hall_id = #{hallId}
+    </select>
+
+    <select id="findFinalScheduleIdsByAiCourseIds" resultType="Long">
+        SELECT schedule_id
+        FROM final_schedule
+        WHERE source_inner_course_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="findFinalScheduleIdsByAiCourseIds2" resultType="Long">
+        SELECT schedule_id
+        FROM final_schedule
+        WHERE source_ai_course_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+
     <insert id="insertExhibitionHall" parameterType="com.example.demo.dto.AdminHallDetailDTO" useGeneratedKeys="true" keyProperty="hallId" keyColumn="hall_id">
         INSERT INTO exhibition_hall (
         hall_name, science_center_name, address_detail, latitude, longitude, main_image_url,
@@ -107,7 +172,7 @@
         admission_fee, opening_hours, main_image_url, description, geog
         ) VALUES (
         #{exhibitionName}, #{hallId}, #{latitude}, #{longitude}, #{type}, #{startDate}, #{endDate},
-        #{admissionFee}, #{openingHours}, #{mainImageUrl}, #{description},
+        #{admission_fee}, #{openingHours}, #{mainImageUrl}, #{description},
         <include refid="createGeogPoint"/>
         )
     </insert>
@@ -120,6 +185,31 @@
         #{admissionFee}, #{openingHours}, #{placeType},
         <include refid="createGeogPoint"/>
         )
+    </insert>
+
+    <insert id="insertExhibitionGradeMappings">
+        INSERT INTO exhibition_grade_mapping (exhibition_id, grade_id) VALUES
+        <foreach collection="gradeIds" item="gradeId" separator=",">
+            (#{exhibitionId}, #{gradeId})
+        </foreach>
+    </insert>
+    <insert id="insertExhibitionCurriculumMappings">
+        INSERT INTO exhibition_curriculum_mapping (exhibition_id, sub_category_id) VALUES
+        <foreach collection="subCategoryIds" item="subCategoryId" separator=",">
+            (#{exhibitionId}, #{subCategoryId})
+        </foreach>
+    </insert>
+    <insert id="insertPlaceGradeMappings">
+        INSERT INTO place_grade_mapping (place_id, grade_id) VALUES
+        <foreach collection="gradeIds" item="gradeId" separator=",">
+            (#{placeId}, #{gradeId})
+        </foreach>
+    </insert>
+    <insert id="insertPlaceCurriculumMappings">
+        INSERT INTO place_curriculum_mapping (place_id, sub_category_id) VALUES
+        <foreach collection="subCategoryIds" item="subCategoryId" separator=",">
+            (#{placeId}, #{subCategoryId})
+        </foreach>
     </insert>
 
     <update id="updateExhibitionHall" parameterType="com.example.demo.dto.AdminHallDetailDTO">
@@ -173,38 +263,42 @@
     <delete id="deleteExhibition"> DELETE FROM exhibition WHERE exhibition_id = #{id} </delete>
     <delete id="deletePlace"> DELETE FROM science_place WHERE place_id = #{id} </delete>
 
-    <insert id="insertExhibitionGradeMappings">
-        INSERT INTO exhibition_grade_mapping (exhibition_id, grade_id) VALUES
-        <foreach collection="gradeIds" item="gradeId" separator=",">
-            (#{exhibitionId}, #{gradeId})
-        </foreach>
-    </insert>
-    <insert id="insertExhibitionCurriculumMappings">
-        INSERT INTO exhibition_curriculum_mapping (exhibition_id, sub_category_id) VALUES
-        <foreach collection="subCategoryIds" item="subCategoryId" separator=",">
-            (#{exhibitionId}, #{subCategoryId})
-        </foreach>
-    </insert>
-    <insert id="insertPlaceGradeMappings">
-        INSERT INTO place_grade_mapping (place_id, grade_id) VALUES
-        <foreach collection="gradeIds" item="gradeId" separator=",">
-            (#{placeId}, #{gradeId})
-        </foreach>
-    </insert>
-    <insert id="insertPlaceCurriculumMappings">
-        INSERT INTO place_curriculum_mapping (place_id, sub_category_id) VALUES
-        <foreach collection="subCategoryIds" item="subCategoryId" separator=",">
-            (#{placeId}, #{subCategoryId})
-        </foreach>
-    </insert>
-    <!-- 1. AI 코스 ID 목록 조회 -->
-    <select id="findAiCourseIdsByExhibitionId" resultType="Long">
-        SELECT ai_course_id
-        FROM ai_recommended_course
-        WHERE source_exhibition_id = #{exhibitionId}
-    </select>
+    <delete id="deleteFinalScheduleItemsByHallId">
+        DELETE FROM final_schedule_item
+        WHERE item_id1 = #{hallId}
+    </delete>
 
-    <!-- 2. final_schedule에서 참조되는 데이터 삭제 -->
+    <delete id="deleteFinalScheduleItemsByPlaceId">
+        DELETE FROM final_schedule_item
+        WHERE item_id1 = #{placeId}
+    </delete>
+
+    <delete id="deleteAiCourseItemsByHallId">
+        DELETE FROM ai_course_item
+        WHERE exhibition_hall_id = #{hallId}
+    </delete>
+
+    <delete id="deleteAiCourseItemsByPlaceId">
+        DELETE FROM ai_course_item
+        WHERE place_id = #{placeId}
+    </delete>
+
+    <delete id="deleteFinalScheduleItemsByScheduleIds">
+        DELETE FROM final_schedule_item
+        WHERE schedule_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteFinalSchedulesByAiCourseIds2">
+        DELETE FROM final_schedule
+        WHERE source_ai_course_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
     <delete id="deleteFinalSchedulesByAiCourseIds">
         DELETE FROM final_schedule
         WHERE source_inner_course_id IN
@@ -213,9 +307,48 @@
         </foreach>
     </delete>
 
-    <!-- 3. ai_course_item에서 참조되는 데이터 삭제 -->
-    <delete id="deleteAiCourseItemsByAiCourseIds">
+
+    <delete id="deleteAiCoursesByHallId">
+        DELETE FROM ai_recommended_course WHERE source_exhibition_hall_id = #{hallId}
+    </delete>
+
+    <delete id="deleteAiCoursesByPlaceId">
+        DELETE FROM ai_recommended_course WHERE source_place_id = #{placeId}
+    </delete>
+
+    <delete id="deleteAiRecommendItemsByAiCourseIds">
         DELETE FROM ai_course_item
+        WHERE ai_course_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteAiRecommendsByAiCourseIds">
+        DELETE FROM ai_recommended_course
+        WHERE ai_course_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteExhibitionGradeMappingsByExhibitionIds">
+        DELETE FROM exhibition_grade_mapping
+        WHERE exhibition_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="deleteExhibitionCurriculumMappingsByExhibitionIds">
+        DELETE FROM exhibition_curriculum_mapping
+        WHERE exhibition_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteExhibitionsByIds">
+        DELETE FROM exhibition
         WHERE exhibition_id IN
         <foreach item="id" collection="list" open="(" separator="," close=")">
             #{id}
@@ -228,46 +361,34 @@
     <delete id="deleteExhibitionCurriculumMappings">
         DELETE FROM exhibition_curriculum_mapping WHERE exhibition_id = #{id}
     </delete>
+
     <delete id="deletePlaceGradeMappings">
         DELETE FROM place_grade_mapping WHERE place_id = #{id}
     </delete>
     <delete id="deletePlaceCurriculumMappings">
         DELETE FROM place_curriculum_mapping WHERE place_id = #{id}
     </delete>
+    <delete id="deleteWishlistsByTargetIdAndType">
+        DELETE FROM wishlist
+        WHERE target_id = #{targetId} AND target_type = #{targetType}
+    </delete>
+    <select id="findAiCourseIdsByExhibitionHallId" resultType="Long">
+        SELECT ai_course_id
+        FROM ai_recommended_course
+        WHERE source_exhibition_hall_id = #{exhibitionIHallId}
+    </select>
+    <delete id="deleteAiCourseItemsByAiCourseIds">
+        DELETE FROM ai_course_item
+        WHERE exhibition_hall_id IN
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
     <delete id="deleteAiCourseItemsByExhibitionId">
-        DELETE FROM ai_course_item WHERE exhibition_id = #{exhibitionId}
+        DELETE FROM ai_course_item WHERE exhibition_hall_id = #{exhibitionId}
     </delete>
-    <delete id="deleteAiCoursesByExhibitionId">
-        DELETE FROM ai_recommended_course WHERE source_exhibition_id = #{exhibitionId}
+    <delete id="deleteAiCoursesByExhibitionHallId">
+        DELETE FROM ai_recommended_course WHERE source_exhibition_hall_id = #{exhibitionId}
     </delete>
-
-    <select id="findSimpleHallList" resultType="com.example.demo.dto.AdminSimpleHallDTO">
-        SELECT
-            hall_id AS hallId,
-            hall_name AS hallName
-        FROM exhibition_hall
-        ORDER BY hall_name
-    </select>
-
-    <select id="findAllGradeCategories" resultType="com.example.demo.dto.AdminGradeCategoryDTO">
-        SELECT
-            grade_id AS gradeId,
-            grade_name AS gradeName
-        FROM grade_category
-        ORDER BY grade_id
-    </select>
-
-    <select id="findAllSubCategoryDetails" resultType="com.example.demo.dto.AdminSubCategoryDetailDTO">
-        SELECT
-            csc.sub_category_id AS subCategoryId,
-            csc.sub_category_name AS subCategoryName,
-            g.grade_name AS gradeName,
-            cmc.category_name AS mainCategoryName
-        FROM curriculum_sub_category csc
-                 JOIN grade_category g ON csc.grade_id = g.grade_id
-                 JOIN curriculum_main_category cmc ON csc.main_category_id = cmc.main_category_id
-        ORDER BY g.grade_id, cmc.main_category_id, csc.sub_category_id
-    </select>
-
 
 </mapper>
