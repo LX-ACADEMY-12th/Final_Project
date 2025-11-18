@@ -532,7 +532,7 @@ onBeforeUnmount(() => {
 }
 .canvas-host {
   width: 100%;
-  min-height: 340px;
+  min-height: 220px;
   background: #FFFFFF;
 }
 .canvas-host :deep(canvas) {

@@ -1220,13 +1220,13 @@ export default {
           // 찜 삭제
           await axios.delete(`/api/wishlist`, { data: requestData });
           this.isWished = false;
-          eventBus.emit('show-global-alert', { message: '찜 목록에서 삭제되었습니다.', type: 'success' });
+          eventBus.emit('show-global-alert', { message: '관심 목록에서 삭제되었습니다.', type: 'success' });
         } else {
           // 찜 추가
           await axios.post(`/api/wishlist`, requestData);
           console.log('[wishlist] add payload:', requestData);
           this.isWished = true;
-          eventBus.emit('show-global-alert', { message: '찜 목록에 추가되었습니다.', type: 'success' });
+          eventBus.emit('show-global-alert', { message: '관심 목록에 추가되었습니다.', type: 'success' });
         }
       } catch (error) {
         const status = error.response?.status;
@@ -1330,22 +1330,44 @@ export default {
         console.error('스탬프 인증 중 오류:', error);
       }
     },
-
     /**
-     * GPS 좌표 획득 (데모용)
-     * @returns {Promise<Object>} 좌표 객체 {latitude, longitude}
-     */
+    * GPS 좌표 획득 (실제 위치 사용)
+    * @returns {Promise<Object>} 좌표 객체 {latitude, longitude}
+    */
     getUserCoordinates() {
-      console.log('GPS: localhost 임시 좌표 사용');
-      const DEMO_LOCATION = {
-        latitude: 36.3504450,
-        longitude: 126.5909010
-      };
-      return new Promise(resolve => {
-        setTimeout(() => {
-          console.log('GPS 좌표 획득 성공 (임시)', DEMO_LOCATION);
-          resolve(DEMO_LOCATION);
-        }, 500);
+      console.log('GPS: 현재 위치 정보 획득 시도');
+
+      return new Promise((resolve, reject) => {
+        // Geolocation API를 지원하는지 확인
+        if (!navigator.geolocation) {
+          console.error('GPS: Geolocation이 지원되지 않습니다.');
+          reject(new Error("Geolocation not supported"));
+          return;
+        }
+
+        // 현재 위치 정보 획득
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            // 성공 시 처리
+            const realLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+            console.log('GPS 좌표 획득 성공 (실제)', realLocation);
+            resolve(realLocation);
+          },
+          (error) => {
+            // 실패 시 처리 (사용자 거부, 시간 초과 등)
+            console.error('GPS 좌표 획득 실패:', error.code, error.message);
+            reject(error);
+          },
+          {
+            // 옵션 설정
+            enableHighAccuracy: true, // 높은 정확도 (GPS 사용 시도)
+            timeout: 10000,         // 10초 타임아웃
+            maximumAge: 0           // 캐시된 위치 사용 안 함
+          }
+        );
       });
     }
   }

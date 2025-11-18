@@ -8,8 +8,11 @@
     </div>
   </div>
 </template>
+
 <script setup>
 import { ref, onMounted, watch } from 'vue';
+// ✅ 카카오맵 로더 import
+import { isKakaoMapLoaded, loadKakaoMap } from '@/utils/kakaoMapLoader';
 
 // --- Props 정의 ---
 const props = defineProps({
@@ -29,38 +32,47 @@ const props = defineProps({
     type: Number,
     default: 5
   },
-  // 🚨 부모로부터 코스 타입을 받아 경로 로직을 분기합니다.
   pageType: {
     type: String,
-    default: 'place' // 'place' (답사)가 기본, 'exhibition' (전시)는 직선 경로
+    default: 'place'
   }
 });
 
 // --- 맵과 요소들을 참조할 ref ---
-const mapContainer = ref(null); // 템플릿의 div와 연결
-const map = ref(null); // 카카오맵 인스턴스
-const markers = ref([]); // 마커 목록
-const polyline = ref(null); // 폴리라인(선)
-const roadviewContainer = ref(null); // 템플릿의 로드뷰 div와 연결
-const roadview = ref(null); // 카카오 로드뷰 인스턴스
-const isRoadviewActive = ref(false); // 로드뷰 활성 상태
-const rvClient = ref(null); // 로드뷰 PanoID 탐색기
+const mapContainer = ref(null);
+const map = ref(null);
+const markers = ref([]);
+const polyline = ref(null);
+const roadviewContainer = ref(null);
+const roadview = ref(null);
+const isRoadviewActive = ref(false);
+const rvClient = ref(null);
 
-// --- 맵 초기화 (컴포넌트 마운트 시) ---
-onMounted(() => {
-  if (window.kakao && window.kakao.maps) {
-    const options = {
-      center: new window.kakao.maps.LatLng(36.3758, 127.3845),
-      level: props.isSingleLocation ? props.defaultZoomLevel : 5,
-    };
-    map.value = new window.kakao.maps.Map(mapContainer.value, options);
+// ✅ 맵 초기화 (카카오맵 로더 사용)
+onMounted(async () => {
+  try {
+    // 카카오맵이 로드되지 않았다면 대기
+    if (!isKakaoMapLoaded()) {
+      console.log('[CourseMap] 카카오맵 대기 중...');
+      await loadKakaoMap();
+    }
 
-    roadview.value = new window.kakao.maps.Roadview(roadviewContainer.value);
-    rvClient.value = new window.kakao.maps.RoadviewClient();
+    if (window.kakao && window.kakao.maps) {
+      const options = {
+        center: new window.kakao.maps.LatLng(36.3758, 127.3845),
+        level: props.isSingleLocation ? props.defaultZoomLevel : 5,
+      };
+      map.value = new window.kakao.maps.Map(mapContainer.value, options);
 
-    drawCourseOnMap(props.items);
-  } else {
-    console.error('카카오맵 API가 로드되지 않았습니다.');
+      roadview.value = new window.kakao.maps.Roadview(roadviewContainer.value);
+      rvClient.value = new window.kakao.maps.RoadviewClient();
+
+      drawCourseOnMap(props.items);
+    } else {
+      console.error('[CourseMap] 카카오맵 API가 로드되지 않았습니다.');
+    }
+  } catch (error) {
+    console.error('[CourseMap] 지도 초기화 실패:', error);
   }
 });
 
@@ -70,30 +82,26 @@ watch(() => props.items, (newItems) => {
   drawCourseOnMap(newItems);
 
   if (isRoadviewActive.value) {
-    toggleRoadview(false); // 지도로 복귀
+    toggleRoadview(false);
   }
 });
 
-// 🚨 [수정] API 키와 URL을 사용하여 경로 데이터를 가져오는 비동기 함수
+// API 경로 가져오기
 const getRoutePathFromAPI = async (items) => {
-  // 🚨 [분기 로직 추가] pageType이 'exhibition'이면 API 호출 건너뛰고 null 반환
   if (props.pageType === 'exhibition') {
     console.log('[API] pageType이 "exhibition"이므로 API 경로 계산을 건너뛰고 직선 경로를 사용합니다.');
     return null;
   }
 
-  // 1. items가 2개 미만이면 (경로 계산 불필요) null을 반환합니다.
   if (items.length < 2) {
     console.warn('[API] 경로를 계산하기에 아이템이 부족합니다.');
     return null;
   }
 
-  // 2. 출발지, 목적지, 경유지를 items 배열에서 분리합니다.
   const origin = items[0];
   const destination = items[items.length - 1];
   const waypoints = items.slice(1, -1);
 
-  // 3. API 요청 본문(Payload)을 구성합니다.
   const payload = {
     origin: { x: origin.lng.toString(), y: origin.lat.toString() },
     destination: { x: destination.lng.toString(), y: destination.lat.toString() },
@@ -101,12 +109,10 @@ const getRoutePathFromAPI = async (items) => {
     priority: "TIME",
   };
 
-  // 4. 환경 변수에서 REST API 키를 가져옵니다.
   const API_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
   const API_URL = 'https://apis-navi.kakaomobility.com/v1/waypoints/directions';
 
   try {
-    // 5. fetch를 사용하여 POST 요청을 보냅니다.
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -122,7 +128,6 @@ const getRoutePathFromAPI = async (items) => {
 
     const data = await response.json();
 
-    // 6. 응답 데이터(data)에서 경로 좌표를 추출합니다.
     if (data.routes && data.routes.length > 0) {
       const route = data.routes[0];
       const allPoints = [];
@@ -147,11 +152,10 @@ const getRoutePathFromAPI = async (items) => {
   }
 };
 
-// [신규] 로드뷰 <-> 지도 토글 함수
+// 로드뷰 토글
 const toggleRoadview = (showRoadview) => {
   isRoadviewActive.value = showRoadview;
   if (showRoadview) {
-    // --- 로드뷰 켜기 ---
     if (!props.items || props.items.length === 0) return;
     const item = props.items[0];
     const position = new window.kakao.maps.LatLng(Number(item.lat), Number(item.lng));
@@ -168,12 +172,11 @@ const toggleRoadview = (showRoadview) => {
           });
         } else {
           alert('이 위치에는 로드뷰 정보가 없습니다.');
-          isRoadviewActive.value = false; // 다시 지도로 강제 복귀
+          isRoadviewActive.value = false;
         }
       });
     }, 0);
   } else {
-    // --- 지도 켜기 ---
     if (map.value) {
       setTimeout(() => {
         map.value.relayout();
@@ -190,7 +193,7 @@ const toggleRoadview = (showRoadview) => {
   }
 };
 
-// --- 기존 맵 요소들(핀, 선) 제거 함수 ---
+// 맵 요소 제거
 const clearMapElements = () => {
   if (markers.value.length > 0) {
     markers.value.forEach(overlay => overlay.setMap(null));
@@ -202,10 +205,9 @@ const clearMapElements = () => {
   }
 };
 
-// [수정] bounds 변수를 함수 밖(전역)으로 이동
 let bounds = null;
 
-// --- 맵에 핀과 선을 그리는 핵심 함수 ---
+// 맵에 핀과 선 그리기
 const drawCourseOnMap = async (items) => {
   console.log('[CourseMap] drawCourseOnMap 호출됨 / pageType:', props.pageType);
 
@@ -221,9 +223,7 @@ const drawCourseOnMap = async (items) => {
 
   bounds = new window.kakao.maps.LatLngBounds();
 
-
   items.forEach((item, index) => {
-    // 🚨 [유효성 검사]: 좌표가 없거나 NaN이면 건너뜁니다.
     if (item.lat == null || item.lng == null || isNaN(Number(item.lat)) || isNaN(Number(item.lng))) {
       console.error(`[CourseMap] 아이템 ${index}의 좌표가 유효하지 않습니다. 마커 생성을 건너뜁니다.`, item);
       return;
@@ -269,15 +269,12 @@ const drawCourseOnMap = async (items) => {
 
   markers.value = newMarkers;
 
-  // 🚨 --- 2. 단일 위치 모드일 때 경로 생성 로직 건너뛰기 (핵심 수정) ---
   if (props.isSingleLocation) {
     console.log('[CourseMap] 단일 위치 모드. 경로를 그리지 않고 마커만 표시합니다.');
   } else {
-    // 🚨 [핵심 수정] pageType이 'exhibition'이면 API 호출 없이 straightPath 사용
     let polylinePath = straightPath;
     if (props.pageType !== 'exhibition') {
       const apiPath = await getRoutePathFromAPI(items);
-      // API 경로가 성공하면 그것을 사용하고, 실패하면 straightPath를 사용
       if (apiPath) {
         polylinePath = apiPath;
         console.log('[CourseMap] API 경로 사용 완료.');
@@ -288,7 +285,6 @@ const drawCourseOnMap = async (items) => {
       console.log('[CourseMap] "exhibition" 타입이므로 직선 경로를 사용합니다.');
     }
 
-    // --- 폴리라인(선) 생성 ---
     if (polylinePath.length > 1) {
       try {
         const newPolyline = new window.kakao.maps.Polyline({
@@ -308,16 +304,14 @@ const drawCourseOnMap = async (items) => {
       console.log('[CourseMap] 폴리라인을 그리기에 점이 부족합니다.');
     }
   }
-  // --- 3. 지도 범위/중심 설정 (공통) ---
+
   if (!bounds.isEmpty()) {
     if (props.isSingleLocation) {
-      // 단일 모드일 때: 중심점 설정 + 고정 줌 레벨
       const centerPosition = new window.kakao.maps.LatLng(Number(items[0].lat), Number(items[0].lng));
       map.value.setCenter(centerPosition);
       map.value.setLevel(props.defaultZoomLevel);
     } else {
       try {
-        // 복수 모드일 때: 경계 설정
         map.value.setBounds(bounds);
       } catch (boundsError) {
         console.error('[CourseMap] 지도 범위 설정 중 오류 발생:', boundsError, bounds);
@@ -328,7 +322,7 @@ const drawCourseOnMap = async (items) => {
   }
 };
 
-// --- 마커 색상 결정 함수
+// 마커 색상 결정
 const getCourseItemColor = (itemNumber) => {
   const colors = ['#FF5A5A', '#4A7CEC', '#28A745', '#FFC107', '#DC3545', '#6F42C1', '#E83E8C'];
   if (typeof itemNumber !== 'number' || isNaN(itemNumber) || itemNumber < 1) {
@@ -337,7 +331,7 @@ const getCourseItemColor = (itemNumber) => {
   return colors[(itemNumber - 1) % colors.length];
 }
 
-// --- 마커 SVG 이미지 생성 함수
+// 마커 SVG 이미지 생성
 const createMarkerImage = (number, color) => {
   const svg = `
   <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
@@ -351,8 +345,8 @@ const createMarkerImage = (number, color) => {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 };
 </script>
+
 <style scoped>
-/* 맵/로드뷰를 감싸는 부모 */
 .map-rv-container {
   position: relative;
   width: 100%;
@@ -360,20 +354,17 @@ const createMarkerImage = (number, color) => {
   background-color: #eee;
 }
 
-/* 맵 컨테이너의 크기를 지정해야 합니다. */
 .course-map {
   width: 100%;
   height: 250px;
   background-color: #eee;
 }
 
-/* 맵과 로드뷰 div 공통 스타일 */
 .course-map {
   width: 100%;
   height: 100%;
 }
 
-/* 토글 버튼 스타일 */
 .map-toggle-buttons {
   position: absolute;
   top: 10px;
@@ -401,25 +392,18 @@ const createMarkerImage = (number, color) => {
   border-radius: 5px;
 }
 </style>
+
 <style>
-/* [중요]
- CustomOverlay의 스타일은 <style scoped>가 아닌
- 일반 <style> 태그에 정의해야 카카오맵이 인식할 수 있습니다.
-*/
 .custom-marker {
-  /* [요청 1] 동그란 핀 */
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  /* [요청 2] 색상 - 인라인 스타일(style=...)로 적용됨 */
-  /* [요청 3] 숫자 - 텍스트 스타일 */
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: bold;
   color: white;
-  /* 그림자 및 테두리 (디자인 개선) */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 </style>

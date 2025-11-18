@@ -1,8 +1,17 @@
 <template>
   <div class="course-card" style="font-family: 'SUIT', sans-serif" @click="handleCardClick">
-    <div class="map-container" ref="mapContainer" @click.stop="handleMapClick">
+    <!-- ✅ courseCoordinates가 없으면 지도 영역 자체를 렌더링하지 않음 -->
+    <div v-if="courseCoordinates.length > 0" class="map-container" ref="mapContainer" @click.stop="handleMapClick">
       <div v-if="!mapGenerated" class="map-placeholder">
         지도 생성 중...
+      </div>
+    </div>
+
+    <!-- ✅ courseCoordinates가 없으면 플레이스홀더 이미지 표시 -->
+    <div v-else class="map-container">
+      <div class="map-fallback">
+        <img src="https://placehold.co/149x126/e9ecef/6c757d?text=No+Map" alt="지도 없음"
+          style="width: 100%; height: 100%; object-fit: cover;">
       </div>
     </div>
 
@@ -25,6 +34,8 @@
 
 <script>
 import PillTag from '@/components/tag/PillTag.vue';
+// ✅ 카카오맵 로더 import
+import { isKakaoMapLoaded, loadKakaoMap } from '@/utils/kakaoMapLoader';
 
 export default {
   name: 'UserLikeCourseCard',
@@ -45,23 +56,21 @@ export default {
       polyline: null,
       mapWidth: 149,
       mapHeight: 126,
-      routePath: []
+      routePath: [],
+      isUnmounting: false,
+      mapInitAttempted: false
     };
   },
   computed: {
-    // 🚨 [추가] 전시 코스 여부 확인
     isExhibitionCourse() {
-      // 백엔드 타입 'inner_course'를 사용하여 전시 코스인지 확인
       return this.item.type === 'inner_course';
     },
 
     courseSequenceText() {
-      // 기존 coursePlaces 배열 사용 (하위 호환성)
       if (Array.isArray(this.item.coursePlaces) && this.item.coursePlaces.length > 0) {
         return this.item.coursePlaces.join(' → ');
       }
 
-      // 새로운 courseItems 배열 사용
       if (Array.isArray(this.item.courseItems) && this.item.courseItems.length > 0) {
         return this.item.courseItems
           .map(courseItem => courseItem.title || courseItem.place)
@@ -71,7 +80,6 @@ export default {
       return '코스 정보가 없습니다.';
     },
 
-    // 코스 장소들의 좌표 배열
     courseCoordinates() {
       if (!this.item.courseItems || !Array.isArray(this.item.courseItems)) {
         return [];
@@ -88,70 +96,87 @@ export default {
     }
   },
   mounted() {
-    this.$nextTick(() => {
-      this.initializeMap();
-    });
+    if (this.courseCoordinates.length > 0) {
+      // ✅ 약간의 지연을 주어 여러 카드가 동시에 로드될 때 성능 개선
+      setTimeout(() => {
+        this.initializeMap();
+      }, 100);
+    } else {
+      console.log('코스 좌표가 없어 지도를 생성하지 않습니다:', this.item.id);
+    }
   },
   watch: {
     'item.courseItems': {
-      handler() {
-        if (this.map) {
-          this.updateMapWithCourse();
+      handler(newVal) {
+        if (this.isUnmounting) return;
+
+        if (newVal && Array.isArray(newVal) && newVal.length > 0) {
+          if (this.map) {
+            this.updateMapWithCourse();
+          } else if (!this.mapInitAttempted) {
+            this.initializeMap();
+          }
         }
       },
       deep: true
     }
   },
   beforeUnmount() {
+    this.isUnmounting = true;
     this.clearMap();
   },
   methods: {
-    // 카드 클릭 핸들러, 부모에게 'click' 이벤트를 전달
     handleCardClick(event) {
       console.log('🔵 UserLikeCourseCard clicked!', event.target);
       console.log('🔵 Item data:', this.item);
-      this.$emit('click', this.item); // 아이템 데이터도 함께 전달
+      this.$emit('click', this.item);
     },
 
-    // 지도 클릭 시에도 카드 클릭으로 처리
     handleMapClick(event) {
       console.log('🗺️ Map area clicked, triggering card click');
       event.stopPropagation();
       this.handleCardClick(event);
     },
 
-    // 콘텐츠 영역 클릭
     handleContentClick() {
-      // 이벤트 버블링으로 자동으로 handleCardClick 실행됨
       console.log('📝 Content area clicked');
     },
 
-    // 하트 아이콘 클릭 (카드 클릭과 분리)
     handleHeartClick(event) {
       console.log('❤️ Heart icon clicked');
-      event.stopPropagation(); // 카드 클릭 이벤트 차단
-      // 찜하기 로직 추가
+      event.stopPropagation();
     },
 
-    // 지도 초기화
+    // ✅ 수정: 카카오맵 로더 사용
     async initializeMap() {
-      if (!window.kakao || !window.kakao.maps) {
-        console.error('카카오맵 API가 로드되지 않았습니다.');
-        this.showFallbackImage();
+      if (this.mapInitAttempted || this.isUnmounting) return;
+
+      this.mapInitAttempted = true;
+
+      if (this.courseCoordinates.length === 0) {
+        console.log('좌표가 없어 지도 초기화를 건너뜁니다.');
         return;
       }
 
       try {
+        // ✅ 카카오맵이 로드되지 않았다면 대기
+        if (!isKakaoMapLoaded()) {
+          console.log('[UserLikeCourseCard] 카카오맵 대기 중...');
+          await loadKakaoMap();
+        }
+
+        if (!window.kakao || !window.kakao.maps) {
+          console.error('카카오맵 API가 로드되지 않았습니다.');
+          return;
+        }
+
         await this.createCourseMap();
       } catch (error) {
         console.error('지도 생성 실패:', error);
-        this.showFallbackImage();
       }
     },
 
-    // 🚨 [수정] 카카오 모빌리티 API 호출 함수 (전시 코스 분기 처리)
     async getRoutePathFromAPI(coordinates) {
-      // 🚨 [분기] 전시 코스일 경우 API 호출 건너뛰고 null 반환 (직선 경로 사용 유도)
       if (this.isExhibitionCourse) {
         console.log('[API] 전시 코스이므로 API 경로 계산을 건너뛰고 직선 경로를 사용합니다.');
         return null;
@@ -200,8 +225,8 @@ export default {
             section.roads.forEach(road => {
               road.vertexes.forEach((coord, index) => {
                 if (index % 2 === 0) {
-                  const x = coord; // 경도 (lng)
-                  const y = road.vertexes[index + 1]; // 위도 (lat)
+                  const x = coord;
+                  const y = road.vertexes[index + 1];
                   allPoints.push(new window.kakao.maps.LatLng(y, x));
                 }
               });
@@ -217,13 +242,17 @@ export default {
       }
     },
 
-    // 지도에 코스 정보 띄우기
     async createCourseMap() {
+      if (this.isUnmounting) return;
+
       const container = this.$refs.mapContainer;
-      if (!container) return;
+      if (!container) {
+        console.warn('mapContainer ref를 찾을 수 없습니다.');
+        return;
+      }
 
       if (this.courseCoordinates.length === 0) {
-        this.showFallbackImage();
+        console.warn('좌표가 없어 지도를 생성할 수 없습니다.');
         return;
       }
 
@@ -237,20 +266,16 @@ export default {
         keyboardShortcuts: false
       };
 
-      // 지도 생성
       this.map = new window.kakao.maps.Map(container, options);
 
-      // 지도 경계 설정 및 마커 추가 로직 호출
       this.updateMapBounds();
       await this.addCourseMarkersAndRoute();
 
-      // 지도 컨트롤 숨기기
       this.hideMapControls();
 
       this.mapGenerated = true;
     },
 
-    // 지도 경계 계산
     calculateMapBounds() {
       const coordinates = this.courseCoordinates;
 
@@ -269,9 +294,8 @@ export default {
       };
     },
 
-    // 계산된 경계를 지도에 적용합니다.
     updateMapBounds() {
-      if (!this.map || this.courseCoordinates.length === 0) return;
+      if (!this.map || this.isUnmounting || this.courseCoordinates.length === 0) return;
 
       const { bounds } = this.calculateMapBounds();
 
@@ -280,15 +304,13 @@ export default {
       }
     },
 
-    // 🚨 [수정] 마커랑 경로 띄우기 (API 호출 분기 포함)
     async addCourseMarkersAndRoute() {
-      if (this.courseCoordinates.length === 0) return;
+      if (this.isUnmounting || this.courseCoordinates.length === 0) return;
 
       const markerPositions = [];
 
       this.clearMapElements();
 
-      // 마커 추가
       this.courseCoordinates.forEach((coord, index) => {
         const position = new window.kakao.maps.LatLng(coord.lat, coord.lng);
         markerPositions.push(position);
@@ -313,14 +335,12 @@ export default {
         this.markers.push(marker);
       });
 
-      // 🚨 [핵심 수정] 경로 결정: 전시 코스 여부에 따라 API 호출 여부 결정
-      let finalPath = markerPositions; // 기본값은 직선 경로 (API 실패 또는 전시 코스)
+      let finalPath = markerPositions;
 
       if (!this.isExhibitionCourse) {
-        // 전시 코스가 아닐 경우(답사 코스 등)에만 API 호출
         const apiPath = await this.getRoutePathFromAPI(this.courseCoordinates);
         if (apiPath && apiPath.length > 1) {
-          finalPath = apiPath; // API 경로 성공 시 사용
+          finalPath = apiPath;
         } else {
           console.log('API 경로 호출 실패 또는 경로 부족. 직선 경로를 사용합니다.');
         }
@@ -330,7 +350,6 @@ export default {
 
       this.routePath = finalPath;
 
-      // 5. 폴리라인 추가 (경로 연결선)
       if (finalPath.length > 1) {
         this.polyline = new window.kakao.maps.Polyline({
           path: finalPath,
@@ -343,9 +362,8 @@ export default {
       }
     },
 
-    // 코스 아이템 변경 시 지도 업데이트
     async updateMapWithCourse() {
-      if (!this.map) return;
+      if (!this.map || this.isUnmounting) return;
 
       this.clearMapElements();
 
@@ -356,32 +374,43 @@ export default {
     },
 
     clearMapElements() {
-      // 기존 마커 제거
-      this.markers.forEach(marker => marker.setMap(null));
-      this.markers = [];
+      try {
+        if (this.markers && this.markers.length > 0) {
+          this.markers.forEach(marker => {
+            if (marker && marker.setMap) {
+              marker.setMap(null);
+            }
+          });
+          this.markers = [];
+        }
 
-      // 기존 폴리라인 제거
-      if (this.polyline) {
-        this.polyline.setMap(null);
-        this.polyline = null;
+        if (this.polyline && this.polyline.setMap) {
+          this.polyline.setMap(null);
+          this.polyline = null;
+        }
+      } catch (error) {
+        console.error('지도 요소 정리 중 에러:', error);
       }
     },
 
     clearMap() {
-      this.clearMapElements();
-      if (this.map) {
-        this.map = null;
+      try {
+        this.clearMapElements();
+
+        if (this.map) {
+          this.map = null;
+        }
+      } catch (error) {
+        console.error('지도 정리 중 에러:', error);
       }
     },
 
     getMarkerColor(index) {
-      // 코스 순서에 따른 색상 배열
       const colors = ['#4A7CEC', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
       return colors[index % colors.length];
     },
 
     createMarkerImage(number, color) {
-      // SVG로 코스 순서 마커 이미지 생성
       const svg = `
         <svg width="24" height="35" viewBox="0 0 24 35" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 23 12 23s12-14 12-23c0-6.627-5.373-12-12-12z"
@@ -396,8 +425,11 @@ export default {
     },
 
     hideMapControls() {
-      // 지도 컨트롤 숨기기
+      if (this.isUnmounting) return;
+
       setTimeout(() => {
+        if (this.isUnmounting) return;
+
         const container = this.$refs.mapContainer;
         if (container) {
           const controls = container.querySelectorAll('.kakao-map-control, .MapTypeControl, .ZoomControl');
@@ -406,25 +438,13 @@ export default {
           });
         }
       }, 100);
-    },
-
-    showFallbackImage() {
-      const container = this.$refs.mapContainer;
-      if (!container) return;
-
-      container.innerHTML = `
-        <div class="map-fallback">
-          <img src="https://placehold.co/${this.mapWidth}x${this.mapHeight}/e9ecef/6c757d?text=Course+Map"
-            alt="코스 지도" style="width: 100%; height: 100%; object-fit: cover;">
-        </div>
-      `;
-      this.mapGenerated = true;
     }
   }
 }
 </script>
 
 <style scoped>
+/* 기존 스타일 동일 */
 .course-card {
   display: flex;
   align-items: center;
@@ -437,7 +457,6 @@ export default {
   cursor: pointer;
   transition: box-shadow 0.2s ease;
   height: 168px;
-  /* 클릭 이벤트 보장 */
   position: relative;
 }
 
@@ -449,18 +468,13 @@ export default {
   font-size: 12px;
   color: #666;
   line-height: 1.4;
-
-  /* ▼▼▼ [수정] 텍스트가 2줄을 넘어가면 ... 처리 ▼▼▼ */
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  /* 텍스트를 2줄로 제한합니다. (1줄로 바꾸셔도 됩니다) */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* ▲▲▲ [수정] 여기까지 추가 ▲▲▲ */
 }
 
-/* 지도 컨테이너 클릭 가능하게 */
 .map-container {
   width: 149px;
   height: 126px;
@@ -471,11 +485,9 @@ export default {
   position: relative;
   background-color: #f8f9fa;
   cursor: pointer;
-  /* 지도 상호작용 비활성화하고 클릭만 허용 */
   pointer-events: auto;
 }
 
-/* 하트 아이콘 클릭 가능 */
 .action-icons {
   display: flex;
   align-items: center;
@@ -485,10 +497,8 @@ export default {
   flex-shrink: 0;
   cursor: pointer;
   padding: 4px;
-  /* 클릭 영역 확대 */
 }
 
-/* 지도 플레이스홀더 */
 .map-placeholder {
   width: 100%;
   height: 100%;
@@ -526,11 +536,8 @@ export default {
   font-weight: 600;
   color: #333;
   margin-bottom: 4px;
-
-  /* ▼▼▼ [수정] 제목을 2줄로 제한 ▼▼▼ */
   display: -webkit-box;
   -webkit-line-clamp: 1;
-  /* 2줄로 제한 */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -540,15 +547,11 @@ export default {
   font-size: 14px;
   color: #777;
   margin-bottom: 4px;
-
-  /* ▼▼▼ [수정] 주소를 1줄로 제한 ▼▼▼ */
   white-space: nowrap;
-  /* 1줄로 제한 */
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* 카카오맵 컨트롤 숨기기 */
 .map-container :deep(.kakao-map-control) {
   display: none !important;
 }

@@ -42,12 +42,11 @@
         </p>
       </div>
 
-      <div v-else class="card-list-wrapper">
-        <UserLikeCourseCard v-for="(item, index) in filteredItems" :key="item.id || index" :item="item"
-          @click="goToCourseDetail(item)" />
+      <!-- ✅ v-show로 변경하여 DOM을 유지하면서 보이기/숨기기만 처리 -->
+      <div v-show="filteredItems.length > 0" class="card-list-wrapper">
+        <UserLikeCourseCard v-for="item in filteredItems" :key="item.id" :item="item" @click="goToCourseDetail(item)" />
       </div>
     </div>
-
   </div>
 </template>
 
@@ -78,22 +77,21 @@ export default {
   data() {
     return {
       selectedTab: '전시',
-      // API 응답을 저장할 배열
       userLikeCourseCardItem: [],
       loading: true,
       error: null,
+      // ✅ 네비게이션 중 플래그
+      isNavigating: false,
     };
   },
 
   computed: {
     filteredItems() {
       if (this.selectedTab === '전시') {
-        // '전시' 탭일 때
         return this.userLikeCourseCardItem.filter(item =>
           item.type === '전시' || item.type === 'inner_course'
         );
       } else {
-        // '답사' 탭일 때
         return this.userLikeCourseCardItem.filter(item =>
           item.type === '답사' || item.type === 'ai_course'
         );
@@ -101,79 +99,60 @@ export default {
     },
   },
 
-  // 라이프사이클 훅
   created() {
-    // 탭 설정 로직
     const tabFromQuery = this.$route.query.tab;
     if (tabFromQuery === '답사') {
       this.selectedTab = '답사';
     }
-    // API 호출 함수 실행 -> 사용자 ID로 저장한 코스 아이템 가져오기
     this.fetchUserLikeCourse();
   },
 
   methods: {
-    // API 호출하고 데이터 매핑
     async fetchUserLikeCourse() {
       this.loading = true;
       this.error = null;
 
-      // Pinia 스토어를 통해 로그인 상태를 확인
       if (!this.isLoggedIn) {
         this.error = "로그인이 필요한 기능입니다. 로그인 후 다시 시도해주세요.";
         this.loading = false;
-        // 로그인 페이지로 이동
         this.$router.push('/login');
         return;
       }
 
       try {
-        // 백엔드 API 호출
         const response = await axios.get(`api/schedules/user/${this.currentUserId}`);
 
-        // response.data가 List<UserScheduleDTO> 형태
-        // 프론트에서 (userLikeCourseCardItem) 구조로 변환
         this.userLikeCourseCardItem = response.data.map(schedule => {
-
-          // schedule.items (ScheduleItemDetailDTO 리스트)를
-          // courseItem 구조로 변환
           const mappedCourseItems = schedule.items.map(item => ({
-            id: item.sourceItemId, // 소스 아이템 id
-            number: item.sequence, // 스케줄 내 순서번호
+            id: item.sourceItemId,
+            number: item.sequence,
             title: item.itemName,
             place: item.addressDetail,
             imageUrl: item.mainImageUrl,
             lat: item.latitude,
             lng: item.longitude,
-            type: null, // '상설', '기획'
-
-            scienceCenter: item.scienceCenterName,         // 과학관 이름
-            hallName: item.hallName,             // 전시관 이름
-            subject: item.mainCategoryNames || [], // 과학 영역 배열
-            grade: item.gradeNames || [],        // 학년 배열
-            hashtags: item.subCategoryNames || [],  // 세부 카테고리 배열,
+            type: null,
+            scienceCenter: item.scienceCenterName,
+            hallName: item.hallName,
+            subject: item.mainCategoryNames || [],
+            grade: item.gradeNames || [],
+            hashtags: item.subCategoryNames || [],
             itemType: item.itemType,
             exhibitionList: item.exhibitionList || []
           }));
 
-          // UserScheduleDto를 상위 객체 구조로 변환
-          // 🚨 item.id의 안정성 확보: scheduleId가 없을 경우 임시 ID 할당
           const uniqueId = schedule.scheduleId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
           return {
             id: uniqueId,
             ExhibitionName: schedule.scheduleName,
-            type: schedule.sourceCourseType, // 'inner_course' 또는 'ai_course' (이 값이 탭 필터링에 사용됨)
-
-            // --- 첫 번째 아이템 정보로 대표값 설정 ---
-            address: mappedCourseItems[0] ? mappedCourseItems[0].place : '정보 없음', // 대표 주소
-            scienceCenter: mappedCourseItems[0] ? mappedCourseItems[0].scienceCenter : '정보 없음',  // 대표 과학관
-            grade: mappedCourseItems[0] ? mappedCourseItems[0].grade?.[0] : null,          // 대표 학년
-            subject: mappedCourseItems[0] ? mappedCourseItems[0].subject?.[0] : null,        // 대표 과학 영역
-
-            // --- 아이템 목록에서 가공 ---
-            coursePlaces: mappedCourseItems.map(item => item.title),   // 아이템 이름 목록
-            courseItems: mappedCourseItems,               // 변환된 아이템 상세 리스트
+            type: schedule.sourceCourseType,
+            address: mappedCourseItems[0] ? mappedCourseItems[0].place : '정보 없음',
+            scienceCenter: mappedCourseItems[0] ? mappedCourseItems[0].scienceCenter : '정보 없음',
+            grade: mappedCourseItems[0] ? mappedCourseItems[0].grade?.[0] : null,
+            subject: mappedCourseItems[0] ? mappedCourseItems[0].subject?.[0] : null,
+            coursePlaces: mappedCourseItems.map(item => item.title),
+            courseItems: mappedCourseItems,
           };
         });
 
@@ -188,28 +167,44 @@ export default {
       }
     },
 
-    // 카드 클릭 시 상세 페이지로 이동
+    // ✅ 수정: 네비게이션 중 플래그 사용
     goToCourseDetail(item) {
+      // 이미 네비게이션 중이면 무시
+      if (this.isNavigating) {
+        return;
+      }
+
+      this.isNavigating = true;
       console.log('goToCourseDetail - 클릭된 item:', item);
 
-      // sessionStorage에 데이터 저장
-      sessionStorage.setItem(`courseData_${item.id}`, JSON.stringify(item));
+      try {
+        const plainItem = JSON.parse(JSON.stringify(item));
+        sessionStorage.setItem(`courseData_${item.id}`, JSON.stringify(plainItem));
 
-      this.$router.push({
-        name: 'UserLikeCourseDetail',
-        params: {
-          courseId: item.id
-        },
-        state: {
-          courseData: item,
-          fromList: true
-        }
-      });
+        this.$router.push({
+          name: 'UserLikeCourseDetail',
+          params: {
+            courseId: item.id
+          }
+        }).catch(err => {
+          console.error('라우터 네비게이션 에러:', err);
+          this.isNavigating = false;
+        });
+      } catch (error) {
+        console.error('상세 페이지 이동 중 에러:', error);
+        this.isNavigating = false;
+      }
     },
 
+    // ✅ 간단하게 수정: URL 동기화 제거
     changeTab(tabName) {
+      // 이미 선택된 탭이면 무시
+      if (this.selectedTab === tabName) {
+        return;
+      }
+
+      // 탭만 변경 (URL 동기화 제거)
       this.selectedTab = tabName;
-      this.$router.replace({ query: { tab: tabName } });
     },
 
     goBack() {
@@ -220,7 +215,7 @@ export default {
 </script>
 
 <style scoped>
-/* -------------------- 레이아웃 및 컨테이너 -------------------- */
+/* 기존 스타일 동일 */
 .page-container {
   display: flex;
   flex-direction: column;
@@ -239,7 +234,6 @@ export default {
   font-size: 16px;
 }
 
-/* -------------------- 🚨 개선된 탭 영역 스타일 🚨 -------------------- */
 .segmented-control-wrapper {
   display: flex;
   justify-content: center;
@@ -254,12 +248,10 @@ export default {
   max-width: 327px;
   background-color: #e0e0e0;
   border-radius: 20px;
-  /* gap 제거 */
 }
 
 .spec-button {
   flex: 1;
-  /* 너비를 균등하게 나눔 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -270,7 +262,6 @@ export default {
   color: #666;
   border: none;
   box-shadow: none;
-  /* 그림자 제거 */
   transition: all 0.2s ease-in-out;
   font-weight: 500;
   font-size: 14px;
@@ -281,17 +272,14 @@ export default {
   color: white;
   font-weight: 700;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  /* 활성화된 탭에만 은은한 그림자 */
 }
 
-/* -------------------- 콘텐츠 및 스크롤 영역 -------------------- */
 .content-container {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
   background-color: #f9f9f9;
 
-  /* 스크롤바 숨기기 */
   &::-webkit-scrollbar {
     display: none;
   }
@@ -307,7 +295,6 @@ export default {
   padding-bottom: 16px;
 }
 
-/* 로딩/에러/빈 상태 메시지 중앙 정렬 */
 .status-container {
   flex: 1;
   display: flex;
@@ -318,10 +305,7 @@ export default {
   text-align: center;
 }
 
-/* -------------------- 기타 버튼 스타일 (참조용) -------------------- */
-/* 이 코드는 해당 파일에 직접 사용되지는 않지만, 다른 곳에서 사용될 수 있으므로 남겨둡니다. */
 .btn {
-  /* .status-container 내 다시 시도 버튼 등에서 사용 */
   border-radius: 30px;
 }
 </style>

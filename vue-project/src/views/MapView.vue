@@ -270,12 +270,48 @@ const highlightMarker = (item) => {
   });
 };
 
-// 현재 위치 가져오기 (대전 시청으로 고정)
+// // 현재 위치 가져오기 (실제 위치 사용)
 const getCurrentLocation = () => {
-  return new Promise((resolve) => {
-    currentUserLocation.value = DEMO_LOCATION;
-    console.log('현재 위치 고정 (대전 시청):', currentUserLocation.value);
-    resolve(currentUserLocation.value);
+  console.log('GPS: 현재 위치 정보 획득 시도');
+
+  return new Promise((resolve, reject) => {
+    // Geolocation API 지원 여부 확인
+    if (!navigator.geolocation) {
+      const error = new Error("Geolocation not supported");
+      console.error('GPS: Geolocation이 지원되지 않습니다.');
+      // [참고] 앱 환경에서는 이 오류보다는 Android 네이티브 권한 오류가 발생할 가능성이 더 높습니다.
+      reject(error);
+      return;
+    }
+
+    // 현재 위치 정보 획득 시도
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // 성공 시 처리
+        const realLocation = {
+          // [!! 키 이름을 lat, lng로 통일 !!]
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        // 외부에서 정의된 상태(ref)에 결과를 반영
+        currentUserLocation.value = realLocation;
+
+        console.log('현재 위치 획득 성공 (실제):', realLocation);
+        resolve(realLocation);
+      },
+      (error) => {
+        // 실패 시 처리 (사용자 거부, 시간 초과, 장치 오류 등)
+        console.error('GPS 좌표 획득 실패:', error.code, error.message);
+        reject(error);
+      },
+      {
+        // 옵션 설정
+        enableHighAccuracy: true, // 높은 정확도 (GPS 사용 시도)
+        timeout: 50000,         // 50초 타임아웃
+        maximumAge: 0           // 캐시된 위치 사용 안 함
+      }
+    );
   });
 };
 

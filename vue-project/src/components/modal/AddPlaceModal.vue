@@ -1,16 +1,19 @@
 <template>
   <div v-if="show" class="modal-overlay" style="font-family: 'SUIT', sans-serif" @click.self="close">
     <div class="modal-content">
+      <!-- 헤더 -->
       <div class="header">
         <span class="title">방문할 장소 추가</span>
         <button class="close-btn" @click="close">&times;</button>
       </div>
 
       <div class="content">
+        <!-- 현재 위치 표시 -->
         <div class="current-location">
           <i class="bi bi-geo-alt-fill"></i> 현재 위치: {{ currentLocation }}
         </div>
 
+        <!-- 검색창 -->
         <div class="search-bar">
           <i class="bi bi-search"></i>
           <input type="text" placeholder="과학관 이름 또는 지역 검색" v-model="searchQuery" @input="onSearchInput"
@@ -41,6 +44,7 @@
               <span v-if="place.phone" class="place-phone">{{ place.phone }}</span>
               <span v-if="place.category" class="place-category">{{ place.category }}</span>
             </div>
+            <!-- 추가 버튼 (이미 추가된 장소는 비활성화) -->
             <button class="btn-add" :disabled="isPlaceAdded(place.id)" @click="addItem(place)">
               <i v-if="!isPlaceAdded(place.id)" class="bi bi-plus"></i>
               {{ isPlaceAdded(place.id) ? '추가됨' : '추가' }}
@@ -64,70 +68,90 @@ export default {
   emits: ['close', 'add-item'],
   data() {
     return {
-      searchQuery: '',
-      places: [],
-      loading: false,
-      currentLocation: '위치 정보 가져오는 중...', // 초기 메시지
-      addedPlaceIds: new Set(), // 추가된 장소 ID 저장
-      searchTimeout: null,
-      ps: null, // 카카오 Places 서비스
+      searchQuery: '',           // 검색어
+      places: [],                // 검색 결과 목록
+      loading: false,            // 로딩 상태
+      currentLocation: '위치 정보 가져오는 중...', // 현재 위치 텍스트
+      addedPlaceIds: new Set(),  // 이번 세션에 추가된 장소 ID (Set 자료구조)
+      searchTimeout: null,       // 디바운싱용 타이머
+      ps: null,                  // 카카오 Places 서비스
+      geocoder: null,            // 카카오 Geocoder 서비스
+      currentLat: null,          // 현재 위도
+      currentLng: null,          // 현재 경도
     };
   },
-  mounted() {
-    this.initializeKakaoServices(); // [수정] 함수 이름 변경
-    this.getCurrentLocation();      // [추가] 현재 위치 가져오기 호출
+  async mounted() {
+    // 컴포넌트 마운트 시 카카오맵 서비스 초기화 및 현재 위치 가져오기
+    this.initializeKakaoServices();
+
+    try {
+      await this.getCurrentLocation();
+    } catch (e) {
+      console.warn('초기 위치 획득 실패 (Promise 거부됨):', e);
+    }
   },
   methods: {
-    // 카카오 Places와 Geocoder 서비스 동시 초기화
+    /**
+     * 카카오 Places 및 Geocoder 서비스 초기화
+     */
     initializeKakaoServices() {
       if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
         this.ps = new window.kakao.maps.services.Places();
-        this.geocoder = new window.kakao.maps.services.Geocoder(); // Geocoder 초기화
+        this.geocoder = new window.kakao.maps.services.Geocoder();
         console.log('카카오 Places 및 Geocoder 서비스 초기화 완료.');
       } else {
         console.error('카카오맵 services API가 로드되지 않았습니다.');
-        this.currentLocation = '위치 서비스를 사용할 수 없습니다.'; // 에러 메시지 업데이트
+        this.currentLocation = '위치 서비스를 사용할 수 없습니다.';
       }
     },
-    // 현재 위치 가져오는 함수
+
+    /**
+     * 브라우저 Geolocation API로 현재 위치(위도/경도) 가져오기
+     */
     getCurrentLocation() {
-      if (!navigator.geolocation) {
-        this.currentLocation = '브라우저가 Geolocation을 지원하지 않습니다.';
-        console.error('Geolocation not supported by this browser.');
-        return;
-      }
-
-      console.log('현재 위치 요청 중...');
-      this.currentLocation = '현재 위치 확인 중...'; // 상태 업데이트
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          this.currentLat = position.coords.latitude;
-          this.currentLng = position.coords.longitude;
-          console.log(`현재 좌표: ${this.currentLat}, ${this.currentLng}`);
-          // 좌표를 주소로 변환
-          this.getAddressFromCoords(this.currentLat, this.currentLng);
-          // 좌표 얻은 후 기본 장소 로드 또는 검색 기준 변경 (선택)
-          // 예: this.loadDefaultPlacesNearCurrentLocation();
-          // 또는 searchOptions에서 사용
-        },
-        (error) => {
-          this.currentLocation = '위치 정보를 가져올 수 없습니다.';
-          console.error('Geolocation 에러:', error.message);
-          // 위치 정보 실패 시 기본값(예: 서울)으로 검색하도록 설정 가능
-          this.currentLat = 37.566826; // 서울 시청 위도 (예시)
-          this.currentLng = 126.9786567; // 서울 시청 경도 (예시)
-          this.currentLocation = '기본 위치(서울) 사용';
-        },
-        { // Geolocation 옵션
-          enableHighAccuracy: false, // 높은 정확도 (배터리 소모 증가)
-          timeout: 10000,         // 10초 타임아웃
-          maximumAge: 0          // 캐시 사용 안 함
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          this.currentLocation = '브라우저가 Geolocation을 지원하지 않습니다.';
+          console.error('Geolocation not supported by this browser.');
+          reject(new Error("Geolocation not supported")); // Promise 거부
+          return;
         }
-      );
+
+        this.currentLocation = '현재 위치 확인 중...';
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            // 성공: 위도/경도 저장 (this에 직접 할당)
+            this.currentLat = position.coords.latitude;
+            this.currentLng = position.coords.longitude;
+
+            // 주소 변환은 Promise 성공 후 호출자가 처리하도록 수정
+            this.getAddressFromCoords(this.currentLat, this.currentLng);
+
+            // [!! Promise 성공 처리 !!]
+            resolve({ lat: this.currentLat, lng: this.currentLng });
+          },
+          (error) => {
+            // 실패: 기본 위치(서울)로 설정
+            this.currentLocation = '위치 정보를 가져올 수 없습니다.';
+            console.error('Geolocation 에러:', error.message);
+            this.currentLat = 37.566826;
+            this.currentLng = 126.9786567;
+            this.currentLocation = '기본 위치(서울) 사용';
+
+            // [!! Promise 성공 처리 (기본 위치 사용을 알림) !!]
+            resolve({ lat: this.currentLat, lng: this.currentLng });
+          },
+          { enableHighAccuracy: true, timeout: 50000, maximumAge: 0 }
+        );
+      });
     },
 
-    // 좌표를 주소로 변환하는 함수 (Geocoder 사용)
+    /**
+     * 카카오 Geocoder로 좌표 → 주소 변환
+     * @param {Number} lat - 위도
+     * @param {Number} lng - 경도
+     */
     getAddressFromCoords(lat, lng) {
       if (!this.geocoder) {
         console.error('Geocoder 서비스가 초기화되지 않았습니다.');
@@ -136,7 +160,7 @@ export default {
       const coord = new window.kakao.maps.LatLng(lat, lng);
       this.geocoder.coord2Address(coord.getLng(), coord.getLat(), (result, status) => {
         if (status === window.kakao.maps.services.Status.OK) {
-          // 행정동 주소 또는 도로명 주소 사용 (둘 다 있을 수 있음)
+          // 도로명 주소 우선, 없으면 지번 주소
           const address = result[0]?.road_address?.address_name || result[0]?.address?.address_name;
           if (address) {
             this.currentLocation = address;
@@ -152,94 +176,113 @@ export default {
       });
     },
 
-    // 검색 입력 이벤트
+    /**
+     * 검색창 입력 이벤트 (디바운싱 적용)
+     * - 500ms 대기 후 자동 검색
+     */
     onSearchInput() {
-      // 기존 타이머 클리어
+      // 기존 타이머 취소
       if (this.searchTimeout) {
         clearTimeout(this.searchTimeout);
       }
 
-      // 입력이 비어있으면 기본 장소 표시
+      // 입력이 비어있으면 검색 안 함
       if (!this.searchQuery.trim()) {
-
         return;
       }
 
-      // 500ms 후 검색 실행 (디바운싱)
+      // 500ms 후 검색 실행 (타이핑 끝날 때까지 대기)
       this.searchTimeout = setTimeout(() => {
         this.searchPlaces();
       }, 500);
     },
-    // 장소 검색
+
+    /**
+     * 카카오 Places API로 장소 검색
+     * - 현재 위치 기준 반경 10km 이내 검색
+     */
     searchPlaces() {
-      // this.currentLat, this.currentLng가 준비되었는지 확인
+      // 전제 조건 체크: Places 서비스, 검색어, 현재 좌표
       if (!this.ps || !this.searchQuery.trim() || this.currentLat === null || this.currentLng === null) {
-        // 아직 현재 위치 좌표를 못 가져왔으면 검색 보류 (또는 기본 위치 사용)
-        console.warn('검색 전제 조건 미충족 (ps, searchQuery, currentCoords):', this.ps, this.searchQuery, this.currentLat, this.currentLng);
-        // 필요하다면 여기서 사용자에게 알림 표시
-        // this.error = '현재 위치를 확인 중입니다. 잠시 후 다시 시도하세요.';
+        console.warn('검색 전제 조건 미충족:', this.ps, this.searchQuery, this.currentLat, this.currentLng);
         return;
       }
 
       this.loading = true;
 
-      // 카카오 Places 검색 옵션: location을 현재 위치로 변경
+      // 검색 옵션: 현재 위치 중심, 반경 10km
       const searchOptions = {
-        location: new window.kakao.maps.LatLng(this.currentLat, this.currentLng), // 현재 위치 좌표 사용
-        radius: 10000, // 반경 (미터 단위, 예: 10km)
-        // sort: window.kakao.maps.services.SortBy.DISTANCE // 거리순 정렬 (선택 사항)
-        sort: window.kakao.maps.services.SortBy.ACCURACY // 또는 정확도순 유지
+        location: new window.kakao.maps.LatLng(this.currentLat, this.currentLng),
+        radius: 10000, // 10km (미터 단위)
+        sort: window.kakao.maps.services.SortBy.ACCURACY // 정확도순 정렬
       };
 
+      // 키워드 검색 실행
       this.ps.keywordSearch(
         this.searchQuery,
-        this.searchCallback,
+        this.searchCallback.bind(this),
         searchOptions
       );
     },
-    // 검색 결과 롤백
+
+    /**
+     * 카카오 Places 검색 결과 콜백
+     * @param {Array} data - 검색 결과 배열
+     * @param {String} status - 검색 상태
+     */
     searchCallback(data, status, pagination) {
       this.loading = false;
+
       if (status === window.kakao.maps.services.Status.OK) {
+        // 성공: 결과를 컴포넌트 형식으로 변환
         this.places = data.map((place, index) => ({
-          id: place.id || `search-${index}`,
+          id: place.id || `search-${index}`, // 카카오 장소 ID 또는 임시 ID
           name: place.place_name,
-          address: place.road_address_name || place.address_name, // 도로명 주소 우선
+          address: place.road_address_name || place.address_name, // 도로명 우선
           lat: parseFloat(place.y),
           lng: parseFloat(place.x),
           phone: place.phone || '',
-          category: place.category_name || '', // 카테고리 이름 사용
+          category: place.category_name || '',
           url: place.place_url || '',
-          // 거리 정보 - searchOptions에 sort: DISTANCE 필요
-          // distance: place.distance ? `${place.distance}m` : ''
         }));
         console.log('검색 결과:', this.places);
       } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+        // 결과 없음
         this.places = [];
         console.log('검색 결과가 없습니다.');
       } else {
+        // 오류
         console.error('검색 중 오류 발생:', status);
         this.places = [];
       }
     },
 
-    // 검색어 초기화
+    /**
+     * 검색어 및 검색 결과 초기화
+     */
     clearSearch() {
       this.searchQuery = '';
-      this.places = []; // 기본 장소 로드 대신 결과 비우기
+      this.places = [];
     },
 
-    // 장소가 이미 추가되었는지 확인
+    /**
+     * 장소가 이미 추가되었는지 확인
+     * @param {String} placeId - 장소 ID
+     * @returns {Boolean} 추가 여부
+     */
     isPlaceAdded(placeId) {
       return this.addedPlaceIds.has(placeId);
     },
 
-    // 장소 추가
+    /**
+     * 장소 추가
+     * @param {Object} place - 추가할 장소 객체
+     */
     addItem(place) {
-      // 추가된 장소로 표시
+      // 이번 세션에 추가된 장소로 표시 (중복 방지)
       this.addedPlaceIds.add(place.id);
 
-      // 부모 컴포넌트에 전달
+      // 부모 컴포넌트(UserLikeCourseDetail)로 장소 정보 전달
       this.$emit('add-item', {
         name: place.name,
         address: place.address,
@@ -253,18 +296,24 @@ export default {
       console.log('장소 추가:', place);
     },
 
-    // 모달 닫기
+    /**
+     * 모달 닫기 및 상태 초기화
+     * ★ 핵심: addedPlaceIds도 초기화하여 다음에 모달 열 때 다시 추가 가능
+     */
     close() {
-      // 상태 초기화
+      // 모든 상태 초기화
       this.searchQuery = '';
       this.places = [];
-      this.addedPlaceIds.clear();
-      // 닫기 emit
+      this.addedPlaceIds.clear(); // ★ Set 초기화 (중요!)
+
+      // 부모 컴포넌트에 닫기 이벤트 전달
       this.$emit('close');
     },
   },
 
-  // 컴포넌트 제거 시 타이머 정리
+  /**
+   * 컴포넌트 언마운트 시 타이머 정리
+   */
   beforeUnmount() {
     if (this.searchTimeout) {
       clearTimeout(this.searchTimeout);
@@ -274,8 +323,9 @@ export default {
 </script>
 
 <style scoped>
-/* 기존 스타일 + 추가 스타일 */
-
+/* ========================================
+   검색창 스타일
+======================================== */
 .search-bar {
   display: flex;
   align-items: center;
@@ -308,6 +358,9 @@ export default {
   margin-left: 8px;
 }
 
+/* ========================================
+   로딩 상태
+======================================== */
 .loading-state {
   display: flex;
   align-items: center;
@@ -336,6 +389,9 @@ export default {
   }
 }
 
+/* ========================================
+   검색 결과 없음
+======================================== */
 .no-results {
   display: flex;
   flex-direction: column;
@@ -351,6 +407,9 @@ export default {
   opacity: 0.5;
 }
 
+/* ========================================
+   장소 정보 표시
+======================================== */
 .place-phone,
 .place-category {
   font-size: 12px;
@@ -367,7 +426,9 @@ export default {
   margin-top: 4px;
 }
 
-/* 기존 스타일들... */
+/* ========================================
+   모달 레이아웃
+======================================== */
 .modal-overlay {
   position: absolute;
   inset: 0;
@@ -391,6 +452,7 @@ export default {
   overflow: hidden;
 }
 
+/* 헤더 */
 .header {
   padding: 16px;
   text-align: center;
@@ -415,6 +477,7 @@ export default {
   cursor: pointer;
 }
 
+/* 콘텐츠 영역 */
 .content {
   padding: 16px;
   overflow-y: auto;
@@ -430,6 +493,7 @@ export default {
   margin-right: 4px;
 }
 
+/* 장소 목록 */
 .place-list {
   list-style: none;
   padding: 0;
@@ -461,6 +525,7 @@ export default {
   color: #777;
 }
 
+/* 추가 버튼 */
 .btn-add {
   height: 36px;
   padding: 0 16px;
@@ -472,6 +537,11 @@ export default {
   color: white;
   flex-shrink: 0;
   margin-left: 12px;
+  transition: background-color 0.2s;
+}
+
+.btn-add:hover:not(:disabled) {
+  background-color: #4770E6;
 }
 
 .btn-add:disabled {

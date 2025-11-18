@@ -18,12 +18,24 @@
 import { RouterView } from 'vue-router'
 import { onMounted } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
+// ✅ 카카오맵 로더 import
+import { loadKakaoMap } from '@/utils/kakaoMapLoader';
 
 const authStore = useAuthStore();
 
-onMounted(() => {
-  console.log('App.vue onMounted: 앱 시작 (setup)');
+console.log('App.vue onMounted: 앱 시작 (setup)');
+
+onMounted(async () => {
+  // 프로필 이미지 갱신
   authStore.refreshProfileUrl();
+
+  // ✅ 카카오맵 사전 로드
+  try {
+    await loadKakaoMap();
+    console.log('✅ 카카오맵 사전 로드 완료');
+  } catch (error) {
+    console.error('❌ 카카오맵 사전 로드 실패:', error);
+  }
 });
 </script>
 
@@ -118,7 +130,6 @@ body {
 #app {
   width: 100%;
   height: 100%;
-  /* Flex 중앙 정렬 제거. 자식 요소인 #app-container가 화면을 채우도록 함 */
   display: block;
   padding: 0;
   position: relative;
@@ -133,15 +144,12 @@ body {
   margin: 0;
   position: relative;
   background-color: #f0f0f0;
-  /* 모바일 브라우저의 전체 화면처럼 보이도록 border 제거 */
   border-radius: 0;
   box-shadow: none;
 
-  /* Flex 설정: 콘텐츠와 네비바를 수직으로 배열 */
   display: flex;
   flex-direction: column;
 
-  /* 스크롤바 숨기기 (스크롤은 하위 뷰가 담당) */
   scrollbar-width: none;
   -ms-overflow-style: none;
   overflow: hidden;
