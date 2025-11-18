@@ -86,7 +86,8 @@
 
     <ConfirmDeleteModal :show="showDeleteModal" message="장소를 삭제하시겠어요?" @confirm="confirmDeleteItem"
       @close="closeDeleteModal" />
-    <AddPlaceModal :show="showAddModal" @add-item="addNewItem" @close="closeAddModal" />
+    <!-- 장소 추가 모달 -->
+    <AddPlaceModal :show="showAddModal" :courseItems="courseItems" @add-item="addNewItem" @close="closeAddModal" />
 
   </div>
 </template>
@@ -292,7 +293,7 @@ export default {
 
       // 각 아이템의 고유 식별자 생성 (id 또는 커스텀 아이템의 경우 대체 식별자)
       const createItemIdentifier = (item) => {
-        if (item.id) return item.id;
+        if (item.id) return String(item.id); // ✅ 문자열로 변환
         // 커스텀 아이템의 경우 여러 속성을 조합한 고유 식별자 생성
         return `custom_${item.title}_${item.place}_${item.lat}_${item.lng}`;
       };
@@ -331,8 +332,10 @@ export default {
         const updateData = {
           scheduleId: scheduleId,
           items: this.courseItems.map((item, index) => {
-
-            const isCustom = item.itemType === 'custom';
+            // ✅ 커스텀 아이템 판별 개선
+            const isCustom = item.itemType === 'custom' ||
+              item.type === 'custom' ||
+              String(item.id).startsWith('custom_');
 
             return {
               itemId: item.itemId || null, // 기존 아이템의 경우 itemId 포함
@@ -468,8 +471,21 @@ export default {
 
     // 아이템 삭제시 지도 업데이트
     confirmDeleteItem() {
+
       console.log('삭제 확정, ID:', this.itemToDeleteId);
-      this.courseItems = this.courseItems.filter(item => item.id !== this.itemToDeleteId);
+      console.log('삭제 전 courseItems:', this.courseItems);
+
+      // ✅ ID를 문자열로 변환하여 비교 (커스텀 ID와 일반 ID 모두 처리)
+      this.courseItems = this.courseItems.filter(item => {
+        const itemId = String(item.id);
+        const targetId = String(this.itemToDeleteId);
+        const shouldKeep = itemId !== targetId;
+
+        console.log(`아이템 ${itemId} vs 타겟 ${targetId}: ${shouldKeep ? '유지' : '삭제'}`);
+        return shouldKeep;
+      });
+
+      console.log('삭제 후 courseItems:', this.courseItems);
 
       // [순서 변경] 번호를 다시 매깁니다.
       this.reorderCourseItems();
