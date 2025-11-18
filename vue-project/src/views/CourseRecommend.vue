@@ -131,8 +131,7 @@ export default {
   /* 🚨 좌우 패딩만 유지하고 상하 패딩은 내부에서 관리 */
   padding: 0 16px;
   background-color: #ffffff;
-  padding-bottom: 80px;
-  /* CTA 버튼 공간 확보 */
+  padding-bottom: 25px;
 }
 
 .list-title {

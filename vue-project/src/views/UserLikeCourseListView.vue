@@ -205,6 +205,10 @@ export default {
 
       // 탭만 변경 (URL 동기화 제거)
       this.selectedTab = tabName;
+      this.$router.replace({
+        query: { ...this.$route.query, tab: tabName }
+      }).catch(() => { });
+
     },
 
     goBack() {
