@@ -183,15 +183,14 @@ export default {
 
         console.log("✅ 공지사항 등록 성공:", response.data);
 
-        const newNotice = response.data;
-        if (!newNotice.views) {
-          newNotice.views = 0;
-        }
-
-        this.notices.unshift(newNotice);
         alert("새 공지사항이 등록되었습니다.");
+
+        // ✅ 등록 후 전체 목록 다시 불러오기 (가장 안전한 방법)
+        await this.fetchNotices();
+
       } catch (error) {
         console.error("❌ 공지사항 등록 오류:", error);
+        console.error("에러 응답:", error.response?.data);
         alert("공지사항 등록 중 오류: " + error.message);
       }
     },
