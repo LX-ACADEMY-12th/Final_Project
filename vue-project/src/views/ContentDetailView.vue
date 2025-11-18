@@ -33,7 +33,8 @@
     </div>
 
     <ReviewSection ref="reviewSectionRef" :target-id="targetId" :target-type="targetType"
-      :current-user-id="currentUserId" :rating="exhibition.rating" :review-count="exhibition.reviewCount"
+      :current-user-id="currentUserId" :rating="isPlace ? (place.rating || 0) : (exhibition.rating || 0)"
+      :review-count="isPlace ? (place.reviewCount || 0) : (exhibition.reviewCount || 0)"
       :photo-review-count="photoReviewCount || 0" :is-place="isPlace" @show-modal="showModal"
       @edit-review="handleEditReview" @request-delete="handleRequestDelete" />
 
