@@ -5,7 +5,7 @@
       <CourseMap :items="courseItems" :pageType="type" />
     </div>
 
-    <div class="d-flex justify-content-center align-items-center mb-4 mt-3" v-if="type === 'exhibition'">
+    <div class="d-flex justify-content-center align-items-center mb-3 mt-3" v-if="type === 'exhibition'">
       <button class="btn virtual-tour-btn" @click="goToVirtualTour">
         <i class="bi bi-compass me-2"></i>
         가상 답사 시작하기

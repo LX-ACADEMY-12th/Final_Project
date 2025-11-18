@@ -179,7 +179,11 @@ export default {
         '창의나래관': { // 예시: '전시관명'
           '전기와 자기': ElectricShow,     // 예시: '중분류'
           '자기': MagnetField,
-          '물질의 상태': StatesOfMatter
+          '물질의 상태': StatesOfMatter,
+          '빛과 파동': StatesOfMatter,
+          '힘과 에너지': StatesOfMatter,
+          '생명과학과 인간의 생활': StatesOfMatter,
+          '생물의 구조와 에너지': StatesOfMatter
         },
         '야외전시': {
           '전기와 자기': MagneticTrain
@@ -188,15 +192,25 @@ export default {
           '전기와 자기': ElectroClothes
         },
         '미래기술관': {
-          '전기와 자기': AlternatorShow
+          '전기와 자기': AlternatorShow,
+          '힘과 에너지': AlternatorShow,
+          '빛과 파동': AlternatorShow,
+          '물체와 물질': AlternatorShow
         },
-        '국립중앙과학관': {
-          '주상절리': ColumnarJoint,
+        '인류관': {
+          '힘과에너지': ColumnarJoint,
           '생태계': Ecosystem
         },
-        '다른 전시관': {
-          '열전도': ThermalConductivity,
+        '어린이과학관': {
+          '힘과 에너지': ThermalConductivity,
           '혼합물': MixtureSeperation
+        },
+        '천체관': {
+          '생명과학과 인간의 생활': StatesOfMatter,
+          '혼합물': MixtureSeperation
+        },
+        '생물탐구관': {
+          '생물의 구조와 에너지': StatesOfMatter,
         }
         // ... (필요한 만큼 추가) ...
       };

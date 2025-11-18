@@ -671,12 +671,18 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #1976d2;
+  background-color: #EFF6FF;
+  /* 더 부드러운 배경색 */
+  color: #3B82F6;
+  /* 선명한 파란색 텍스트 */
   font-size: 12px;
-  padding: 5px 12px;
-  border-radius: 8px;
-  font-weight: 600;
+  padding: 6px 12px;
+  /* 여백 조금 더 줌 */
+  border-radius: 99px;
+  /* [변경] 둥근 캡슐 모양 */
+  font-weight: 700;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  /* 아주 연한 테두리 추가 */
 }
 
 .unit-badge i {
@@ -700,32 +706,50 @@ export default {
 }
 
 .card-footer {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px dashed #e8e8e8;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #F0F0F0;
+  /* 점선 대신 얇은 실선으로 깔끔하게 */
 }
 
 .location-info {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  /* [필수] 가로 배치 */
+  align-items: flex-start;
+  /* [핵심] 글자가 두 줄 이상일 때 위쪽 기준 정렬 */
+  gap: 8px;
+  /* 아이콘, 라벨, 내용 사이 간격 */
+  font-size: 13.5px;
+  /* 글자 크기 미세 조정 */
   color: #555;
+  line-height: 1.5;
+  /* 줄 간격 확보 */
 }
 
 .location-info i {
   color: #4A7CEC;
-  font-size: 15px;
+  font-size: 16px;
+  flex-shrink: 0;
+  /* 아이콘 찌그러짐 방지 */
 }
 
 .location-label {
   color: #888;
   font-weight: 500;
+  flex-shrink: 0;
+  /* [핵심] 공간 좁아도 줄바꿈 안 됨 */
+  white-space: nowrap;
+  /* [핵심] "활동 위치" 글자 깨짐 방지 */
 }
 
 .location-value {
-  color: #1a1a1a;
-  font-weight: 600;
+  color: #1A1A1A;
+  font-weight: 700;
+  /* 강조 */
+  word-break: keep-all;
+  /* [핵심] 한글 단어 중간 끊김 방지 (매우 중요) */
+  flex: 1;
+  /* 남은 공간 꽉 채우기 */
 }
 
 /* ========================================

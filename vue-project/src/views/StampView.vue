@@ -74,8 +74,9 @@
         <div v-else class="empty-grid-message">
           <i class="bi bi-emoji-frown empty-icon"></i>
           <p class="empty-text">
-            '{{ selectedTab }}'에 해당하는<br />스탬프가 없습니다.
+            스탬프가 아직 없어요! <br> 스탬프를 모으러 가볼까요?
           </p>
+          <button class="btn btn-primary mt-5" @click="goToList()">추천 목록 보러가기</button>
         </div>
       </div>
     </div>
@@ -168,6 +169,10 @@ export default {
         isLoading.value = false;
       }
     };
+    const goToList = () => {
+      console.log("목록 구경하기 버튼 클릭됨!");
+      router.push('/list');
+    };
     // === 5. mounted() -> onMounted() ===
     onMounted(() => {
       if (!currentUserId.value) {
@@ -185,10 +190,11 @@ export default {
       filteredStamps,
       collectedStampsCount,
       progressPercent,
+      totalStampsCount,
+      Math,
       goBack,
       selectTab,
-      totalStampsCount,
-      Math
+      goToList
     };
   },
 };

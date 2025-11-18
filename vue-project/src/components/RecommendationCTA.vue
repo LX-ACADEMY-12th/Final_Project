@@ -55,12 +55,16 @@ export default {
 
 <style scoped>
 .cta-wrap {
-  padding: 4px 0;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cta-wrap.inset .cta-inner {
-  margin: 0 16px;
-  margin-bottom: 32px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  width: 400px;
 }
 
 .cta-inner {

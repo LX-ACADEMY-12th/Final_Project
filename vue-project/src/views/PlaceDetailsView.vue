@@ -483,7 +483,7 @@ export default {
         '추천 동선을 마무리하고 있어요'
       ],
       exhibitionTips: [
-        '💡 AI는 평점과 리뷰를 기반으로 추천해드려요',
+        '🚀 AI는 평점과 리뷰를 기반으로 추천해드려요',
         '📊 전시 개수와 교육적 가치를 고려해요',
         '💾 생성된 동선은 관심 코스에 저장할 수 있어요'
       ],
@@ -913,7 +913,7 @@ export default {
     formatFee(fee) {
       if (fee === null || fee === undefined) return '정보 없음';
       if (fee === 0) return '무료';
-      return `${fee.toLocaleString('ko-KR')}원`;
+      return `${fee.toLocaleString('ko-KR')}`;
     },
 
     /**
@@ -1390,6 +1390,7 @@ export default {
   overflow-y: auto;
   min-height: 0;
   padding-bottom: 40px;
+  background-color: white;
 
   &::-webkit-scrollbar {
     display: none;
