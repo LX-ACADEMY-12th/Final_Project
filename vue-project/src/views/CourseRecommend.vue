@@ -91,6 +91,8 @@ export default {
 </script>
 
 <style scoped>
+@import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css');
+
 .course-container {
   width: 100%;
   margin: 0 auto;
@@ -115,6 +117,7 @@ export default {
   /* 테마 색상 유지 */
   color: white;
   border: none;
+  font-family: 'SUIT', sans-serif;
   font-size: 16px;
   font-weight: bold;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
@@ -135,6 +138,7 @@ export default {
 }
 
 .list-title {
+  font-family: 'SUIT', sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: #333;

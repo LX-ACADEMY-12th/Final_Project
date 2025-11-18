@@ -47,7 +47,7 @@
 </template>
 <script setup>
 // [!!] (수정됨) watch, nextTick 추가
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from '@/api/axiosSetup';
 import { useAuthStore } from '@/stores/authStore';
@@ -57,7 +57,37 @@ const authStore = useAuthStore();
 const { user } = storeToRefs(authStore);
 const router = useRouter();
 
-const goToHome = () => router.push('/home');
+// ✅ 수정된 goToHome 함수
+const goToHome = () => {
+  // 1. 재생 중인 음성 중지
+  if (currentAudio.value) {
+    currentAudio.value.pause();
+    currentAudio.value.currentTime = 0;
+    currentAudio.value = null;
+  }
+
+  // 2. 녹음 중이면 중지
+  if (mediaRecorder.value && mediaRecorder.value.state === 'recording') {
+    mediaRecorder.value.stop();
+    if (mediaRecorder.value.stream) {
+      mediaRecorder.value.stream.getTracks().forEach(track => track.stop());
+    }
+  }
+
+  // 3. 오디오 컨텍스트 정리
+  if (audioContext.value && audioContext.value.state !== 'closed') {
+    audioContext.value.close();
+  }
+
+  // 4. 애니메이션 프레임 정리
+  if (animationFrameId.value) {
+    cancelAnimationFrame(animationFrameId.value);
+    animationFrameId.value = null;
+  }
+
+  // 5. 라우터로 홈 이동
+  router.push('/home');
+};
 
 // --- 상태 관리 ---
 const uiState = ref('idle');
@@ -80,6 +110,30 @@ const analyser = ref(null);
 const source = ref(null);
 const animationFrameId = ref(null);
 const currentVolume = ref(0);
+
+// ✅ 컴포넌트 언마운트 시 정리
+onBeforeUnmount(() => {
+  // 재생 중인 오디오 정리
+  if (currentAudio.value) {
+    currentAudio.value.pause();
+    currentAudio.value = null;
+  }
+
+  // 녹음 중이면 정리
+  if (mediaRecorder.value && mediaRecorder.value.stream) {
+    mediaRecorder.value.stream.getTracks().forEach(track => track.stop());
+  }
+
+  // 오디오 컨텍스트 정리
+  if (audioContext.value && audioContext.value.state !== 'closed') {
+    audioContext.value.close();
+  }
+
+  // 애니메이션 프레임 정리
+  if (animationFrameId.value) {
+    cancelAnimationFrame(animationFrameId.value);
+  }
+});
 
 const toggleRecording = () => {
   if (uiState.value === 'listening') {

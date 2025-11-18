@@ -1375,10 +1375,13 @@ export default {
 </script>
 
 <style scoped>
+@import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css');
+
 /* ========================================
    공통 레이아웃
 ======================================== */
 .exhibition-detail-page {
+  font-family: 'SUIT', sans-serif;
   height: 100%;
   display: flex;
   flex-direction: column;
