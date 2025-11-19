@@ -75,34 +75,39 @@ public class ActivityRecommendService {
 
     /**
      * AI 프롬프트를 동적으로 생성합니다.
-     * [수정] '체험 장소'가 아닌 '장소 내 활동'을 명확히 요청
+     * [수정] 응답 길이를 제한하고 간결성 강조
      */
     private String buildPrompt(Request req, PlaceDetailsForAI details) {
 
         return String.format(
-                "당신은 10년 차 과학 교사이며, 초등학생 눈높이에 맞는 창의적인 체험활동 전문가입니다. " +
-                        "다음 정보를 바탕으로, 학생이 '1번 장소' **내에서** 과학 원리를 배울 수 있는 구체적인 **'체험 활동(Activity)'** 3가지를 추천해줘.\n" +
-                        "1. 장소 이름: %s\n" +
-                        "2. 장소 상세설명: %s\n" +
-                        "3. 대상 학년: %d학년\n" +
-                        "4. 연계 과학 단원 (주제): %s\n\n" +
-                        "요구사항:\n" +
-                        "- 활동 제목(title), 구체적인 활동 방법(description), 연계 단원(relatedUnit, 예: '%d학년 - %s')을 포함해줘.\n" +
-                        "- **[매우 중요]** 'relatedExhibit' 필드에는 **절대 다른 장소를 추천하지 마.**\n" +
-                        "- 'relatedExhibit' 필드에는 '1번 장소' 내에서 그 '활동'을 수행하기 가장 좋은 **'구체적인 스팟' 또는 '위치'**를 작성해줘. (예: '해변 백사장', '공원 잔디밭', '암석이 있는 해안가', '매표소 앞 안내판')\n" +
-                        "- '장소 상세설명'(%s)을 참고하여 '활동 수행 위치'를 추천해야 해.\n" +
-                        "- 응답은 반드시 아래 JSON 배열 형식만 반환하고, 다른 텍스트는 절대 추가하지 마.\n" +
+                "당신은 초등학생 대상 과학 체험활동 전문가입니다. " +
+                        "다음 정보를 바탕으로 '%s' **내에서** 할 수 있는 체험 활동 3가지를 추천해주세요.\n\n" +
+                        "📍 장소 정보:\n" +
+                        "- 장소: %s\n" +
+                        "- 설명: %s\n" +
+                        "- 학년: %d학년\n" +
+                        "- 단원: %s\n\n" +
+                        "📋 응답 형식:\n" +
+                        "- title: 15자 이내 간결한 제목\n" +
+                        "- description: **핵심만 2-3문장**(최대 80자), 초등학생이 바로 실행 가능한 구체적 방법\n" +
+                        "- relatedUnit: '%d학년 - %s'\n" +
+                        "- relatedExhibit: 장소 내 구체적 위치 (10자 이내, 예: '입구 암석', '2층 전시관')\n\n" +
+                        "⚠️ 주의사항:\n" +
+                        "- description은 불필요한 설명 없이 '무엇을', '어떻게' 할지만 간결하게\n" +
+                        "- relatedExhibit은 반드시 '%s' 내부 위치만 (다른 장소 절대 금지)\n" +
+                        "- JSON 배열만 반환 (다른 텍스트 금지)\n\n" +
                         "[\n" +
                         "  {\"title\": \"...\", \"description\": \"...\", \"relatedUnit\": \"...\", \"relatedExhibit\": \"...\"},\n" +
                         "  {\"title\": \"...\", \"description\": \"...\", \"relatedUnit\": \"...\", \"relatedExhibit\": \"...\"}\n" +
                         "]",
+                details.getPlaceName(),   // 제목에 장소명
                 details.getPlaceName(),   // 1. 장소
                 details.getDescription(), // 2. 상세 설명
                 req.getGrade(),           // 3. 학년
                 req.getUnitName(),        // 4. 단원
-                req.getGrade(),           // (요구사항) 예시 학년
-                req.getUnitName(),        // (요구사항) 예시 단원
-                details.getDescription()  // (요구사항) 상세 설명 (맥락 재참조)
+                req.getGrade(),           // relatedUnit 예시
+                req.getUnitName(),        // relatedUnit 예시
+                details.getPlaceName()    // 주의사항 - 장소명 재강조
         );
     }
 
