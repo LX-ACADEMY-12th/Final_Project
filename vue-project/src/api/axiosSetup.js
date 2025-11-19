@@ -1,26 +1,28 @@
 import axios from 'axios'
-// 1. Pinia 스토어(authStore)를 가져옵니다. (경로가 다를 수 있습니다)
 import { useAuthStore } from '@/stores/authStore'
 
-// API 베이스 URL 설정
+// ===================================================================
+// 1. API 베이스 URL 설정
+// ===================================================================
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'
 
-// 2. 새로운 Axios 인스턴스 생성
+// ===================================================================
+// 2. Axios 인스턴스 생성
+// ===================================================================
 const axiosInstance = axios.create({
   baseURL: API_BASE,
 })
 
+// ===================================================================
 // 3. 요청 인터셉터 (Request Interceptor)
+// ===================================================================
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Pinia 스토어에서 authStore를 가져옵니다.
     const authStore = useAuthStore()
-
-    // 메모리에 없으면 localStorage에서 가져오기
     let token = authStore.accessToken
 
+    // 메모리에 없으면 localStorage에서 가져오기
     if (!token) {
-      // Pinia persist가 아직 로드되지 않았을 수 있으므로 localStorage 직접 확인
       const persistedAuth = localStorage.getItem('auth')
       if (persistedAuth) {
         try {
@@ -33,6 +35,7 @@ axiosInstance.interceptors.request.use(
       }
     }
 
+    // 토큰이 있으면 Authorization 헤더 추가
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
       console.log('[Axios Interceptor] Authorization 헤더 추가됨')
@@ -55,7 +58,7 @@ axiosInstance.interceptors.request.use(
 )
 
 // ===================================================================
-// ⭐ 8. 응답 인터셉터 (Response Interceptor)
+// 4. 응답 인터셉터 (Response Interceptor)
 // ===================================================================
 axiosInstance.interceptors.response.use(
   (response) => {
@@ -63,56 +66,96 @@ axiosInstance.interceptors.response.use(
     return response
   },
   async (error) => {
-    // 원본 요청 정보
     const originalRequest = error.config
 
-    // 8-1. 401 에러(Unauthorized)이고, 아직 재시도 안 한 경우
-    if (error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true // 재시도 플래그 (무한 루프 방지)
+    // ===================================================================
+    // 5. 로그인 없이도 접근 가능한 Public API 목록
+    // ===================================================================
+    const publicAPIs = [
+      '/api/content/search', // 콘텐츠 검색 (전시관 + 답사지)
+      '/api/reviews', // 리뷰 조회
+      '/api/reviews/target', // 특정 대상 리뷰 조회
+      '/api/reviews/photos-summary', // 리뷰 사진 썸네일
+      '/api/places/search', // 장소 검색
+      '/api/halls', // 전시관 정보
+      '/api/centers', // 과학관 정보
+      '/api/place', // 과학 장소 정보
+      '/api/exhibitions',
+      '/api/recommend/course', // 추천 코스 조회
+      '/api/notices', // 공지사항
+    ]
 
+    // 현재 요청 URL이 public API인지 확인
+    const isPublicAPI = publicAPIs.some((api) => originalRequest.url?.includes(api))
+
+    // ===================================================================
+    // 6. 401 Unauthorized 에러 처리
+    // ===================================================================
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Public API는 401이어도 로그인 페이지로 리디렉션하지 않음
+      if (isPublicAPI) {
+        console.warn('[Axios] Public API 401 에러 - 로그인 리디렉션 생략')
+        return Promise.reject(error)
+      }
+
+      // 재시도 플래그 설정 (무한 루프 방지)
+      originalRequest._retry = true
       const authStore = useAuthStore()
 
-      // 8-2. 리프레시 토큰이 있는지 확인
+      // 리프레시 토큰이 없는 경우 로그아웃 처리
       if (!authStore.refreshToken) {
         console.error('[Axios] 리프레시 토큰이 없습니다. 로그아웃 처리.')
         authStore.logout()
-        // (라우터 사용 시) router.push('/login');
-        window.location.href = '/login' // 로그인 페이지로 강제 이동
+        window.location.href = '/login'
         return Promise.reject(error)
       }
 
       try {
-        // 8-3. 리프레시 토큰으로 새 액세스 토큰 요청 (백엔드 API 필요)
-        // (이 요청은 'axios'의 기본 인스턴스를 사용해야 인터셉터 무한 루프에 빠지지 않습니다)
+        // 리프레시 토큰으로 새 액세스 토큰 요청
+        console.log('[Axios] 리프레시 토큰으로 액세스 토큰 갱신 시도...')
         const response = await axios.post(`${API_BASE}/api/token/refresh`, {
           refreshToken: authStore.refreshToken,
         })
 
-        // 8-4. 새로 발급받은 액세스 토큰
+        // 새로 발급받은 액세스 토큰
         const newAccessToken = response.data.accessToken
+        console.log('[Axios] 새 액세스 토큰 발급 성공')
 
-        // 8-5. Pinia 스토어에 새 액세스 토큰 저장 (메모리에만)
+        // Pinia 스토어에 새 액세스 토큰 저장
         authStore.refreshAccessToken(newAccessToken)
 
-        // 8-6. 원본 요청(실패했던)의 헤더에 새 토큰 삽입
+        // 원본 요청의 헤더에 새 토큰 삽입
         originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`
 
-        // 8-7. 원본 요청 재시도 (axiosInstance 사용)
-        console.log('[Axios] 토큰 갱신 성공, 원본 요청 재시도')
+        // 원본 요청 재시도
+        console.log('[Axios] 원본 요청 재시도')
         return axiosInstance(originalRequest)
       } catch (refreshError) {
-        // 8-8. 리프레시 토큰 갱신도 실패한 경우 (예: 리프레시 토큰도 만료됨)
-        console.error('[Axios] 리프레시 토큰 갱신 실패', refreshError)
+        // 리프레시 토큰 갱신도 실패한 경우 (리프레시 토큰도 만료됨)
+        console.error('[Axios] 리프레시 토큰 갱신 실패:', refreshError)
         authStore.logout()
         window.location.href = '/login'
         return Promise.reject(refreshError)
       }
     }
 
+    // ===================================================================
+    // 7. 기타 에러 처리
+    // ===================================================================
     // 401이 아닌 다른 에러는 그대로 반환
+    if (error.response) {
+      console.error(`[Axios Error] ${error.response.status}: ${error.response.statusText}`)
+    } else if (error.request) {
+      console.error('[Axios Error] 서버로부터 응답이 없습니다.')
+    } else {
+      console.error('[Axios Error]', error.message)
+    }
+
     return Promise.reject(error)
   },
 )
 
-// 7. 설정된 인스턴스를 내보냅니다.
+// ===================================================================
+// 8. 설정된 Axios 인스턴스 내보내기
+// ===================================================================
 export default axiosInstance

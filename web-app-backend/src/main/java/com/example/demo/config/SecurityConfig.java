@@ -87,9 +87,14 @@ public class SecurityConfig {
                                 "/api/places/search",
                                 "/api/halls/**",
                                 "/api/centers/**",
+                                "/api/exhibitions/**",
+                                "/api/place/**",
 
                                 // 추천 코스 조회
-                                "/api/recommend/course"
+                                "/api/recommend/course",
+
+                                // 콘텐츠 검색 (전시관 + 답사지 통합 검색)
+                                "/api/content/search"
                         ).permitAll()
 
                         // 💡 관리자 API
