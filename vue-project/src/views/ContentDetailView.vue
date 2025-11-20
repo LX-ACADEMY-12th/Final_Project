@@ -380,7 +380,7 @@ export default {
         };
 
         if (this.editingReviewId) {
-          // 서버에 수정용 엔드포인트가 실제로 있을 때만 사용
+          // 서버에 엔드포인트가 실제로 있을 때만 사용
           await axios.put(`/api/reviews/${this.editingReviewId}/upload`, formData, cfg);
           eventBus.emit('show-global-alert', {
             message: '리뷰가 성공적으로 수정되었습니다.',
