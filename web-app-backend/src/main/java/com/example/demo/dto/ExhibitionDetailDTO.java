@@ -1,6 +1,9 @@
 package com.example.demo.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
@@ -29,8 +32,7 @@ public class ExhibitionDetailDTO {
 
     // MyBatis에서 받을 문자열 필드
     private String exhibitionListStr;
-    // 실제 사용할 배열
-    private String[] exhibitionList;
+
     // Getter에서 자동 변환
     public String[] getExhibitionList() {
         if (exhibitionListStr != null && !exhibitionListStr.isEmpty()) {
@@ -43,4 +45,13 @@ public class ExhibitionDetailDTO {
 
     private long userId;
 
+    private List<ExhibitionItem> exhibitionList;
+    // 4. 내부 클래스 (DTO 안에 쏙 넣으세요)
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ExhibitionItem {
+        private String title;
+        private String imageUrl;
+    }
 }

@@ -81,11 +81,22 @@ export default {
       if (!this.item.exhibitionList || !Array.isArray(this.item.exhibitionList)) {
         return [];
       }
-      // 전시 이름에서 장소 정보 제거 (옵션)
-      return this.item.exhibitionList.map(exhibition => {
-        // "전시명 - 장소" 형식에서 전시명만 추출
-        const parts = exhibition.split(' - ');
-        return parts[0] || exhibition;
+
+      // ⭐️ [수정된 로직] 이름^URL 문자열에서 이름만 추출
+      return this.item.exhibitionList.map(fullString => {
+        // 1. 이름과 URL을 구분하는 '^'를 기준으로 분리
+        const parts = fullString.split('^');
+
+        let exhibitionName = parts[0] || fullString; // '^' 앞부분(이름)이 있다면 사용
+
+        // 2. 추가 처리: 만약 이름 앞에 순서 번호(1, 2, 3...)가 붙어 있다면 제거
+        // 예: "2괴짜과학자의 바이러스" -> "괴짜과학자의 바이러스"
+        // 첫 글자가 숫자이고, 그 뒤에 글자가 있다면 숫자를 제거합니다.
+        if (exhibitionName.length > 1 && !isNaN(exhibitionName[0]) && isNaN(exhibitionName[1])) {
+          exhibitionName = exhibitionName.substring(1);
+        }
+
+        return exhibitionName.trim();
       });
     },
 

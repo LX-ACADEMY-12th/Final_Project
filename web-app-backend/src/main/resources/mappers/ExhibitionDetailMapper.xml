@@ -19,7 +19,7 @@
             eh.admission_fee,
             eh.average_rating,
             eh.total_reviews,
-            STRING_AGG(DISTINCT e.exhibition_name, '||') AS exhibitionListStr,
+            STRING_AGG(DISTINCT CONCAT(e.exhibition_name, '^', COALESCE(e.main_image_url, '')), '||') AS exhibitionListStr,
             (
                 SELECT
                     COUNT(p.photo_id)
@@ -77,6 +77,8 @@
             grade_category gc ON ecm_grade.grade_id = gc.grade_id
         WHERE
             eh.hall_id = #{exhibitionHallId}
+          AND cmc.category_name = #{mainCategoryTags}
+          AND gc.grade_name = #{gradeTags}
         GROUP BY
             eh.hall_id,
             eh.hall_name,
