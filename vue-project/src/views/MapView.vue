@@ -33,6 +33,13 @@
     </div>
 
     <div class="position-absolute d-flex flex-column map-control-buttons">
+      <button
+        class="btn btn-warning btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center demo-btn"
+        @click="setDemoLocation">
+        <i class="bi bi-geo-alt" style="font-size: 1rem; line-height: 1;"></i>
+        <span style="font-size: 0.6rem; margin-top: 2px;">대전 시연</span>
+      </button>
+
       <button class="btn btn-dark btn-circle shadow-sm d-flex flex-column p-0 justify-content-center align-items-center"
         @click="goToCurrentLocation">
         <i class="bi bi-bullseye" style="font-size: 1rem; line-height: 1;"></i>
@@ -241,6 +248,58 @@ const handleItemClick = (item) => {
 
   }, 500);
 
+};
+
+// 🚨 [추가된 함수] 대전 시청으로 현위치를 고정 설정하고 검색 실행
+const setDemoLocation = async () => {
+  // 1. currentUserLocation을 대전시청 좌표로 고정 설정
+  currentUserLocation.value = DEMO_LOCATION;
+
+  if (map.value) {
+    const demoLatLng = new window.kakao.maps.LatLng(
+      currentUserLocation.value.lat,
+      currentUserLocation.value.lng
+    );
+
+    // 2. 지도 이동 및 레벨 조정 (goToCurrentLocation 로직 참조)
+    map.value.panTo(demoLatLng);
+
+    setTimeout(() => {
+      map.value.setLevel(3, {
+        animate: {
+          duration: 300
+        }
+      });
+    }, 300);
+
+    // 3. 기존 마커 제거 및 새로운 커스텀 오버레이 표시
+    if (currentLocationMarker.value) {
+      currentLocationMarker.value.setMap(null);
+    }
+
+    const content = `
+      <div class="current-location-wrapper">
+        <div class="current-location-dot"></div>
+        <div class="current-location-pulse"></div>
+      </div>
+    `;
+
+    const newOverlay = new window.kakao.maps.CustomOverlay({
+      position: demoLatLng,
+      content: content,
+    });
+
+    newOverlay.setMap(map.value);
+    currentLocationMarker.value = newOverlay;
+  }
+
+  // 4. 새로운 위치 기반으로 검색 실행
+  await performSearch();
+
+  eventBus.emit('show-global-alert', {
+    message: '현위치를 대전 시청(시연 좌표)으로 설정했습니다.',
+    type: 'success'
+  });
 };
 
 // 마커 하이라이트 함수
@@ -758,15 +817,17 @@ onMounted(async () => {
     });
 
     try {
+      // 현위치 획득 시도
       await getCurrentLocation();
       if (currentUserLocation.value && map.value) {
         const currentLatLng = new window.kakao.maps.LatLng(
           currentUserLocation.value.lat,
           currentUserLocation.value.lng
         );
+        // 현위치로 지도의 '중앙' 설정
         map.value.setCenter(currentLatLng);
         map.value.setLevel(7);
-
+        // 현위치 마커/오버레이 표시
         if (currentLocationMarker.value) {
           currentLocationMarker.value.setMap(null);
         }
@@ -782,6 +843,7 @@ onMounted(async () => {
       map.value.setCenter(new window.kakao.maps.LatLng(37.566826, 126.9786567));
     }
 
+    // 현위치 획득과 무관하게 최초 검색을 실행
     await performSearch();
 
   } else {
@@ -798,27 +860,35 @@ watch(filteredItems, (newItems) => {
 
     if (newItems.length > 0) {
       const bounds = new window.kakao.maps.LatLngBounds();
-      let hasValidItem = false; // 유효한 아이템이 하나라도 있는지 확인
+      let hasValidItem = false;
 
+      // 1. 검색된 장소들을 경계에 추가
       newItems.forEach(item => {
-        // 🚨 [추가 검증] 유효한 좌표만 bounds에 포함
         if (item.lat !== null && item.lng !== null && !isNaN(Number(item.lat)) && !isNaN(Number(item.lng))) {
           bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng));
           hasValidItem = true;
         }
       });
 
-      if (hasValidItem) { // 유효한 좌표가 있어야 setBounds 호출
-        if (newItems.length === 1) {
-          // 단일 아이템일 경우, moveMapToItem 호출
+      // 2. [추가] 현위치가 있으면 현위치도 경계에 포함
+      if (currentUserLocation.value) {
+        bounds.extend(new window.kakao.maps.LatLng(
+          currentUserLocation.value.lat,
+          currentUserLocation.value.lng
+        ));
+        hasValidItem = true; // 현위치가 유효하면 경계 설정 가능
+      }
+
+      if (hasValidItem) {
+        if (newItems.length === 1 && !currentUserLocation.value) {
+          // 장소가 하나만 있고 현위치가 없는 경우: 해당 장소로만 이동
           moveMapToItem(newItems[0].lat, newItems[0].lng);
-        } else {
-          // 여러 아이템일 경우
+        } else if (newItems.length > 0) {
+          // 장소가 1개 이상이거나 현위치가 있는 경우: 경계 설정
           map.value.setBounds(bounds);
         }
       } else {
-        // 모든 아이템의 좌표가 무효할 경우
-        console.warn("경계 설정: 유효한 좌표를 가진 아이템이 없어 지도를 이동하지 않습니다.");
+        console.warn("경계 설정: 유효한 좌표를 가진 아이템이나 현위치가 없어 지도를 이동하지 않습니다.");
       }
     }
   });
@@ -1189,5 +1259,13 @@ const handleNavigation = (navItemName) => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 🚨 [추가된 스타일] 대전 시연 버튼 */
+.demo-btn {
+  background-color: #ffc107;
+  /* Warning 색상 */
+  border-color: #ffc107;
+  color: #333;
 }
 </style>

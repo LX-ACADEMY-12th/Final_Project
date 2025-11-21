@@ -121,9 +121,7 @@
             e.type,
             cmc.category_name,
             eh.geog  -- ST_Distance를 사용했으므로 GROUP BY에 geog 추가
-
         UNION ALL
-
         SELECT
             sp.place_id as contentId,
             sp.main_image_url as imageUrl,
@@ -161,7 +159,6 @@
             sp.place_type,
             cmc.category_name,
             sp.geog  -- ST_Distance를 사용했으므로 GROUP BY에 geog 추가
-
         ORDER BY
             distance_km ASC;
     </select>

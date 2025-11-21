@@ -32,11 +32,9 @@ public class ContentService {
                 if (dto.getLat() == null || dto.getLng() == null || dto.getRadius() == null) {
                     throw new IllegalArgumentException("반경 검색 시 위도, 경도, 반경 값은 필수입니다.");
                 }
-                // PostGIS 사용을 위한 거리 변환 (km -> meter)
-                double radiusInMeters = dto.getRadius() * 1000.0;
 
                 // 통합 메소드 호출
-                results = contentMapper.findContentByRadius(dto.getSubject(), dto.getGrade(), dto.getLat(), dto.getLng(), radiusInMeters);
+                results = contentMapper.findContentByRadius(dto.getSubject(), dto.getGrade(), dto.getLat(), dto.getLng(), dto.getRadius());
                 break;
 
             // 지역 검색일 경우에
