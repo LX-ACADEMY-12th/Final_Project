@@ -14,7 +14,7 @@ export const courseA_default = {
     hall_1_entrance: {
       title: '창의나래관 (입구)',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/changhall1.jpg',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img2.jpg',
       hotSpots: [
         {
           pitch: -2.1,

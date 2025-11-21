@@ -1,5 +1,5 @@
 <template>
-    <div class="card shadow-sm h-100">
+    <div class="card shadow-sm h-100 d-flex flex-column">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>사용자 동선 분석 (Path Analysis)</h5>
             <div class="d-flex align-items-center">
@@ -21,10 +21,10 @@
             </div>
         </div>
 
-        <div class="card-body p-0 d-flex flex-row">
-            <div id="path-analysis-map" style="height: 650px; width: 66.6%;"></div>
+        <div class="card-body p-0 d-flex flex-row flex-grow-1">
+            <div id="path-analysis-map" style="height: 100%; width: 66.6%;"></div>
 
-            <div class="p-3 border-start" style="width: 33.3%;">
+            <div class="p-3 border-start d-flex flex-column" style="width: 33.3%;">
                 <h6 class="fw-bold text-primary mb-3">분석 요약 (총 {{ analysisStats.segmentCount }}회 이동)</h6>
 
                 <div class="bg-light p-3 rounded mb-3">
@@ -41,8 +41,8 @@
                     <h5 class="fw-bold text-dark mb-0">{{ analysisStats.totalDays }}일 간 분석</h5>
                 </div>
 
-                <h6 class="fw-bold text-secondary mt-4 mb-2">동선 상세 목록</h6>
-                <div class="list-group list-group-flush small" style="max-height: 400px; overflow-y: auto;">
+                <h6 class="fw-bold text-secondary mt-1 mb-2">동선 상세 목록</h6>
+                <div class="list-group list-group-flush small flex-grow-1" style="overflow-y: auto;">
                     <a href="#" class="list-group-item list-group-item-action py-2"
                         v-for="(path, index) in analysisStats.detailedPaths" :key="index"
                         @click.prevent="zoomToPath(path.startLat, path.startLng, path.endLat, path.endLng)">
@@ -70,6 +70,7 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
+
 // 현재 날짜를 'YYYY-MM-DD' 형식의 문자열로 반환하는 헬퍼 함수
 function getTodayDate() {
     const today = new Date();
@@ -78,10 +79,10 @@ function getTodayDate() {
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
 }
+
 export default {
     name: "SpatialAnalysis",
     props: {
-        // 백엔드에서 받은 List<UserPathSegmentDto> 데이터 (이름 및 좌표 포함)
         spatialData: {
             type: Array,
             required: true,
@@ -92,31 +93,31 @@ export default {
         return {
             map: null,
             pathLayerGroup: null,
-            markerLayerGroup: null,    // 💡 마커 레이어 그룹
-            legendControl: null,       // 💡 범례 컨트롤 객체
+            markerLayerGroup: null,
+            legendControl: null,
             startDate: '2025-10-01',
             endDate: getTodayDate(),
-            analysisType: 'PLACE', // 💡 기본값을 'PLACE'로 설정
-            pathKeyMap: new Map(), // 💡 A->B 경로를 저장하여 B->A 경로와 겹침을 확인
-            // 💡 통계 데이터를 위한 객체
+            analysisType: 'PLACE',
+            pathKeyMap: new Map(),
             analysisStats: {
                 segmentCount: 0,
                 totalDays: 0,
                 topPath: { name: '', count: 0, startLat: 0, startLng: 0, endLat: 0, endLng: 0 },
                 detailedPaths: []
-            }
+            },
+            // 💡 ResizeObserver 인스턴스를 저장하기 위한 변수 추가
+            resizeObserver: null,
         };
     },
     mounted() {
         this.$nextTick(this.initMap);
-        // 초기 맵 로딩 후, 설정된 초기 날짜/타입으로 데이터 로드를 요청
         this.updateAnalysis();
     },
     watch: {
         spatialData: {
             handler() {
                 if (this.map) {
-                    this.calculateStats(); // 통계 먼저 계산
+                    this.calculateStats();
                     this.drawPaths();
                 }
             },
@@ -124,29 +125,23 @@ export default {
         },
     },
     methods: {
-        // 💡 통계 패널 데이터를 계산하는 로직
         calculateStats() {
-            // 🚨 [수정된 부분] this.spatialData가 배열인지 확인하는 로직 추가
             if (!Array.isArray(this.spatialData) || this.spatialData.length === 0) {
-                console.warn("calculateStats: spatialData가 유효한 배열이 아니거나 비어있습니다.");
                 this.analysisStats = { segmentCount: 0, totalDays: 0, topPath: { name: '데이터 없음', count: 0 }, detailedPaths: [] };
                 return;
             }
 
-            // 오류가 발생했던 reduce 호출 부분은 이제 안전하게 실행됩니다.
             const totalSegments = this.spatialData.reduce((sum, s) => sum + s.segmentCount, 0);
 
-            // 날짜 차이 계산
             const start = new Date(this.startDate);
             const end = new Date(this.endDate);
             const diffTime = Math.abs(end - start);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-            // 상세 경로 목록 생성 (이름이 없는 경우 ID 사용)
             const detailedPaths = this.spatialData.map(s => ({
                 count: s.segmentCount,
-                startName: s.startPlaceName || `장소 ${s.startPlaceId}`, // 💡 DTO의 이름 필드 사용
-                endName: s.endPlaceName || `장소 ${s.endPlaceId}`,       // 💡 DTO의 이름 필드 사용
+                startName: s.startPlaceName || `장소 ${s.startPlaceId}`,
+                endName: s.endPlaceName || `장소 ${s.endPlaceId}`,
                 startLat: s.startLat,
                 startLng: s.startLng,
                 endLat: s.endLat,
@@ -154,8 +149,7 @@ export default {
                 type: (s.segmentCount >= 50) ? '최다 이동' : (s.segmentCount >= 10 ? '주요 이동' : '일반 이동')
             }));
 
-            // 최다 이동 경로
-            const top = detailedPaths[0];
+            const top = detailedPaths[0] || { count: 0, startName: '데이터 없음', endName: '', startLat: 0, startLng: 0, endLat: 0, endLng: 0 };
             const topPathName = `${top.startName} → ${top.endName}`;
 
             this.analysisStats = {
@@ -166,7 +160,6 @@ export default {
             };
         },
 
-        // 💡 [신규] 특정 경로로 지도 뷰 이동 (통계 패널 클릭 시 사용)
         zoomToPath(startLat, startLng, endLat, endLng) {
             if (!this.map) return;
             const startPoint = L.latLng(startLat, startLng);
@@ -177,6 +170,15 @@ export default {
 
         updateAnalysis() {
             this.$emit('reload-data', this.startDate, this.endDate, this.analysisType);
+
+            // ✅ 데이터 로드 후 지도 갱신 대기
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    if (this.map) {
+                        this.map.invalidateSize();
+                    }
+                }, 150);
+            });
         },
 
         initMap() {
@@ -185,8 +187,29 @@ export default {
                 attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
             }).addTo(this.map);
             this.pathLayerGroup = L.layerGroup().addTo(this.map);
-            this.markerLayerGroup = L.layerGroup().addTo(this.map); // 💡 마커 레이어 그룹 초기화
+            this.markerLayerGroup = L.layerGroup().addTo(this.map);
             this.drawPaths();
+
+            // 💡 [수정] 맵 크기 갱신 이벤트 핸들러 추가 및 로딩 직후 강제 갱신
+            this.resizeObserver = new ResizeObserver(() => {
+                if (this.map) {
+                    this.map.invalidateSize();
+                }
+            });
+            const mapContainer = document.getElementById('path-analysis-map');
+            if (mapContainer) {
+                this.resizeObserver.observe(mapContainer);
+            }
+
+            // 줌 변경 후에도 크기를 갱신하여 핀/선 어긋남 재확인
+            this.map.on('moveend', () => {
+                this.map.invalidateSize();
+            });
+
+            // 초기 로딩 후 잠깐의 딜레이를 주어 크기 갱신 (가장 확실한 방법)
+            setTimeout(() => {
+                if (this.map) this.map.invalidateSize();
+            }, 100);
         },
 
         getLineWeight(count) {
@@ -200,8 +223,12 @@ export default {
             if (count >= 10) return '#4A7CEC';
             return '#00BFFF';
         },
+        getLineOpacity(count) {
+            if (count >= 50) return 1.0;
+            if (count >= 10) return 0.8;
+            return 0.5;
+        },
 
-        // 💡 [통합] 범례 추가 함수
         addLegend() {
             const legend = L.control({ position: 'bottomright' });
             legend.onAdd = () => {
@@ -211,7 +238,7 @@ export default {
                 div.style.borderRadius = '5px';
                 div.innerHTML = '<b>경로 이동 빈도</b><br>' +
                     '<i style="background:#FF5733; width: 20px; height: 8px; display: inline-block; margin-right: 5px;"></i> 50회 이상 (매우 잦음)<br>' +
-                    '<i style="background:#4A7CEC; width: 20px; height: 5px; display: inline-block; margin-right: 5px;"></i> 10회 ~ 49회 (중간)<br>' +
+                    '<i style="background:#4A7CEC; width: 20px; height: 5px; display: inline-block; margin-right: 5px;"></i> 10회 ~ 49회 (잦음)<br>' +
                     '<i style="background:#00BFFF; width: 20px; height: 3px; display: inline-block; margin-right: 5px;"></i> 1회 ~ 9회 (낮음)';
                 return div;
             };
@@ -221,32 +248,25 @@ export default {
             legend.addTo(this.map);
         },
 
-        // 💡 [통합] 장소 마커를 지도에 표시하는 함수
         drawMarkers() {
             if (this.markerLayerGroup) { this.map.removeLayer(this.markerLayerGroup); }
             this.markerLayerGroup = L.layerGroup().addTo(this.map);
 
             const places = {};
             this.spatialData.forEach(segment => {
-                // GeoJSON 파싱을 피하기 위해 DTO에 좌표와 이름이 포함되어 있어야 합니다.
-
-                // start point (이름과 좌표를 DTO에서 가져와서 마커를 생성)
                 if (segment.startLat && !places[segment.startPlaceId]) {
                     places[segment.startPlaceId] = { name: segment.startPlaceName || `장소 ${segment.startPlaceId}`, lat: segment.startLat, lng: segment.startLng, count: 0 };
                 }
-                // end point
                 if (segment.endLat && !places[segment.endPlaceId]) {
                     places[segment.endPlaceId] = { name: segment.endPlaceName || `장소 ${segment.endPlaceId}`, lat: segment.endLat, lng: segment.endLng, count: 0 };
                 }
-                // 마커 크기 계산을 위해 총 이동 카운트 누적
                 if (places[segment.startPlaceId]) places[segment.startPlaceId].count += segment.segmentCount;
                 if (places[segment.endPlaceId]) places[segment.endPlaceId].count += segment.segmentCount;
             });
 
-            // 각 장소에 마커 생성
             Object.keys(places).forEach(id => {
                 const place = places[id];
-                const markerSize = 25 + Math.min(place.count / 10, 20); // 이동량이 많을수록 마커 크기 증가 (최대 45px)
+                const markerSize = 25 + Math.min(place.count / 10, 20);
 
                 const customIcon = L.divIcon({
                     className: 'custom-div-icon',
@@ -260,24 +280,21 @@ export default {
             });
         },
 
-
         drawPaths() {
             if (!this.map) return;
             this.pathLayerGroup.clearLayers();
-            this.pathKeyMap.clear(); // 경로 그릴 때마다 맵 초기화
+            this.pathKeyMap.clear();
 
-            // 💡 [통합] 마커와 범례를 먼저 그립니다.
             this.drawMarkers();
             this.addLegend();
 
-            // 🚨 [추가된 부분] drawPaths에서도 배열 유효성 확인
             if (!Array.isArray(this.spatialData) || this.spatialData.length === 0) {
-                console.warn("표시할 동선 세그먼트 데이터가 없습니다.");
                 this.map.setView([36.5, 127.8], 7);
                 return;
             }
 
             const allPathCoordinates = [];
+            const offsetDistance = 0.00008;
 
             this.spatialData.forEach(segment => {
                 try {
@@ -286,46 +303,34 @@ export default {
                         const count = segment.segmentCount;
                         const weight = this.getLineWeight(count);
                         const color = this.getLineColor(count);
+                        const opacity = this.getLineOpacity(count);
 
-                        // --- 💡 [수정] 경로 겹침 확인 및 오프셋 적용 로직 시작 ---
                         const startId = segment.startPlaceId;
                         const endId = segment.endPlaceId;
 
-                        // 정규화된 키: ID가 작은 순서대로 정렬 (예: 1-5 또는 5-1)
                         const forwardKey = `${startId}-${endId}`;
                         const backwardKey = `${endId}-${startId}`;
 
+                        let offsetGeoJson = geoJson;
                         let isOverlapping = false;
-                        let offsetValue = 0; // 오프셋 값 (픽셀 단위로 선을 밀어냄)
-                        const baseOffset = 0.00005; // 좌표계를 미세하게 이동시킬 기본 값 (작게 설정)
 
                         if (this.pathKeyMap.has(backwardKey)) {
-                            // 역방향 경로(B->A)가 이미 그려진 경우 (A->B 경로가 먼저 그려짐)
+                            offsetGeoJson = this.applyOffsetToGeoJson(geoJson, offsetDistance);
                             isOverlapping = true;
-                            offsetValue = baseOffset; // A->B가 그려졌으므로, B->A를 오프셋
                         }
 
-                        // 현재 경로를 pathKeyMap에 추가 (겹침 체크를 위해)
                         if (!this.pathKeyMap.has(forwardKey)) {
                             this.pathKeyMap.set(forwardKey, true);
-                        }
-                        // --- 💡 [수정] 경로 겹침 확인 및 오프셋 적용 로직 끝 ---
-
-                        // GeoJSON 좌표에 오프셋 적용
-                        let offsetGeoJson = geoJson;
-                        if (isOverlapping) {
-                            offsetGeoJson = this.applyOffsetToGeoJson(geoJson, offsetValue);
+                        } else {
+                            return;
                         }
 
                         const pathLayer = L.geoJSON(offsetGeoJson, {
-                            // isOverlapping일 때 스타일을 살짝 다르게 하면 시각적으로 더 잘 구별됩니다.
                             style: {
                                 color: color,
-                                weight: isOverlapping ? weight + 1 : weight, // 겹칠 때 두께를 살짝 굵게
-                                opacity: 0.8,
+                                weight: weight,
+                                opacity: opacity,
                                 lineCap: 'round',
-                                // 💡 (주의) Leaflet에는 기본 오프셋 기능이 없으므로, GeoJSON 데이터를 직접 수정해야 합니다. 
-                                // 아래의 applyOffsetToGeoJson 메서드를 정의해야 합니다.
                             }
                         }).bindPopup(
                             `<b>동선 분석 결과</b><hr>` +
@@ -349,39 +354,20 @@ export default {
             if (allPathCoordinates.length > 0) {
                 this.map.fitBounds(allPathCoordinates, { padding: [50, 50] });
             }
+
+            // ✅ 추가: 경로 그리기 완료 후 지도 크기 갱신
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    if (this.map) {
+                        this.map.invalidateSize();
+                    }
+                }, 100);
+            });
         },
-        // 3. 오프셋 적용 헬퍼 메서드 추가
-        // 경로를 그리는 방향에 수직하게 좌표를 미세하게 이동시킵니다.
+
         applyOffsetToGeoJson(geoJson, offset) {
             if (geoJson.type !== 'LineString' || offset === 0) return geoJson;
-
-            const newCoordinates = geoJson.coordinates.map((coord, index) => {
-                if (index === 0) {
-                    // 첫 번째 좌표는 다음 좌표로 향하는 벡터의 수직 벡터를 사용
-                    if (geoJson.coordinates.length > 1) {
-                        const nextCoord = geoJson.coordinates[index + 1];
-                        const dx = nextCoord[0] - coord[0];
-                        const dy = nextCoord[1] - coord[1];
-                        // 수직 벡터를 이용해 오프셋 적용 (간단화)
-                        return [coord[0] + offset * dy, coord[1] - offset * dx];
-                    }
-                    return coord;
-                } else if (index === geoJson.coordinates.length - 1) {
-                    // 마지막 좌표는 이전 좌표에서 오는 벡터의 수직 벡터를 사용
-                    const prevCoord = geoJson.coordinates[index - 1];
-                    const dx = coord[0] - prevCoord[0];
-                    const dy = coord[1] - prevCoord[1];
-                    return [coord[0] - offset * dy, coord[1] + offset * dx];
-                } else {
-                    // 중간 좌표는 앞뒤 좌표의 평균 벡터를 사용해야 하지만, 여기서는 간단하게 경도(Lng)만 오프셋
-                    return [coord[0] + offset, coord[1]];
-                }
-            });
-
-            // LineString을 Path로 변환할 때 문제가 발생할 수 있으므로, 단순화를 위해 경도(Lng)만 이동시키는 방법을 사용하겠습니다.
-            // 이는 지리적으로 정확한 오프셋은 아니지만, 시각적인 분리에는 효과적입니다.
             const simplifiedCoordinates = geoJson.coordinates.map(coord => [coord[0] + offset, coord[1]]);
-
             return {
                 ...geoJson,
                 coordinates: simplifiedCoordinates
@@ -391,6 +377,11 @@ export default {
     emits: ['reload-data'],
     beforeUnmount() {
         if (this.map) {
+            // 💡 [추가] ResizeObserver가 있다면 해제
+            if (this.resizeObserver) {
+                const mapContainer = document.getElementById('path-analysis-map');
+                if (mapContainer) this.resizeObserver.unobserve(mapContainer);
+            }
             this.map.remove();
         }
     }
@@ -406,16 +397,34 @@ export default {
     font-weight: bold;
     color: white;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    /* 💡 [확인] 마커가 중앙에 정확히 위치하도록 transform 설정 */
+    transform: translate(-50%, -50%);
 }
 
-/* 지도와 통계 패널의 높이를 일정하게 유지 */
+/* UI 레이아웃 */
+.card {
+    display: flex;
+    flex-direction: column;
+}
+
 .card-body {
+    flex-grow: 1;
     display: flex;
     flex-direction: row;
+    min-height: 0;
 }
 
-/* 지도 컨테이너 자체의 높이를 고정 (h-100 클래스는 부모 요소 높이에 따라 달라짐) */
 #path-analysis-map {
-    min-height: 650px;
+    min-height: 500px;
+}
+
+.p-3.border-start {
+    display: flex;
+    flex-direction: column;
+}
+
+.list-group {
+    flex-grow: 1;
+    overflow-y: auto;
 }
 </style>

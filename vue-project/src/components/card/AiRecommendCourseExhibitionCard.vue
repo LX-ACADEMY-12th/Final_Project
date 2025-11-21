@@ -89,12 +89,12 @@ export default {
 
         let exhibitionName = parts[0] || fullString; // '^' 앞부분(이름)이 있다면 사용
 
-        // 2. 추가 처리: 만약 이름 앞에 순서 번호(1, 2, 3...)가 붙어 있다면 제거
-        // 예: "2괴짜과학자의 바이러스" -> "괴짜과학자의 바이러스"
-        // 첫 글자가 숫자이고, 그 뒤에 글자가 있다면 숫자를 제거합니다.
-        if (exhibitionName.length > 1 && !isNaN(exhibitionName[0]) && isNaN(exhibitionName[1])) {
-          exhibitionName = exhibitionName.substring(1);
-        }
+        // // 2. 추가 처리: 만약 이름 앞에 순서 번호(1, 2, 3...)가 붙어 있다면 제거
+        // // 예: "2괴짜과학자의 바이러스" -> "괴짜과학자의 바이러스"
+        // // 첫 글자가 숫자이고, 그 뒤에 글자가 있다면 숫자를 제거합니다.
+        // if (exhibitionName.length > 1 && !isNaN(exhibitionName[0]) && isNaN(exhibitionName[1])) {
+        //   exhibitionName = exhibitionName.substring(1);
+        // }
 
         return exhibitionName.trim();
       });
