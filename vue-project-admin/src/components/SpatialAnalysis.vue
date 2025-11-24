@@ -64,18 +64,17 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Leaflet 마커 이미지 경로 수정 (필수)
+// Leaflet 마커 이미지 경로 수정
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
 
-// 현재 날짜를 'YYYY-MM-DD' 형식의 문자열로 반환하는 헬퍼 함수
 function getTodayDate() {
     const today = new Date();
     const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
 }
@@ -105,7 +104,6 @@ export default {
                 topPath: { name: '', count: 0, startLat: 0, startLng: 0, endLat: 0, endLng: 0 },
                 detailedPaths: []
             },
-            // 💡 ResizeObserver 인스턴스를 저장하기 위한 변수 추가
             resizeObserver: null,
         };
     },
@@ -171,7 +169,6 @@ export default {
         updateAnalysis() {
             this.$emit('reload-data', this.startDate, this.endDate, this.analysisType);
 
-            // ✅ 데이터 로드 후 지도 갱신 대기
             this.$nextTick(() => {
                 setTimeout(() => {
                     if (this.map) {
@@ -190,7 +187,6 @@ export default {
             this.markerLayerGroup = L.layerGroup().addTo(this.map);
             this.drawPaths();
 
-            // 💡 [수정] 맵 크기 갱신 이벤트 핸들러 추가 및 로딩 직후 강제 갱신
             this.resizeObserver = new ResizeObserver(() => {
                 if (this.map) {
                     this.map.invalidateSize();
@@ -201,12 +197,10 @@ export default {
                 this.resizeObserver.observe(mapContainer);
             }
 
-            // 줌 변경 후에도 크기를 갱신하여 핀/선 어긋남 재확인
             this.map.on('moveend', () => {
                 this.map.invalidateSize();
             });
 
-            // 초기 로딩 후 잠깐의 딜레이를 주어 크기 갱신 (가장 확실한 방법)
             setTimeout(() => {
                 if (this.map) this.map.invalidateSize();
             }, 100);
@@ -272,6 +266,8 @@ export default {
                     className: 'custom-div-icon',
                     html: `<div style="background-color: #34495e; border-radius: 50%; width: ${markerSize}px; height: ${markerSize}px; text-align: center; line-height: ${markerSize}px; color: white; font-weight: bold; font-size: 10px; border: 2px solid white;">${place.name.substring(0, 1)}</div>`,
                     iconSize: [markerSize, markerSize],
+                    // ✅ [수정완료] CSS transform 대신 앵커로 중심점 조정
+                    iconAnchor: [markerSize / 2, markerSize / 2]
                 });
 
                 L.marker([place.lat, place.lng], { icon: customIcon })
@@ -355,7 +351,6 @@ export default {
                 this.map.fitBounds(allPathCoordinates, { padding: [50, 50] });
             }
 
-            // ✅ 추가: 경로 그리기 완료 후 지도 크기 갱신
             this.$nextTick(() => {
                 setTimeout(() => {
                     if (this.map) {
@@ -377,7 +372,6 @@ export default {
     emits: ['reload-data'],
     beforeUnmount() {
         if (this.map) {
-            // 💡 [추가] ResizeObserver가 있다면 해제
             if (this.resizeObserver) {
                 const mapContainer = document.getElementById('path-analysis-map');
                 if (mapContainer) this.resizeObserver.unobserve(mapContainer);
@@ -397,8 +391,8 @@ export default {
     font-weight: bold;
     color: white;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-    /* 💡 [확인] 마커가 중앙에 정확히 위치하도록 transform 설정 */
-    transform: translate(-50%, -50%);
+    /* ✅ [수정완료] transform 삭제 (JS의 iconAnchor로 대체) */
+    /* transform: translate(-50%, -50%); */
 }
 
 /* UI 레이아웃 */
