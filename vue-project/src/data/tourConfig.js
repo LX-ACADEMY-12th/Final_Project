@@ -16,8 +16,8 @@ export const courseDemo = {
       type: 'equirectangular',
       panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_Hall_02.png',
       hotSpots: [
-        // (1) 👉 전시물 순서대로 보러가기
-        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (4개)', sceneId: 'hall_1_seq_1' },
+        // (1)  전시물 순서대로 보러가기
+        { pitch: -5, yaw: 0, type: 'scene', text: '전시물 관람 시작 (4개)', sceneId: 'hall_1_seq_1' },
         
         // (2) 다음 관으로 건너뛰기 (간격 벌림)
         { pitch: 0, yaw: 60, type: 'scene', text: '바로 다음 관 이동 (과학기술관)', sceneId: 'hall_3_entrance' },
@@ -76,8 +76,8 @@ export const courseDemo = {
       type: 'equirectangular',
       panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_Hall_02.png',
       hotSpots: [
-        // (1) 👉 전시물 순서대로
-        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (4개)', sceneId: 'hall_3_seq_1' },
+        // (1)  전시물 순서대로
+        { pitch: -5, yaw: 0, type: 'scene', text: '전시물 관람 시작 (4개)', sceneId: 'hall_3_seq_1' },
         
         // (2) 다음 관 이동 (★ 각도를 60도로 넓혀서 잘 보이게 수정)
         { pitch: 0, yaw: 60, type: 'scene', text: '바로 다음 관 이동 (야외전시)', sceneId: 'hall_14_entrance' },
@@ -136,7 +136,7 @@ export const courseDemo = {
       type: 'equirectangular',
       panorama: 'https://storage.googleapis.com/virtual_tour_team4/OutdoorExhibition.jpg', 
       hotSpots: [
-        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (3개)', sceneId: 'hall_14_seq_1' },
+        { pitch: -5, yaw: 0, type: 'scene', text: '전시물 관람 시작 (3개)', sceneId: 'hall_14_seq_1' },
         { pitch: 0, yaw: 60, type: 'scene', text: '처음으로 (창의나래관)', sceneId: 'hall_1_entrance' },
         { pitch: 0, yaw: -60, type: 'scene', text: '이전 관 (과학기술관)', sceneId: 'hall_3_entrance' },
         { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
@@ -192,7 +192,7 @@ export const Course_2_Out_Chang_Sci = {
       panorama: 'https://storage.googleapis.com/virtual_tour_team4/OutdoorExhibition.jpg',
       hotSpots: [
         // (1) 전시물 관람 시작
-        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (3개)', sceneId: 'hall_14_seq_1' },
+        { pitch: -5, yaw: 0, type: 'scene', text: '전시물 관람 시작 (3개)', sceneId: 'hall_14_seq_1' },
         
         // (2) ★ 다음 관: 창의나래관
         { pitch: 0, yaw: 60, type: 'scene', text: '바로 다음 관 이동 (창의나래관)', sceneId: 'hall_1_entrance' },
@@ -226,9 +226,9 @@ export const Course_2_Out_Chang_Sci = {
     hall_1_entrance: {
       title: '창의나래관 (입구)',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_Hall.png',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_Hall_02.png',
       hotSpots: [
-        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (4개)', sceneId: 'hall_1_seq_1' },
+        { pitch: -5, yaw: 0, type: 'scene', text: '전시물 관람 시작 (4개)', sceneId: 'hall_1_seq_1' },
         
         // (2) ★ 다음 관: 과학기술관
         { pitch: 0, yaw: 60, type: 'scene', text: '바로 다음 관 이동 (과학기술관)', sceneId: 'hall_3_entrance' },
@@ -264,7 +264,7 @@ export const Course_2_Out_Chang_Sci = {
       type: 'equirectangular',
       panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_Home.jpg',
       hotSpots: [
-        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (4개)', sceneId: 'hall_3_seq_1' },
+        { pitch: -5, yaw: 0, type: 'scene', text: ' 전시물 관람 시작 (4개)', sceneId: 'hall_3_seq_1' },
         
         // (2) ★ 이전 관: 창의나래관
         { pitch: 0, yaw: -60, type: 'scene', text: '이전 관 (창의나래관)', sceneId: 'hall_1_entrance' },

@@ -125,6 +125,7 @@ import ElectroClothes from '@/components/simulations/ElectroClothes.vue';
 import AlternatorShow from '@/components/simulations/AlternatorShow.vue';
 import DigitalPhysicssShow from '../simulations/DigitalPhysicssShow.vue';
 import CentrifugalBike from '../simulations/CentrifugalBike.vue';
+import FireTool from '../simulations/FireTool.vue';
 
 // [!!] 1. 이미지 기본 URL 정의
 const IMAGE_BASE_URL = 'https://storage.googleapis.com/science_book/';
@@ -147,7 +148,8 @@ export default {
     ElectroClothes,
     AlternatorShow,
     DigitalPhysicssShow,
-    CentrifugalBike
+    CentrifugalBike,
+    FireTool
   },
 
   emits: ['authenticate-visit'],
@@ -332,7 +334,7 @@ export default {
           '물체와 물질': AlternatorShow
         },
         '인류관': {
-          '힘과에너지': ColumnarJoint,
+          '힘과 에너지': FireTool,
           '생태계': Ecosystem
         },
         '어린이과학관': {
