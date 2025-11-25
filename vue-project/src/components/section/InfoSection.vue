@@ -89,7 +89,7 @@
           :class="{ 'is-open': showSimulation }" :aria-expanded="showSimulation">
           <div class="simulation-header-left">
             <i class="bi bi-flask"></i>
-            <span>가상 전시물 체험</span>
+            <span>전시물 원리 체험</span>
           </div>
           <i class="bi chevron-icon" :class="showSimulation ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </button>
@@ -123,6 +123,8 @@ import ElectricShow from '@/components/simulations/ElectricShow.vue';
 import MagneticTrain from '@/components/simulations/MagneticTrain.vue';
 import ElectroClothes from '@/components/simulations/ElectroClothes.vue';
 import AlternatorShow from '@/components/simulations/AlternatorShow.vue';
+import DigitalPhysicssShow from '../simulations/DigitalPhysicssShow.vue';
+import CentrifugalBike from '../simulations/CentrifugalBike.vue';
 
 // [!!] 1. 이미지 기본 URL 정의
 const IMAGE_BASE_URL = 'https://storage.googleapis.com/science_book/';
@@ -143,7 +145,9 @@ export default {
     ElectricShow,
     MagneticTrain,
     ElectroClothes,
-    AlternatorShow
+    AlternatorShow,
+    DigitalPhysicssShow,
+    CentrifugalBike
   },
 
   emits: ['authenticate-visit'],
@@ -309,15 +313,17 @@ export default {
           '자기': MagnetField,
           '물질의 상태': StatesOfMatter,
           '빛과 파동': StatesOfMatter,
-          '힘과 에너지': StatesOfMatter,
+          '힘과 에너지': DigitalPhysicssShow,
           '생명과학과 인간의 생활': StatesOfMatter,
           '생물의 구조와 에너지': StatesOfMatter
         },
         '야외전시': {
-          '전기와 자기': MagneticTrain
+          '전기와 자기': MagneticTrain,
+          '힘과 에너지': MagneticTrain
         },
         '과학기술관': {
-          '전기와 자기': ElectroClothes
+          '전기와 자기': ElectroClothes,
+          '힘과 에너지': CentrifugalBike
         },
         '미래기술관': {
           '전기와 자기': AlternatorShow,

@@ -1,440 +1,292 @@
-// 📍 파일 위치: src/data/tourConfig.js
-
 // ===================================================================
-// [코스 A] 기존 코스 (창의나래관 4개 -> 어린이과학관 -> 과학기술관)
+// [시연용 코스] 창의나래(4) -> 과학기술(4) -> 야외(3)
 // ===================================================================
-export const courseA_default = {
+export const courseDemo = {
   default: {
-    firstScene: 'hall_1_entrance', // 시작은 '창의나래관 입구'
+    firstScene: 'hall_1_entrance',
     autoLoad: true,
     sceneFadeDuration: 1000,
   },
   scenes: {
-    // 1. 창의나래관 (총 4개 장면)
+    // =================================================================================
+    // 1. 창의나래관 (Start)
+    // =================================================================================
     hall_1_entrance: {
       title: '창의나래관 (입구)',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img2.jpg',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_Hall_02.png',
       hotSpots: [
-        {
-          pitch: -2.1,
-          yaw: 132.9,
-          type: 'scene',
-          text: '디지털 물리쇼 (앞으로)',
-          sceneId: 'hall_1_ex1',
-        },
-        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다. ' },
+        // (1) 👉 전시물 순서대로 보러가기
+        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (4개)', sceneId: 'hall_1_seq_1' },
+        
+        // (2) 다음 관으로 건너뛰기 (간격 벌림)
+        { pitch: 0, yaw: 60, type: 'scene', text: '바로 다음 관 이동 (과학기술관)', sceneId: 'hall_3_entrance' },
+
+        // (3) ❌ 종료 버튼 (모든 화면 공통)
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
       ],
     },
-    hall_1_ex1: {
-      title: '창의나래관: 디지털 물리쇼', // (코스 A의 ex1)
+    // --- 창의나래관 시퀀스 ---
+    hall_1_seq_1: {
+      title: '디지털 물리쇼',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/chang_ex1.jpg',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_PhygitalShow.jpg', 
       hotSpots: [
-        { pitch: -0.6, yaw: 37.7, type: 'scene', text: '전기쇼 (앞으로)', sceneId: 'hall_1_ex2' },
-        {
-          pitch: -2.5,
-          yaw: -150.0,
-          type: 'scene',
-          text: '입구 (뒤로)',
-          sceneId: 'hall_1_entrance',
-        },
-      ],
+        { pitch: 0, yaw: 0, type: 'scene', text: '다음 전시물 (2/4)', sceneId: 'hall_1_seq_2' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로 (입구)', sceneId: 'hall_1_entrance' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' } // 추가됨
+      ]
     },
-    hall_1_ex2: {
-      title: '창의나래관: 전기쇼', // (코스 A의 ex2)
+    hall_1_seq_2: {
+      title: '가상현실라이더',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/chang_ex2.jpg',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_VRRider.jpg', 
       hotSpots: [
-        { pitch: -10, yaw: 0, type: 'scene', text: '팝드론 (앞으로)', sceneId: 'hall_1_ex3' },
-        { pitch: 0, yaw: 160, type: 'scene', text: '디지털 물리쇼 (뒤로)', sceneId: 'hall_1_ex1' },
-      ],
+        { pitch: 0, yaw: 0, type: 'scene', text: '다음 전시물 (3/4)', sceneId: 'hall_1_seq_3' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_1_seq_1' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' } // 추가됨
+      ]
     },
-    hall_1_ex3: {
-      title: '창의나래관: 팝드론', // (코스 A의 ex3)
+    hall_1_seq_3: {
+      title: '팝 드론',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/chang_ex3.jpg',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_POPDRONE.jpg', 
       hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '다음 관으로 (어린이과학관)',
-          sceneId: 'hall_2_entrance', // 2. 어린이과학관으로 연결
-        },
-        { pitch: 0, yaw: 160, type: 'scene', text: '전기쇼 (뒤로)', sceneId: 'hall_1_ex2' },
-      ],
+        { pitch: 0, yaw: 0, type: 'scene', text: '다음 전시물 (4/4)', sceneId: 'hall_1_seq_4' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_1_seq_2' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' } // 추가됨
+      ]
+    },
+    hall_1_seq_4: {
+      title: '로봇쇼',
+      type: 'equirectangular',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_RobotShow.jpg', 
+      hotSpots: [
+        { pitch: 0, yaw: 0, type: 'scene', text: '관람 끝! 과학기술관으로 이동', sceneId: 'hall_3_entrance' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_1_seq_3' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' } // 추가됨
+      ]
     },
 
-    // 2. 어린이과학관 (총 5개 장면)
-    hall_2_entrance: {
-      title: '어린이과학관 (입구)',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/flat_panorama.jpg',
-      hotSpots: [
-        { pitch: -10, yaw: 0, type: 'scene', text: '공존 (앞으로)', sceneId: 'hall_2_ex1' },
-        {
-          pitch: -2.5,
-          yaw: -150.0,
-          type: 'scene',
-          text: '이전 관 (창의나래관)',
-          sceneId: 'hall_1_ex3',
-        },
-        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다. ' },
-      ],
-    },
-    hall_2_ex1: {
-      /* ... (기존 hall_2_ex1 정의) ... */
-    },
-    hall_2_ex2: {
-      /* ... (기존 hall_2_ex2 정의) ... */
-    },
-    hall_2_ex3: {
-      /* ... (기존 hall_2_ex3 정의) ... */
-    },
-    hall_2_ex4: {
-      title: '어린이과학관: 위협',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img2.jpg',
-      hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '다음 관으로 (과학기술관)',
-          sceneId: 'hall_3_entrance',
-        },
-        {
-          pitch: -2.5,
-          yaw: -150.0,
-          type: 'scene',
-          text: '기계와 인간 (뒤로)',
-          sceneId: 'hall_2_ex3',
-        },
-      ],
-    },
-
-    // 3. 과학기술관 (총 4개 장면)
+    // =================================================================================
+    // 2. 과학기술관 (중간)
+    // =================================================================================
     hall_3_entrance: {
       title: '과학기술관 (입구)',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/flat_panorama.jpg',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_Hall_02.png',
       hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '마트, 테마파크 (앞으로)',
-          sceneId: 'hall_3_ex1',
-        },
-        {
-          pitch: -2.5,
-          yaw: -150.0,
-          type: 'scene',
-          text: '이전 관 (어린이과학관)',
-          sceneId: 'hall_2_ex4',
-        },
-        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다. ' },
+        // (1) 👉 전시물 순서대로
+        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (4개)', sceneId: 'hall_3_seq_1' },
+        
+        // (2) 다음 관 이동 (★ 각도를 60도로 넓혀서 잘 보이게 수정)
+        { pitch: 0, yaw: 60, type: 'scene', text: '바로 다음 관 이동 (야외전시)', sceneId: 'hall_14_entrance' },
+        
+        // (3) 이전 관 돌아가기 (★ 각도를 -60도로 넓힘)
+        { pitch: 0, yaw: -60, type: 'scene', text: '이전 관 (창의나래관)', sceneId: 'hall_1_entrance' },
+
+        // (4) ❌ 종료 버튼
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
       ],
     },
-    hall_3_ex1: {
-      /* ... (기존 hall_3_ex1 정의) ... */
+    // --- 과학기술관 시퀀스 ---
+    hall_3_seq_1: {
+      title: '야외·공원',
+      type: 'equirectangular',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_OutdoorNPark.jpg',
+      hotSpots: [
+        { pitch: 0, yaw: 0, type: 'scene', text: '다음 전시물 (2/4)', sceneId: 'hall_3_seq_2' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_3_entrance' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' } // 추가됨
+      ]
     },
-    hall_3_ex2: {
-      /* ... (기존 hall_3_ex2 정의) ... */
+    hall_3_seq_2: {
+      title: '이웃 동네', type: 'equirectangular', 
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_Neighbor.jpg',
+      hotSpots: [
+        { pitch: 0, yaw: 0, type: 'scene', text: '다음 (3/4)', sceneId: 'hall_3_seq_3' }, 
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_3_seq_1' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
+      ]
     },
-    hall_3_ex3: {
-      /* ... (기존 hall_3_ex3 정의) ... */
+    hall_3_seq_3: { 
+      title: '물리코너', type: 'equirectangular', 
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_Physics.jpg',
+      hotSpots: [
+        { pitch: 0, yaw: 0, type: 'scene', text: '다음 (4/4)', sceneId: 'hall_3_seq_4' }, 
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_3_seq_2' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
+      ]
+    },
+    hall_3_seq_4: {
+      title: '한국과학기술사', type: 'equirectangular', 
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_HistoryOfScienceNTechnologyInKorea.jpg',
+      hotSpots: [
+        { pitch: 0, yaw: 0, type: 'scene', text: '관람 끝! 야외전시로 이동', sceneId: 'hall_14_entrance' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_3_seq_3' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
+      ]
     },
 
-    // (이하 4~14관 Placeholder 정의)
-    hall_4_entrance: {
-      /* ... */
-    },
-    hall_5_entrance: {
-      /* ... */
-    },
-    hall_6_entrance: {
-      /* ... */
-    },
-    hall_7_entrance: {
-      /* ... */
-    },
-    hall_8_entrance: {
-      /* ... */
-    },
-    hall_9_entrance: {
-      /* ... */
-    },
-    hall_10_entrance: {
-      /* ... */
-    },
-    hall_11_entrance: {
-      /* ... */
-    },
-    hall_12_entrance: {
-      /* ... */
-    },
-    hall_13_entrance: {
-      /* ... */
-    },
+    // =================================================================================
+    // 3. 야외전시 (마지막)
+    // =================================================================================
     hall_14_entrance: {
-      /* ... (코스 A의 자기부상열차) ... */
+      title: '야외전시 (입구)',
+      type: 'equirectangular',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/OutdoorExhibition.jpg', 
+      hotSpots: [
+        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (3개)', sceneId: 'hall_14_seq_1' },
+        { pitch: 0, yaw: 60, type: 'scene', text: '처음으로 (창의나래관)', sceneId: 'hall_1_entrance' },
+        { pitch: 0, yaw: -60, type: 'scene', text: '이전 관 (과학기술관)', sceneId: 'hall_3_entrance' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
+      ],
+    },
+    // --- 야외전시 시퀀스 ---
+    hall_14_seq_1: {
+      title: '역사의 광장', type: 'equirectangular', 
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Square_of_History.jpg',
+      hotSpots: [
+        { pitch: 0, yaw: 0, type: 'scene', text: '다음 (2/3)', sceneId: 'hall_14_seq_2' }, 
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_14_entrance' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
+      ]
+    },
+    hall_14_seq_2: {
+      title: '우주과학공원', type: 'equirectangular', 
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Space_Science_Park.jpg',
+      hotSpots: [
+        { pitch: 0, yaw: 0, type: 'scene', text: '다음 (3/3)', sceneId: 'hall_14_seq_3' }, 
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_14_seq_1' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
+      ]
+    },
+    hall_14_seq_3: {
+      title: '자기부상열차 역사관', type: 'equirectangular', 
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_Playground.jpg',
+      hotSpots: [
+        { pitch: 0, yaw: 0, type: 'scene', text: '모든 관람 끝! 처음으로', sceneId: 'hall_1_entrance' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_14_seq_2' },
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
+      ]
     },
   },
-}
+};
 
 // ===================================================================
-// [코스 B] 신규 코스 (창의나래관 10개 -> 야외전시 -> 과학기술관)
+// [코스 2] 야외(3) -> 창의(4) -> 과학(4)
 // ===================================================================
-export const courseB_new = {
+export const Course_2_Out_Chang_Sci = {
   default: {
-    firstScene: 'hall_1_entrance', // 시작은 코스 A와 동일한 ID
+    firstScene: 'hall_14_entrance', // ★ 시작점이 야외전시
     autoLoad: true,
     sceneFadeDuration: 1000,
   },
   scenes: {
-    // --- 1. 창의나래관 (10개 전시물 코스) ---
+    // =================================================================================
+    // 1. 야외전시 (Start) - 3개
+    // =================================================================================
+    hall_14_entrance: {
+      title: '야외전시 (입구)',
+      type: 'equirectangular',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/OutdoorExhibition.jpg',
+      hotSpots: [
+        // (1) 전시물 관람 시작
+        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (3개)', sceneId: 'hall_14_seq_1' },
+        
+        // (2) ★ 다음 관: 창의나래관
+        { pitch: 0, yaw: 60, type: 'scene', text: '바로 다음 관 이동 (창의나래관)', sceneId: 'hall_1_entrance' },
+        
+        // (3) 종료
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
+      ],
+    },
+    // --- 야외전시 시퀀스 ---
+    hall_14_seq_1: {
+      title: '역사의 광장', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Square_of_History.jpg',
+      hotSpots: [{ pitch: 0, yaw: 0, type: 'scene', text: '다음 (2/3)', sceneId: 'hall_14_seq_2' }, { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_14_entrance' }, { pitch: -30, yaw: 90, type: 'info', text: '종료' }]
+    },
+    hall_14_seq_2: {
+      title: '우주과학공원', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Space_Science_Park.jpg',
+      hotSpots: [{ pitch: 0, yaw: 0, type: 'scene', text: '다음 (3/3)', sceneId: 'hall_14_seq_3' }, { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_14_seq_1' }, { pitch: -30, yaw: 90, type: 'info', text: '종료' }]
+    },
+    hall_14_seq_3: {
+      title: '자기부상열차 역사관', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_Playground.jpg',
+      hotSpots: [
+        // ★ 야외전시 끝 -> 창의나래관 입구로 연결
+        { pitch: 0, yaw: 0, type: 'scene', text: '관람 끝! 창의나래관으로 이동', sceneId: 'hall_1_entrance' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_14_seq_2' },
+        { pitch: -30, yaw: 90, type: 'info', text: '종료' }
+      ]
+    },
+
+    // =================================================================================
+    // 2. 창의나래관 (Middle) - 4개
+    // =================================================================================
     hall_1_entrance: {
       title: '창의나래관 (입구)',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/changhall1.jpg',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_Hall.png',
       hotSpots: [
-        {
-          pitch: -2.1,
-          yaw: 132.9,
-          type: 'scene',
-          text: '1. 가상현실라이더 (코스 시작)',
-          sceneId: 'hall_1_ex1',
-        },
-        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다. ' },
+        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (4개)', sceneId: 'hall_1_seq_1' },
+        
+        // (2) ★ 다음 관: 과학기술관
+        { pitch: 0, yaw: 60, type: 'scene', text: '바로 다음 관 이동 (과학기술관)', sceneId: 'hall_3_entrance' },
+        
+        // (3) ★ 이전 관: 야외전시
+        { pitch: 0, yaw: -60, type: 'scene', text: '이전 관 (야외전시)', sceneId: 'hall_14_entrance' },
+        
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
       ],
     },
-    hall_1_ex1: {
-      // 1. 가상현실라이더
-      title: '창의나래관: 가상현실라이더',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img1.jpg', // (임시 1)
+    // --- 창의나래관 시퀀스 ---
+    hall_1_seq_1: { title: '디지털 물리쇼', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_PhygitalShow.jpg', 
+      hotSpots: [{ pitch: 0, yaw: 0, type: 'scene', text: '다음 (2/4)', sceneId: 'hall_1_seq_2' }, { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_1_entrance' }, { pitch: -30, yaw: 90, type: 'info', text: '종료' }] },
+    hall_1_seq_2: { title: '가상현실라이더', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_VRRider.jpg', 
+      hotSpots: [{ pitch: 0, yaw: 0, type: 'scene', text: '다음 (3/4)', sceneId: 'hall_1_seq_3' }, { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_1_seq_1' }, { pitch: -30, yaw: 90, type: 'info', text: '종료' }] },
+    hall_1_seq_3: { title: '팝 드론', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_POPDRONE.jpg', 
+      hotSpots: [{ pitch: 0, yaw: 0, type: 'scene', text: '다음 (4/4)', sceneId: 'hall_1_seq_4' }, { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_1_seq_2' }, { pitch: -30, yaw: 90, type: 'info', text: '종료' }] },
+    hall_1_seq_4: {
+      title: '로봇쇼', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Changui_Narae_RobotShow.jpg',
       hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '2. 개방형 수장고 (앞으로)',
-          sceneId: 'hall_1_ex2',
-        },
-        {
-          pitch: -2.5,
-          yaw: -150.0,
-          type: 'scene',
-          text: '입구 (뒤로)',
-          sceneId: 'hall_1_entrance',
-        },
-      ],
-    },
-    hall_1_ex2: {
-      // 2. 개방형 수장고
-      title: '창의나래관: 개방형 수장고',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img2.jpg', // (임시 2)
-      hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '3. 괴짜과학자의 바이러스 (앞으로)',
-          sceneId: 'hall_1_ex3',
-        },
-        {
-          pitch: 0,
-          yaw: 160,
-          type: 'scene',
-          text: '1. 가상현실라이더 (뒤로)',
-          sceneId: 'hall_1_ex1',
-        },
-      ],
-    },
-    hall_1_ex3: {
-      // 3. 괴짜과학자
-      title: '창의나래관: 괴짜과학자의 바이러스',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img1.jpg', // (임시 1)
-      hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '4. 디지털 물리쇼 (앞으로)',
-          sceneId: 'hall_1_ex4',
-        },
-        {
-          pitch: 0,
-          yaw: 160,
-          type: 'scene',
-          text: '2. 개방형 수장고 (뒤로)',
-          sceneId: 'hall_1_ex2',
-        },
-      ],
-    },
-    hall_1_ex4: {
-      // 4. 디지털 물리쇼
-      title: '창의나래관: 디지털 물리쇼',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/chang_ex1.jpg', // (임시)
-      hotSpots: [
-        { pitch: -10, yaw: 0, type: 'scene', text: '5. 로봇쇼 (앞으로)', sceneId: 'hall_1_ex5' },
-        {
-          pitch: 0,
-          yaw: 160,
-          type: 'scene',
-          text: '3. 괴짜과학자의 바이러스 (뒤로)',
-          sceneId: 'hall_1_ex3',
-        },
-      ],
-    },
-    hall_1_ex5: {
-      // 5. 로봇쇼
-      title: '창의나래관: 로봇쇼',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img2.jpg', // (임시 2)
-      hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '6. 맵핑영상체험 (앞으로)',
-          sceneId: 'hall_1_ex6',
-        },
-        {
-          pitch: 0,
-          yaw: 160,
-          type: 'scene',
-          text: '4. 디지털 물리쇼 (뒤로)',
-          sceneId: 'hall_1_ex4',
-        },
-      ],
-    },
-    hall_1_ex6: {
-      // 6. 맵핑영상
-      title: '창의나래관: 맵핑영상체험',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img1.jpg', // (임시 1)
-      hotSpots: [
-        { pitch: -10, yaw: 0, type: 'scene', text: '7. 전기쇼 (앞으로)', sceneId: 'hall_1_ex7' },
-        { pitch: 0, yaw: 160, type: 'scene', text: '5. 로봇쇼 (뒤로)', sceneId: 'hall_1_ex5' },
-      ],
-    },
-    hall_1_ex7: {
-      // 7. 전기쇼
-      title: '창의나래관: 전기쇼',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/chang_ex2.jpg', // (임시)
-      hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '8. 증강현실(AR) (앞으로)',
-          sceneId: 'hall_1_ex8',
-        },
-        {
-          pitch: 0,
-          yaw: 160,
-          type: 'scene',
-          text: '6. 맵핑영상체험 (뒤로)',
-          sceneId: 'hall_1_ex6',
-        },
-      ],
-    },
-    hall_1_ex8: {
-      // 8. AR
-      title: '창의나래관: 증강현실(AR)',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img2.jpg', // (임시 2)
-      hotSpots: [
-        { pitch: -10, yaw: 0, type: 'scene', text: '9. 팝드론 (앞으로)', sceneId: 'hall_1_ex9' },
-        { pitch: 0, yaw: 160, type: 'scene', text: '7. 전기쇼 (뒤로)', sceneId: 'hall_1_ex7' },
-      ],
-    },
-    hall_1_ex9: {
-      // 9. 팝드론
-      title: '창의나래관: 팝드론',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/chang_ex3.jpg', // (임시)
-      hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '10. 화성테라포밍 (앞으로)',
-          sceneId: 'hall_1_ex10',
-        },
-        {
-          pitch: 0,
-          yaw: 160,
-          type: 'scene',
-          text: '8. 증강현실(AR) (뒤로)',
-          sceneId: 'hall_1_ex8',
-        },
-      ],
-    },
-    hall_1_ex10: {
-      // 10. 화성테라포밍
-      title: '창의나래관: 화성테라포밍',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img1.jpg', // (임시 1)
-      hotSpots: [
-        { pitch: -10, yaw: 0, type: 'scene', text: '다음 (야외전시)', sceneId: 'hall_14_entrance' }, // 2. 야외전시로 연결
-        { pitch: 0, yaw: 160, type: 'scene', text: '9. 팝드론 (뒤로)', sceneId: 'hall_1_ex9' },
-      ],
+        // ★ 창의나래 끝 -> 과학기술관 입구로 연결
+        { pitch: 0, yaw: 0, type: 'scene', text: '관람 끝! 과학기술관으로 이동', sceneId: 'hall_3_entrance' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_1_seq_3' },
+        { pitch: -30, yaw: 90, type: 'info', text: '종료' }
+      ]
     },
 
-    // 2. 야외전시 (자기부상열차 역사관)
-    hall_14_entrance: {
-      title: '야외전시: 자기부상열차 역사관',
-      type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/img2.jpg', // (임시 2)
-      hotSpots: [
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '다음 (과학기술관)',
-          sceneId: 'hall_3_entrance',
-        }, // 3. 과학기술관으로 연결
-        {
-          pitch: -2.5,
-          yaw: -150.0,
-          type: 'scene',
-          text: '이전 (창의나래관)',
-          sceneId: 'hall_1_ex10',
-        },
-        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다. ' },
-      ],
-    },
-
-    // 3. 과학기술관 (생활체험과학관)
+    // =================================================================================
+    // 3. 과학기술관 (End) - 4개
+    // =================================================================================
     hall_3_entrance: {
-      title: '과학기술관: 생활체험과학관',
+      title: '과학기술관 (입구)',
       type: 'equirectangular',
-      panorama: 'https://storage.googleapis.com/virtual_tour_team4/flat_panorama.jpg',
+      panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_Home.jpg',
       hotSpots: [
-        {
-          pitch: -2.5,
-          yaw: -150.0,
-          type: 'scene',
-          text: '이전 관 (야외전시)',
-          sceneId: 'hall_14_entrance',
-        },
-        {
-          pitch: -10,
-          yaw: 0,
-          type: 'scene',
-          text: '처음으로 (창의나래관)',
-          sceneId: 'hall_1_entrance',
-        },
-        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다. ' },
+        { pitch: -5, yaw: 0, type: 'scene', text: '👉 전시물 관람 시작 (4개)', sceneId: 'hall_3_seq_1' },
+        
+        // (2) ★ 이전 관: 창의나래관
+        { pitch: 0, yaw: -60, type: 'scene', text: '이전 관 (창의나래관)', sceneId: 'hall_1_entrance' },
+        
+        { pitch: -30, yaw: 90, type: 'info', text: '가상 답사를 종료합니다.' }
       ],
+    },
+    // --- 과학기술관 시퀀스 ---
+    hall_3_seq_1: { title: '야외·공원', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_OutdoorNPark.jpg', 
+      hotSpots: [{ pitch: 0, yaw: 0, type: 'scene', text: '다음 (2/4)', sceneId: 'hall_3_seq_2' }, { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_3_entrance' }, { pitch: -30, yaw: 90, type: 'info', text: '종료' }] },
+    hall_3_seq_2: { title: '이웃 동네', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_Neighbor.jpg', 
+      hotSpots: [{ pitch: 0, yaw: 0, type: 'scene', text: '다음 (3/4)', sceneId: 'hall_3_seq_3' }, { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_3_seq_1' }, { pitch: -30, yaw: 90, type: 'info', text: '종료' }] },
+    hall_3_seq_3: { title: '물리코너', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_Physics.jpg', 
+      hotSpots: [{ pitch: 0, yaw: 0, type: 'scene', text: '다음 (4/4)', sceneId: 'hall_3_seq_4' }, { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_3_seq_2' }, { pitch: -30, yaw: 90, type: 'info', text: '종료' }] },
+    hall_3_seq_4: {
+      title: '한국과학기술사', type: 'equirectangular', panorama: 'https://storage.googleapis.com/virtual_tour_team4/Science_and_Technology_HistoryOfScienceNTechnologyInKorea.jpg',
+      hotSpots: [
+        // ★ 모든 관람 끝 -> 처음으로(야외전시) 돌아가기
+        { pitch: 0, yaw: 0, type: 'scene', text: '모든 관람 끝! 처음으로(야외전시)', sceneId: 'hall_14_entrance' },
+        { pitch: 0, yaw: 180, type: 'scene', text: '뒤로', sceneId: 'hall_3_seq_3' },
+        { pitch: -30, yaw: 90, type: 'info', text: '종료' }
+      ]
     },
   },
-}
+};

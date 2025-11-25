@@ -71,7 +71,7 @@ export default {
 
     // 섹션 제목을 동적으로 결정합니다.
     sectionTitle() {
-      return this.isPlace ? '체험장소 정보' : '전시관 정보';
+      return this.isPlace ? '과학탐험지 정보' : '전시관 정보';
     },
 
     // 템플릿에서 사용할 통합된 정보 객체를 결정합니다.

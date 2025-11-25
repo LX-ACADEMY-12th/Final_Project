@@ -5,7 +5,7 @@
       <button class="header-back-btn" type="button" @click="goBack">
         <i class="bi bi-arrow-left"></i>
       </button>
-      <div class="header-title">스탬프 투어</div>
+      <div class="header-title">스탬프 북</div>
       <div class="header-right-space"></div>
     </div>
 
@@ -41,11 +41,11 @@
         <div class="segmented-control">
           <button type="button" class="spec-button" :class="{ active: selectedTab === '전시' }" @click="selectTab('전시')">
             <i class="bi bi-easel2-fill"></i>
-            <span>과학관 전시</span>
+            <span>전시관</span>
           </button>
           <button type="button" class="spec-button" :class="{ active: selectedTab === '답사' }" @click="selectTab('답사')">
             <i class="bi bi-binoculars-fill"></i>
-            <span>과학 여행</span>
+            <span>과학 탐험지</span>
           </button>
         </div>
       </div>

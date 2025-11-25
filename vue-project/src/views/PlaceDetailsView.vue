@@ -5,7 +5,7 @@
     <div class="header">
       <ExhibitionHeader v-if="pageType === 'exhibition'" pageTitle="전시관 상세정보" :isFavorite="computedIsFavorite"
         @toggle-favorite="handleToggleFavorite" />
-      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="체험장소 상세정보" :isFavorite="computedIsFavorite"
+      <ExhibitionHeader v-else-if="pageType === 'science_place'" pageTitle="과학탐험지 상세정보" :isFavorite="computedIsFavorite"
         @toggle-favorite="handleToggleFavorite" />
       <ExhibitionHeader v-else pageTitle="로딩 중..." />
     </div>
