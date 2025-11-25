@@ -1,12 +1,10 @@
 <template>
-  <div class="app-container" ref="wrapRef">
-    <header class="app-header">
-      <div class="header-content">
-        <h2 class="app-title">🌱 내 손안의 식물</h2>
-        <div class="stage-badge">
-          <span class="badge-icon">{{ stages[currentStageIndex].icon }}</span>
-          <span class="badge-text">{{ stages[currentStageIndex].name }}</span>
-        </div>
+  <div class="sim-container" ref="wrapRef">
+    <header class="sim-header">
+      <h2 class="sim-title">🌱 식물 키우기</h2>
+      <div class="stage-badge">
+        <span class="badge-icon">{{ stages[currentStageIndex].icon }}</span>
+        <span class="badge-text">{{ stages[currentStageIndex].name }}</span>
       </div>
     </header>
 
@@ -63,8 +61,10 @@
         </button>
         <button class="action-btn time" @click="passTime" :disabled="!canAct">
           <span class="btn-icon">⏰</span>
-          <span class="btn-label-main">하루 보내기</span>
-          <span class="btn-label-sub">성장 +1</span>
+          <div class="btn-text-group">
+            <span class="btn-label-main">하루 보내기</span>
+            <span class="btn-label-sub">성장 +1</span>
+          </div>
         </button>
       </div>
 
@@ -81,11 +81,11 @@
       </div>
     </section>
 
-    <div v-if="isDead || isComplete" class="modal-overlay">
+    <div v-if="isDead || isComplete" class="sim-modal-overlay">
       <div class="result-modal">
         <div class="result-icon">{{ isComplete ? '🎉' : '😢' }}</div>
-        <h3 class="result-title">{{ isComplete ? '수확 성공!' : '식물이 시들었어요' }}</h3>
-        <p class="result-desc">{{ isComplete ? '정성스럽게 키운 덕분에 열매를 맺었어요.' : '환경을 조절해서 다시 도전해보세요.' }}</p>
+        <h3 class="result-title">{{ isComplete ? '수확 성공!' : '시들었어요...' }}</h3>
+        <p class="result-desc">{{ isComplete ? '멋진 열매를 맺었습니다!' : '환경을 조절해서 다시 도전해보세요.' }}</p>
         <button class="restart-btn" @click="resetPlant">다시 심기</button>
       </div>
     </div>
@@ -156,7 +156,7 @@ const healthColor = computed(() => {
   return '#ef4444'
 })
 
-// === 로직 함수들 (이전과 동일) ===
+// === 로직 함수들 ===
 function giveWater() {
   if (!canAct.value) return
   waterGiven.value += 1
@@ -212,7 +212,7 @@ function resetPlant() {
   if (p5Instance.value) p5Instance.value.redraw()
 }
 
-// 오디오 컨텍스트 (간소화)
+// 오디오 컨텍스트
 let audioContext = null
 function playSound(type) {
   try {
@@ -239,43 +239,42 @@ function playSound(type) {
   } catch (e) { }
 }
 
-// P5 Sketch (반응형 사이즈 적용)
+// P5 Sketch
 function createSketch() {
   const sketch = (p) => {
     let w = 0
     let h = 0
 
     p.setup = () => {
-      // 컨테이너의 실제 너비를 가져와서 캔버스 생성
-      w = canvasHostRef.value?.clientWidth || window.innerWidth
-      h = canvasHostRef.value?.clientHeight || 320
+      // 컨테이너 크기에 맞춤
+      w = canvasHostRef.value?.clientWidth || 300
+      h = 240 // 캔버스 높이 고정
       const canvas = p.createCanvas(w, h)
       canvas.parent(canvasHostRef.value)
       p.noLoop()
     }
 
-    // 윈도우 리사이즈 대응 (회전 등)
     p.windowResized = () => {
       if (!canvasHostRef.value) return
       w = canvasHostRef.value.clientWidth
-      h = canvasHostRef.value.clientHeight
+      // h = canvasHostRef.value.clientHeight // 높이는 고정 유지
       p.resizeCanvas(w, h)
       p.redraw()
     }
 
     p.draw = () => {
-      // 배경 (그라데이션 느낌)
+      // 배경
       const skyBrightness = sunLevel.value === 'high' ? 240 : sunLevel.value === 'medium' ? 220 : 180
       p.background(135, 206, skyBrightness)
 
-      // === 반응형 위치 계산 ===
+      // 위치 계산
       const centerX = w / 2
-      const groundY = h - 40 // 바닥 위치
+      const groundY = h - 30
 
       // 태양
-      const sunSize = sunLevel.value === 'high' ? w * 0.2 : sunLevel.value === 'medium' ? w * 0.15 : w * 0.1
-      const sunX = w - sunSize
-      const sunY = sunSize
+      const sunSize = sunLevel.value === 'high' ? 60 : sunLevel.value === 'medium' ? 45 : 30
+      const sunX = w - 40
+      const sunY = 40
 
       p.noStroke()
       p.fill(255, 220, 50, sunLevel.value === 'high' ? 255 : 200)
@@ -294,22 +293,22 @@ function createSketch() {
 
       // 땅
       p.noStroke()
-      p.fill(139, 90, 43) // 흙
-      p.rect(0, groundY, w, 40)
+      p.fill(139, 90, 43)
+      p.rect(0, groundY, w, 30)
       p.fill(76, 153, 76) // 잔디
-      p.rect(0, groundY - 5, w, 15)
+      p.rect(0, groundY - 5, w, 10)
 
-      // 땅 상태 변화
+      // 땅 상태
       if (waterLevel.value === 'high') {
         p.fill(60, 100, 160, 100)
-        p.ellipse(centerX, groundY + 5, 120, 15)
+        p.ellipse(centerX, groundY + 5, 100, 12)
       } else if (waterLevel.value === 'low') {
         p.stroke(100, 70, 30); p.strokeWeight(1)
-        p.line(centerX - 30, groundY + 10, centerX - 20, groundY + 20)
-        p.line(centerX + 30, groundY + 10, centerX + 20, groundY + 20)
+        p.line(centerX - 20, groundY + 5, centerX - 10, groundY + 15)
+        p.line(centerX + 20, groundY + 5, centerX + 10, groundY + 15)
       }
 
-      // 식물 그리기 (중심 좌표 기준)
+      // 식물 그리기
       const potX = centerX
       const potY = groundY - 5
       const hr = health.value / 100
@@ -329,27 +328,26 @@ function createSketch() {
       // 물주기 이펙트
       if (waterGiven.value > 0) {
         p.fill(100, 180, 255, 180); p.noStroke()
-        for (let i = 0; i < 5; i++) p.circle(potX - 30 + Math.random() * 60, potY - 100 + Math.random() * 40, 6)
+        for (let i = 0; i < 5; i++) p.circle(potX - 20 + Math.random() * 40, potY - 80 + Math.random() * 30, 5)
       }
     }
 
-    // (드로잉 헬퍼 함수들은 그대로 유지하되, 크기를 약간 반응형으로 조정 가능. 여기선 기본 유지)
-    function drawSeed(p, x, y) { p.fill(101, 67, 33); p.noStroke(); p.ellipse(x, y + 10, 20, 12); p.fill(139, 90, 43); p.ellipse(x, y + 10, 14, 8); }
-    function drawSprout(p, x, y, hr) { p.stroke(76, 153, 76); p.strokeWeight(4 * hr + 2); p.noFill(); p.line(x, y, x, y - 30); p.fill(120, 180, 80); p.noStroke(); p.ellipse(x - 12, y - 25, 18, 10); p.ellipse(x + 12, y - 25, 18, 10); }
+    function drawSeed(p, x, y) { p.fill(101, 67, 33); p.noStroke(); p.ellipse(x, y + 8, 16, 10); p.fill(139, 90, 43); p.ellipse(x, y + 8, 12, 6); }
+    function drawSprout(p, x, y, hr) { p.stroke(76, 153, 76); p.strokeWeight(4 * hr + 2); p.noFill(); p.line(x, y, x, y - 25); p.fill(120, 180, 80); p.noStroke(); p.ellipse(x - 10, y - 20, 14, 8); p.ellipse(x + 10, y - 20, 14, 8); }
     function drawGrowing(p, x, y, hr) {
-      const h = 70 + hr * 30; p.stroke(60, 130, 60); p.strokeWeight(5); p.noFill(); p.beginShape(); p.vertex(x, y); p.quadraticVertex(x + 5, y - h / 2, x, y - h); p.endShape();
-      p.fill(80, 160, 80); p.noStroke(); p.circle(x - 10, y - h * 0.4, 18); p.circle(x + 10, y - h * 0.6, 20); p.circle(x, y - h, 14);
+      const h = 60 + hr * 20; p.stroke(60, 130, 60); p.strokeWeight(5); p.noFill(); p.beginShape(); p.vertex(x, y); p.quadraticVertex(x + 5, y - h / 2, x, y - h); p.endShape();
+      p.fill(80, 160, 80); p.noStroke(); p.circle(x - 8, y - h * 0.4, 14); p.circle(x + 8, y - h * 0.6, 16); p.circle(x, y - h, 10);
     }
     function drawFlowering(p, x, y, hr) {
-      const h = 100; p.stroke(60, 130, 60); p.strokeWeight(6); p.noFill(); p.line(x, y, x, y - h);
-      p.fill(255, 100, 150); p.noStroke(); p.circle(x, y - h, 45); p.fill(255, 220, 100); p.circle(x, y - h, 18);
+      const h = 80; p.stroke(60, 130, 60); p.strokeWeight(6); p.noFill(); p.line(x, y, x, y - h);
+      p.fill(255, 100, 150); p.noStroke(); p.circle(x, y - h, 35); p.fill(255, 220, 100); p.circle(x, y - h, 12);
     }
     function drawFruiting(p, x, y, hr) {
-      const h = 110; p.stroke(60, 130, 60); p.strokeWeight(7); p.noFill(); p.line(x, y, x, y - h);
-      p.fill(220, 50, 50); p.noStroke(); p.circle(x, y - h + 15, 40); p.fill(80, 160, 80); p.circle(x - 10, y - h / 2, 22);
+      const h = 90; p.stroke(60, 130, 60); p.strokeWeight(7); p.noFill(); p.line(x, y, x, y - h);
+      p.fill(220, 50, 50); p.noStroke(); p.circle(x, y - h + 10, 30); p.fill(80, 160, 80); p.circle(x - 8, y - h / 2, 16);
     }
     function drawDeadPlant(p, x, y) {
-      p.stroke(100, 80, 50); p.strokeWeight(4); p.noFill(); p.line(x, y, x + 15, y - 30); p.fill(120, 100, 60); p.noStroke(); p.circle(x + 15, y - 30, 12);
+      p.stroke(100, 80, 50); p.strokeWeight(4); p.noFill(); p.line(x, y, x + 10, y - 25); p.fill(120, 100, 60); p.noStroke(); p.circle(x + 10, y - 25, 10);
     }
   }
   p5Instance.value = new P5(sketch, canvasHostRef.value)
@@ -366,41 +364,36 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
 </script>
 
 <style scoped>
-/* 앱 전체 컨테이너 (Full Screen) */
-.app-container {
+/* 위젯 컨테이너 */
+.sim-container {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100vh;
-  /* 뷰포트 전체 높이 */
+  height: 100%;
+  min-height: 560px;
+  /* 컨트롤 패널 높이 확보 */
   background: #ffffff;
-  font-family: 'SUIT', system-ui, sans-serif;
+  font-family: 'SUIT', sans-serif;
   color: #1f2937;
+  border-radius: 12px;
   overflow: hidden;
-  /* 전체 스크롤 방지 */
-
-  /* Safe Area 대응 (Notch, 제스처바) */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+  border: 1px solid #f1f5f9;
+  position: relative;
 }
 
 /* 1. 헤더 */
-.app-header {
-  padding: 12px 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #f3f4f6;
-  flex-shrink: 0;
-  /* 크기 고정 */
-}
-
-.header-content {
+.sim-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #f3f4f6;
+  flex-shrink: 0;
 }
 
-.app-title {
-  font-size: 18px;
+.sim-title {
+  font-size: 15px;
   font-weight: 800;
   color: #166534;
   margin: 0;
@@ -409,29 +402,28 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
 .stage-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: #f0fdf4;
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: 4px 10px;
+  border-radius: 12px;
   border: 1px solid #bbf7d0;
 }
 
 .badge-text {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #15803d;
 }
 
-/* 2. 메인 뷰포트 (캔버스) - 유동적 높이 */
+/* 2. 뷰포트 (캔버스 영역) */
 .viewport-area {
   flex: 1;
-  /* 남은 공간 모두 차지 */
   position: relative;
   background: #e0f2fe;
   overflow: hidden;
+  min-height: 240px;
   display: flex;
   align-items: flex-end;
-  /* 캔버스를 아래로 */
 }
 
 .canvas-host {
@@ -441,56 +433,56 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
 
 .hud-top {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: 12px;
+  left: 12px;
   z-index: 10;
 }
 
 .health-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.9);
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .hp-bar-track {
-  width: 100px;
-  height: 10px;
+  width: 60px;
+  height: 8px;
   background: #e5e7eb;
-  border-radius: 5px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .hp-bar-fill {
   height: 100%;
-  border-radius: 5px;
+  border-radius: 4px;
   transition: width 0.3s ease;
 }
 
 .hp-text {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #374151;
-  min-width: 30px;
+  min-width: 24px;
   text-align: right;
 }
 
-/* 상태 메시지 토스트 */
+/* 토스트 메시지 */
 .status-toast {
   position: absolute;
-  bottom: 20px;
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(255, 255, 255, 0.95);
-  padding: 10px 20px;
-  border-radius: 30px;
-  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   white-space: nowrap;
   z-index: 20;
 }
@@ -503,6 +495,11 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
 .status-toast.normal {
   color: #166534;
   border: 1px solid #86efac;
+}
+
+.status-toast.dead {
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
 }
 
 .fade-enter-active,
@@ -519,34 +516,29 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
 /* 3. 컨트롤 패널 */
 .control-panel {
   flex-shrink: 0;
-  /* 크기 고정 */
   background: #ffffff;
-  padding: 20px 24px 10px;
-  /* 하단 여백 safe-area가 padding-bottom 처리함 */
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  border-top: 1px solid #f3f4f6;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  z-index: 50;
+  gap: 16px;
 }
 
 /* 환경 설정 그리드 */
 .setting-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
 .setting-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .setting-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #4b5563;
 }
@@ -554,47 +546,47 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
 .segment-control {
   display: flex;
   background: #f3f4f6;
-  border-radius: 12px;
-  padding: 4px;
+  border-radius: 8px;
+  padding: 3px;
 }
 
 .segment-btn {
   flex: 1;
   background: transparent;
   border: none;
-  padding: 10px 0;
-  font-size: 13px;
+  padding: 6px 0;
+  font-size: 11px;
   font-weight: 600;
   color: #6b7280;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s;
   cursor: pointer;
-  /* 웹뷰 터치 인식 */
 }
 
 .segment-btn.active {
   background: #ffffff;
   color: #166534;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* 액션 버튼 그리드 */
 .action-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.5fr;
-  gap: 12px;
-  height: 64px;
+  grid-template-columns: 1fr 1fr 1.6fr;
+  gap: 8px;
+  height: 56px;
 }
 
 .action-btn {
   border: none;
-  border-radius: 16px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   cursor: pointer;
+  transition: transform 0.1s;
 }
 
 .action-btn:active:not(:disabled) {
@@ -618,48 +610,55 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
 .action-btn.time {
   background: #16a34a;
   color: white;
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  flex-direction: row;
+  gap: 8px;
 }
 
 .btn-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .btn-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
+.btn-text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .btn-label-main {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .btn-label-sub {
-  font-size: 10px;
-  font-weight: 400;
+  font-size: 9px;
   opacity: 0.9;
+  font-weight: 400;
 }
 
-/* 타임라인 (간소화) */
+/* 타임라인 */
 .timeline-area {
   margin-top: 4px;
-  padding-bottom: 10px;
+  padding-bottom: 4px;
 }
 
 .timeline-track {
   display: flex;
   justify-content: space-between;
   position: relative;
-  padding: 0 10px;
+  padding: 0 8px;
 }
 
 .timeline-track::before {
   content: '';
   position: absolute;
-  top: 6px;
-  left: 20px;
-  right: 20px;
+  top: 5px;
+  left: 15px;
+  right: 15px;
   height: 2px;
   background: #e5e7eb;
   z-index: 0;
@@ -672,18 +671,18 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
 }
 
 .step-dot {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   background: #e5e7eb;
   border-radius: 50%;
-  margin: 0 auto 6px;
+  margin: 0 auto 4px;
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px #e5e7eb;
   transition: all 0.3s;
 }
 
 .step-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #9ca3af;
   font-weight: 600;
 }
@@ -703,58 +702,57 @@ watch([waterLevel, sunLevel, health, currentStageIndex, isDead], () => { if (p5I
   box-shadow: 0 0 0 1px #86efac;
 }
 
-/* 결과 모달 */
-.modal-overlay {
-  position: fixed;
+/* 결과 모달 (Absolute로 위젯 내부에 띄움) */
+.sim-modal-overlay {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(3px);
 }
 
 .result-modal {
   background: white;
-  padding: 30px;
-  border-radius: 24px;
+  padding: 24px;
+  border-radius: 20px;
   text-align: center;
   width: 80%;
-  max-width: 320px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .result-icon {
-  font-size: 60px;
-  margin-bottom: 16px;
+  font-size: 48px;
+  margin-bottom: 12px;
 }
 
 .result-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   color: #1f2937;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .result-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
-  margin-bottom: 24px;
-  line-height: 1.5;
+  margin-bottom: 20px;
+  line-height: 1.4;
 }
 
 .restart-btn {
   width: 100%;
-  padding: 14px;
+  padding: 12px;
   background: #1f2937;
   color: white;
   border: none;
-  border-radius: 14px;
-  font-size: 15px;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }

@@ -117,19 +117,23 @@
 
       <!-- ✅ 교과내용 과학 원리 체험 -->
       <div class="home-section home-section--virtual">
-        <!-- 매칭된 경우 -->
         <div v-if="currentSimulationComponent" class="simulation-accordion">
-          <div class="simulation-header-bar">
+          <div class="simulation-header-bar" @click="toggleSimulation">
             <div class="simulation-header-left">
               <i class="bi bi-flask"></i>
-              <span>교과 원리 체험</span>
+              <span>교과서 원리 체험</span>
             </div>
-            <span v-if="currentSimLabel" class="virtual-section-label">
-              {{ currentSimLabel }}
-            </span>
+
+            <div class="simulation-header-right">
+              <span v-if="currentSimLabel" class="virtual-section-label">
+                {{ currentSimLabel }}
+              </span>
+              <i class="bi bi-chevron-down toggle-icon" :class="{ 'is-expanded': isSimulationExpanded }">
+              </i>
+            </div>
           </div>
 
-          <div class="simulation-content-wrapper">
+          <div class="simulation-content-wrapper" v-show="isSimulationExpanded">
             <div class="simulation-inner">
               <div class="simulation-content">
                 <component :is="currentSimulationComponent" />
@@ -138,7 +142,6 @@
           </div>
         </div>
 
-        <!-- 아직 단원 안 골랐을 때 -->
         <div v-else class="virtual-placeholder">
           <p class="virtual-placeholder-main">
             교과 진도 칠판에서 단원을 선택하면<br />
@@ -227,7 +230,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
@@ -281,6 +284,14 @@ export default {
 
     // ✅ 칠판 단원 선택 상태
     const selectedUnitInfo = ref(null);
+
+    // [추가] 시뮬레이션 섹션 접기/펴기 상태 (기본값: true-열림)
+    const isSimulationExpanded = ref(true);
+
+    // [추가] 토글 함수
+    const toggleSimulation = () => {
+      isSimulationExpanded.value = !isSimulationExpanded.value;
+    };
 
     // 사용자 이름 계산
     const userName = computed(() => {
@@ -621,6 +632,13 @@ export default {
       router.push('/aitutor');
     };
 
+    // [추가] 시뮬레이션 컴포넌트가 변경되면(새로운 단원 선택 시) 자동으로 패널 열기
+    watch(currentSimulationComponent, (newVal) => {
+      if (newVal) {
+        isSimulationExpanded.value = true;
+      }
+    });
+
     return {
       user,
       userName,
@@ -644,6 +662,8 @@ export default {
       selectedUnitInfo,
       currentSimulationComponent,
       currentSimLabel,
+      isSimulationExpanded, // [추가]
+      toggleSimulation,     // [추가]
     };
   }
 };
@@ -1103,6 +1123,27 @@ export default {
   font-size: 14px;
   font-weight: 500;
   color: #333;
+  cursor: pointer;
+  /* 커서 포인터 추가 */
+}
+
+/* [추가] 헤더 우측 영역 정렬 */
+.simulation-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* [추가] 토글 아이콘 애니메이션 */
+.toggle-icon {
+  font-size: 14px;
+  color: #6B7280;
+  transition: transform 0.3s ease;
+}
+
+/* [추가] 펼쳐졌을 때 아이콘 회전 (180도) */
+.toggle-icon.is-expanded {
+  transform: rotate(180deg);
 }
 
 .simulation-header-left {
