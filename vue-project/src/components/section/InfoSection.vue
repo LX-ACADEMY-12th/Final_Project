@@ -89,7 +89,7 @@
           :class="{ 'is-open': showSimulation }" :aria-expanded="showSimulation">
           <div class="simulation-header-left">
             <i class="bi bi-flask"></i>
-            <span>전시물 원리 체험</span>
+            <span>전시물 과학 원리 체험</span>
           </div>
           <i class="bi chevron-icon" :class="showSimulation ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </button>

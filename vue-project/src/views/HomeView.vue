@@ -82,7 +82,12 @@
 
                 <!-- 단원 리스트 -->
                 <ul v-if="semesterData.units.length > 0" class="chalkboard-list">
-                  <li v-for="(unit, index) in semesterData.units" :key="unit.title">
+                  <li v-for="(unit, index) in semesterData.units" :key="unit.title"
+                    @click="onUnitClick(semesterData, unit)" :class="{
+                      'is-selected': selectedUnitInfo &&
+                        selectedUnitInfo.semesterLabel === semesterData.semester &&
+                        selectedUnitInfo.unitTitle === unit.title
+                    }">
                     <span>
                       <span class="index">{{ index + 1 }}</span>
                       <span>{{ unit.title }}</span>
@@ -107,6 +112,41 @@
             <span class="chalk-piece brand-soft"></span>
             <span class="chalk-eraser"></span>
           </div>
+        </div>
+      </div>
+
+      <!-- ✅ 교과내용 과학 원리 체험 -->
+      <div class="home-section home-section--virtual">
+        <!-- 매칭된 경우 -->
+        <div v-if="currentSimulationComponent" class="simulation-accordion">
+          <div class="simulation-header-bar">
+            <div class="simulation-header-left">
+              <i class="bi bi-flask"></i>
+              <span>교과 원리 체험</span>
+            </div>
+            <span v-if="currentSimLabel" class="virtual-section-label">
+              {{ currentSimLabel }}
+            </span>
+          </div>
+
+          <div class="simulation-content-wrapper">
+            <div class="simulation-inner">
+              <div class="simulation-content">
+                <component :is="currentSimulationComponent" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 아직 단원 안 골랐을 때 -->
+        <div v-else class="virtual-placeholder">
+          <p class="virtual-placeholder-main">
+            교과 진도 칠판에서 단원을 선택하면<br />
+            관련 가상 실험이 열려요.
+          </p>
+          <p class="virtual-placeholder-sub">
+            예) 3-1 힘과 에너지, 3-2 빛과 파동
+          </p>
         </div>
       </div>
 
@@ -191,14 +231,21 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
-import eventBus from '@/utils/eventBus';
-import axios from '@/api/axiosSetup';
 import { useCurriculumStore } from '@/stores/curriculumStore';
+import { curriculumData } from '@/data/scienceCurriculum';
+
+import axios from '@/api/axiosSetup';
+import eventBus from '@/utils/eventBus';
 
 import FilterModal from '@/components/modal/FilterModal.vue';
 import BottomNavbar from '@/components/BottomNavbar.vue';
 import PlaceReviewCard from '@/components/card/PlaceReviewCard.vue';
-import { curriculumData } from '@/data/scienceCurriculum';
+
+import SoundWaveSim from '@/components/simulations/SoundWaveSim.vue';
+import BalanceScaleSim from '@/components/simulations/BalanceScaleSim.vue';
+import MaterialLab from '@/components/simulations/MaterialLab.vue';
+import PlantLifecycleSim from '@/components/simulations/PlantLifecycleSim.vue';
+import OceanSim from '@/components/simulations/OceanSim.vue';
 
 export default {
   components: {
@@ -206,16 +253,18 @@ export default {
     BottomNavbar,
     PlaceReviewCard,
   },
+
   data() {
     return {
       allSubjects: curriculumData
-    }
+    };
   },
 
   setup() {
     // 스토어
     const authStore = useAuthStore();
     const { user } = storeToRefs(authStore);
+
     const curriculumStore = useCurriculumStore();
     const { selectedGrade, selectedSubject } = storeToRefs(curriculumStore);
 
@@ -229,6 +278,9 @@ export default {
     const isSearching = ref(false);
     const exhibitionItems = ref([]);
     const fieldTripItems = ref([]);
+
+    // ✅ 칠판 단원 선택 상태
+    const selectedUnitInfo = ref(null);
 
     // 사용자 이름 계산
     const userName = computed(() => {
@@ -276,7 +328,6 @@ export default {
         if (response.data && Array.isArray(response.data)) {
           const itemsWithReviews = await Promise.all(
             response.data.slice(0, 20).map(async (item) => {
-
               let badgeLabel = null;
               if (item.itemType === 'exhibition') {
                 badgeLabel = '국립과학관';
@@ -356,7 +407,7 @@ export default {
           fieldTripItems.value = [];
         }
       } catch (error) {
-        console.error("Home API 검색 중 오류:", error);
+        console.error('Home API 검색 중 오류:', error);
         eventBus.emit('show-global-alert', {
           message: '추천 장소를 불러오는 중 오류가 발생했습니다.',
           type: 'error'
@@ -375,7 +426,7 @@ export default {
       performSearch();
     });
 
-    // 교과 진도 칠판 내용
+    // 교과 진도 칠판 내용 (scienceCurriculum.js 기반)
     const chalkboardContent = computed(() => {
       let gradeKey = selectedGrade.value;
       if (!['초등 3학년', '초등 4학년', '초등 5학년', '초등 6학년'].includes(gradeKey)) {
@@ -383,7 +434,6 @@ export default {
       }
 
       const subjectKey = selectedSubject.value;
-
       const gradeData = curriculumData[gradeKey];
       if (!gradeData) {
         return [{ semester: '데이터 없음', units: [] }];
@@ -402,6 +452,78 @@ export default {
           units: semester2Units
         }
       ];
+    });
+
+    // ✅ 칠판 단원 클릭 핸들러
+    const onUnitClick = (semesterData, unit) => {
+      selectedUnitInfo.value = {
+        grade: selectedGrade.value,
+        subject: selectedSubject.value,
+        semesterLabel: semesterData.semester,
+        unitTitle: unit.title,
+      };
+      console.log('선택된 단원:', selectedUnitInfo.value);
+    };
+
+    // ✅ 선택된 단원에 따른 시뮬레이션 컴포넌트 매핑
+    const currentSimulationComponent = computed(() => {
+      // 1. 현재 선택된 필터 값 가져오기
+      const grade = selectedGrade.value;    // 예: '초등 3학년'
+      const semester = selectedSemester.value; // 예: '1학기'
+      const subject = selectedSubject.value;   // 예: '물리'
+
+      // 2. curriculumData에서 해당 학기/과목의 단원 리스트(Array)를 가져옵니다.
+      // 안전하게 접근하기 위해 옵셔널 체이닝(?.)을 사용합니다.
+      const targetUnits = curriculumData[grade]?.[semester]?.[subject];
+
+      // 데이터가 없거나 배열이 아니면 중단
+      if (!targetUnits || !Array.isArray(targetUnits)) {
+        return null;
+      }
+
+      // 3. 리스트 안에 특정 단원(Title)이 있는지 확인합니다.
+      // 예: [{ title: '힘과 에너지', ... }] 안에 '힘과 에너지'가 있는가?
+      const hasForceUnit = targetUnits.some(unit => unit.title.includes('힘과 에너지'));
+      const hasLightUnit = targetUnits.some(unit => unit.title.includes('빛과 파동'));
+      const hasLifeContinue = targetUnits.some(unit => unit.title.includes('생물의 연속성'));
+      const hasMaterial = targetUnits.some(unit => unit.title.includes('물체와 물질'));
+      const hasFluidEarth = targetUnits.some(unit => unit.title.includes('유체지구'));
+
+
+      // 4. 조건에 따라 컴포넌트 반환
+      if (hasForceUnit) return BalanceScaleSim;       // '힘과 에너지'가 있으면 불 피우기 도구
+      if (hasLightUnit) return SoundWaveSim;   // '빛과 파동'이 있으면 전기 쇼
+      if (hasMaterial) return MaterialLab
+      if (hasLifeContinue) return PlantLifecycleSim;    // '생물의 연속성'이 있으면 생명
+      if (hasFluidEarth) return OceanSim;
+
+      return null;
+    });
+
+    // ✅ 라벨도 동일한 로직으로 데이터 기반 표시
+    const currentSimLabel = computed(() => {
+      const grade = selectedGrade.value;
+      const semester = selectedSemester.value;
+      const subject = selectedSubject.value;
+
+      const targetUnits = curriculumData[grade]?.[semester]?.[subject];
+      if (!targetUnits || !Array.isArray(targetUnits)) return '';
+
+      const hasForceUnit = targetUnits.some(unit => unit.title.includes('힘과 에너지'));
+      const hasLightUnit = targetUnits.some(unit => unit.title.includes('빛과 파동'));
+      const hasLifeContinue = targetUnits.some(unit => unit.title.includes('생물의 연속성'));
+      const hasMaterial = targetUnits.some(unit => unit.title.includes('물체와 물질'));
+      const hasFluidEarth = targetUnits.some(unit => unit.title.includes('유체지구'));
+
+      if (hasForceUnit) return '3-1 힘과 에너지';
+      if (hasLightUnit) return '3-2 빛과 파동';
+      if (hasLifeContinue) return '3-1 생물의 연속성';
+      if (hasMaterial) return '3-2 물체와 물질';
+      if (hasFluidEarth) return '3-2 유체지구';
+
+
+
+      return '';
     });
 
     // 상세 페이지 이동
@@ -443,7 +565,7 @@ export default {
 
       console.log('마이페이지로 이동');
       router.push('/mypage');
-    }
+    };
 
     // 필터 완료 핸들러
     const handleFilterComplete = (filterData) => {
@@ -482,7 +604,7 @@ export default {
       } else if (navItemName === '마이페이지') {
         router.push('/mypage');
       }
-    }
+    };
 
     // AI 튜터 이동
     const goToAiTutor = () => {
@@ -497,7 +619,7 @@ export default {
       }
 
       router.push('/aitutor');
-    }
+    };
 
     return {
       user,
@@ -517,9 +639,14 @@ export default {
       handleFilterComplete,
       handleNavigation,
       goToAiTutor,
+      onUnitClick,
+      // ✅ 가상 실험 관련
+      selectedUnitInfo,
+      currentSimulationComponent,
+      currentSimLabel,
     };
   }
-}
+};
 </script>
 
 <style scoped>
@@ -815,6 +942,14 @@ export default {
   font-size: 0.875rem;
   color: #E9FBE6;
   animation: fadeSlide 0.2s ease-out both;
+  cursor: pointer;
+}
+
+/* ✅ 선택된 단원 강조 */
+.chalkboard-list li.is-selected {
+  border-style: solid;
+  border-color: #4A7CEC;
+  background-color: rgba(15, 23, 42, 0.85);
 }
 
 .chalkboard-list li>span {
@@ -912,6 +1047,101 @@ export default {
   height: 4px;
   border-radius: 3px 3px 0 0;
   background-color: #E5E7EB;
+}
+
+/* ========== ✅ 가상 실험 섹션 ========== */
+.home-section--virtual {
+  padding-top: 8px;
+}
+
+.virtual-section-label {
+  font-size: 0.8rem;
+  color: #6B7280;
+}
+
+.virtual-placeholder {
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.7);
+  background-color: #F9FAFB;
+  text-align: center;
+}
+
+.virtual-placeholder-main {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.virtual-placeholder-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #9CA3AF;
+}
+
+/* ===========================
+   전시물 원리 체험 (HomeView용)
+   InfoSection 스타일 재사용
+   =========================== */
+.simulation-accordion {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+  margin-top: 4px;
+}
+
+.simulation-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 4px;
+  background-color: transparent;
+  border: none;
+  user-select: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.simulation-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.simulation-header-left .bi-flask {
+  color: #6366f1;
+  font-size: 18px;
+}
+
+.simulation-header-left span {
+  font-size: 14px;
+  color: #333;
+}
+
+.simulation-content-wrapper {
+  padding: 0;
+  margin: 0;
+  border-top: none;
+  overflow: hidden;
+}
+
+.simulation-inner {
+  background: linear-gradient(135deg,
+      rgba(74, 124, 236, 0.05) 0%,
+      rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.simulation-content {
+  padding: 16px;
+  background: #ffffff;
+  min-height: 260px;
 }
 
 /* ========== 캐러셀 섹션 ========== */
