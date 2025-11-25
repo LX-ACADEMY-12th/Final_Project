@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.HotspotAnalysisMapper">
+
+    <!-- 1. 기간 내 장소별 핫스팟 랭킹 -->
+    <select id="selectHotspotRanking" parameterType="map" resultType="com.example.demo.dto.HotspotAnalysisDTO">
+        <![CDATA[
+        SELECT 
+            sp.place_id AS placeId,
+            sp.place_name AS placeName,
+            sp.latitude,
+            sp.longitude,
+            COUNT(*) AS visitCount,
+            COUNT(DISTINCT sr.user_id) AS uniqueUserCount,
+            (COUNT(*) * 0.7 + COUNT(DISTINCT sr.user_id) * 0.3 * 10) AS hotspotScore
+        FROM stamp_record sr
+        JOIN science_place sp ON sr.target_id = sp.place_id
+        WHERE sr.target_type = 'science_place'
+          AND sr.visited_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY sp.place_id, sp.place_name, sp.latitude, sp.longitude
+        ORDER BY hotspotScore DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <!-- 2. 요일별 방문 분포 -->
+    <select id="selectDayOfWeekDistribution" parameterType="map" resultType="map">
+        <![CDATA[
+        WITH DayVisits AS (
+            SELECT 
+                EXTRACT(DOW FROM sr.visited_at) AS day_of_week,
+                sr.target_id,
+                COUNT(*) AS visit_count
+            FROM stamp_record sr
+            WHERE sr.target_type = 'science_place'
+              AND sr.visited_at BETWEEN #{startDate} AND #{endDate}
+            GROUP BY EXTRACT(DOW FROM sr.visited_at), sr.target_id
+        ),
+        DayTotals AS (
+            SELECT 
+                day_of_week,
+                SUM(visit_count) AS total_visits
+            FROM DayVisits
+            GROUP BY day_of_week
+        ),
+        TopByDay AS (
+            SELECT DISTINCT ON (dv.day_of_week)
+                dv.day_of_week,
+                dv.target_id AS top_place_id,
+                sp.place_name AS top_place_name,
+                dv.visit_count AS top_place_visits
+            FROM DayVisits dv
+            JOIN science_place sp ON dv.target_id = sp.place_id
+            ORDER BY dv.day_of_week, dv.visit_count DESC
+        )
+        SELECT 
+            CASE WHEN dt.day_of_week = 0 THEN 7 ELSE dt.day_of_week::INTEGER END AS dayOfWeek,
+            dt.total_visits AS totalVisits,
+            tb.top_place_id AS topPlaceId,
+            tb.top_place_name AS topPlaceName,
+            tb.top_place_visits AS topPlaceVisits
+        FROM DayTotals dt
+        JOIN TopByDay tb ON dt.day_of_week = tb.day_of_week
+        ORDER BY dayOfWeek
+        ]]>
+    </select>
+
+    <!-- 3. 월별 방문 분포 -->
+    <select id="selectMonthlyDistribution" parameterType="map" resultType="map">
+        <![CDATA[
+        WITH MonthVisits AS (
+            SELECT 
+                EXTRACT(YEAR FROM sr.visited_at) AS year,
+                EXTRACT(MONTH FROM sr.visited_at) AS month,
+                sr.target_id,
+                COUNT(*) AS visit_count
+            FROM stamp_record sr
+            WHERE sr.target_type = 'science_place'
+              AND sr.visited_at BETWEEN #{startDate} AND #{endDate}
+            GROUP BY EXTRACT(YEAR FROM sr.visited_at), EXTRACT(MONTH FROM sr.visited_at), sr.target_id
+        ),
+        MonthTotals AS (
+            SELECT 
+                year,
+                month,
+                SUM(visit_count) AS total_visits
+            FROM MonthVisits
+            GROUP BY year, month
+        ),
+        TopByMonth AS (
+            SELECT DISTINCT ON (mv.year, mv.month)
+                mv.year,
+                mv.month,
+                mv.target_id AS top_place_id,
+                sp.place_name AS top_place_name,
+                mv.visit_count AS top_place_visits
+            FROM MonthVisits mv
+            JOIN science_place sp ON mv.target_id = sp.place_id
+            ORDER BY mv.year, mv.month, mv.visit_count DESC
+        )
+        SELECT 
+            mt.year::INTEGER AS year,
+            mt.month::INTEGER AS month,
+            mt.total_visits AS totalVisits,
+            tb.top_place_id AS topPlaceId,
+            tb.top_place_name AS topPlaceName,
+            tb.top_place_visits AS topPlaceVisits
+        FROM MonthTotals mt
+        JOIN TopByMonth tb ON mt.year = tb.year AND mt.month = tb.month
+        ORDER BY mt.year, mt.month
+        ]]>
+    </select>
+
+    <!-- 4. 급상승 장소 (최근 기간 vs 이전 기간 비교) -->
+    <select id="selectRisingPlaces" parameterType="map" resultType="com.example.demo.dto.HotspotAnalysisDTO">
+        <![CDATA[
+        WITH RecentVisits AS (
+            SELECT 
+                target_id,
+                COUNT(*) AS recent_count
+            FROM stamp_record
+            WHERE target_type = 'science_place'
+              AND visited_at BETWEEN #{recentStart} AND #{recentEnd}
+            GROUP BY target_id
+        ),
+        PreviousVisits AS (
+            SELECT 
+                target_id,
+                COUNT(*) AS previous_count
+            FROM stamp_record
+            WHERE target_type = 'science_place'
+              AND visited_at BETWEEN #{previousStart} AND #{previousEnd}
+            GROUP BY target_id
+        )
+        SELECT 
+            sp.place_id AS placeId,
+            sp.place_name AS placeName,
+            sp.latitude,
+            sp.longitude,
+            COALESCE(rv.recent_count, 0) AS visitCount,
+            CASE 
+                WHEN COALESCE(pv.previous_count, 0) = 0 THEN 100.0
+                ELSE ROUND(((rv.recent_count - pv.previous_count)::NUMERIC / pv.previous_count * 100), 2)
+            END AS growthRate,
+            CASE 
+                WHEN COALESCE(pv.previous_count, 0) = 0 THEN 'NEW'
+                WHEN rv.recent_count > pv.previous_count * 1.2 THEN 'RISING'
+                WHEN rv.recent_count < pv.previous_count * 0.8 THEN 'DECLINING'
+                ELSE 'STABLE'
+            END AS trendStatus
+        FROM RecentVisits rv
+        LEFT JOIN PreviousVisits pv ON rv.target_id = pv.target_id
+        JOIN science_place sp ON rv.target_id = sp.place_id
+        WHERE rv.recent_count > COALESCE(pv.previous_count, 0)
+        ORDER BY growthRate DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <!-- 5. 특정 장소의 일별 트렌드 데이터 -->
+    <select id="selectPlaceTrendDaily" parameterType="map" resultType="com.example.demo.dto.TrendDataDTO">
+        <![CDATA[
+        WITH DateSeries AS (
+            SELECT generate_series(
+                #{startDate}::DATE,
+                #{endDate}::DATE,
+                '1 day'::INTERVAL
+            )::DATE AS date
+        ),
+        DailyVisits AS (
+            SELECT 
+                sr.visited_at AS date,
+                COUNT(*) AS visit_count,
+                COUNT(DISTINCT sr.user_id) AS unique_user_count
+            FROM stamp_record sr
+            WHERE sr.target_type = 'science_place'
+              AND sr.target_id = #{placeId}
+              AND sr.visited_at BETWEEN #{startDate} AND #{endDate}
+            GROUP BY sr.visited_at
+        )
+        SELECT 
+            ds.date,
+            TO_CHAR(ds.date, 'YYYY-MM-DD') AS dateLabel,
+            EXTRACT(WEEK FROM ds.date)::INTEGER AS weekOfYear,
+            EXTRACT(MONTH FROM ds.date)::INTEGER AS month,
+            EXTRACT(YEAR FROM ds.date)::INTEGER AS year,
+            #{placeId} AS placeId,
+            COALESCE(dv.visit_count, 0) AS visitCount,
+            COALESCE(dv.unique_user_count, 0) AS uniqueUserCount
+        FROM DateSeries ds
+        LEFT JOIN DailyVisits dv ON ds.date = dv.date
+        ORDER BY ds.date
+        ]]>
+    </select>
+
+    <!-- 6. 전체 일별 트렌드 (모든 장소 합산) -->
+    <select id="selectOverallTrendDaily" parameterType="map" resultType="com.example.demo.dto.TrendDataDTO">
+        <![CDATA[
+        WITH DateSeries AS (
+            SELECT generate_series(
+                #{startDate}::DATE,
+                #{endDate}::DATE,
+                '1 day'::INTERVAL
+            )::DATE AS date
+        ),
+        DailyVisits AS (
+            SELECT 
+                sr.visited_at AS date,
+                COUNT(*) AS visit_count,
+                COUNT(DISTINCT sr.user_id) AS unique_user_count
+            FROM stamp_record sr
+            WHERE sr.target_type = 'science_place'
+              AND sr.visited_at BETWEEN #{startDate} AND #{endDate}
+            GROUP BY sr.visited_at
+        )
+        SELECT 
+            ds.date,
+            TO_CHAR(ds.date, 'YYYY-MM-DD') AS dateLabel,
+            EXTRACT(WEEK FROM ds.date)::INTEGER AS weekOfYear,
+            EXTRACT(MONTH FROM ds.date)::INTEGER AS month,
+            EXTRACT(YEAR FROM ds.date)::INTEGER AS year,
+            COALESCE(dv.visit_count, 0) AS visitCount,
+            COALESCE(dv.unique_user_count, 0) AS uniqueUserCount
+        FROM DateSeries ds
+        LEFT JOIN DailyVisits dv ON ds.date = dv.date
+        ORDER BY ds.date
+        ]]>
+    </select>
+
+    <!-- 7. 기간 내 총 방문 통계 -->
+    <select id="selectPeriodSummary" parameterType="map" resultType="map">
+        <![CDATA[
+        SELECT 
+            COUNT(*) AS totalVisits,
+            COUNT(DISTINCT user_id) AS totalUniqueUsers
+        FROM stamp_record
+        WHERE target_type = 'science_place'
+          AND visited_at BETWEEN #{startDate} AND #{endDate}
+        ]]>
+    </select>
+
+</mapper>

@@ -1,59 +1,213 @@
 <template>
     <div class="card shadow-sm h-100 d-flex flex-column">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>사용자 동선 분석 (Path Analysis)</h5>
-            <div class="d-flex align-items-center">
-                <div class="btn-group btn-group-sm me-4" role="group">
-                    <input type="radio" class="btn-check" id="type-place" value="PLACE" v-model="analysisType"
-                        @change="updateAnalysis">
-                    <label class="btn btn-outline-primary" for="type-place">장소 간 동선</label>
-
-                    <input type="radio" class="btn-check" id="type-exhibit" value="EXHIBITION" v-model="analysisType"
-                        @change="updateAnalysis">
-                    <label class="btn btn-outline-primary" for="type-exhibit">전시 간 동선</label>
-                </div>
-                <label for="startDate" class="form-label mb-0 me-2 small">기간:</label>
-                <input type="date" id="startDate" class="form-control form-control-sm me-2" v-model="startDate"
-                    @change="updateAnalysis" style="width: 140px;">
-                <span class="me-2 small">~</span>
-                <input type="date" id="endDate" class="form-control form-control-sm" v-model="endDate"
-                    @change="updateAnalysis" style="width: 140px;">
+        <!-- 헤더 -->
+        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="bi bi-fire me-2 text-danger"></i>핫스팟 분석 (Hotspot Analysis)
+            </h5>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <!-- 기간 선택 -->
+                <label class="form-label mb-0 me-2 small">기간:</label>
+                <input type="date" class="form-control form-control-sm" v-model="startDate" @change="fetchAnalysis"
+                    :max="endDate" style="width: 140px;">
+                <span class="mx-1 small">~</span>
+                <input type="date" class="form-control form-control-sm" v-model="endDate" @change="fetchAnalysis"
+                    :min="startDate" style="width: 140px;">
+                <button class="btn btn-primary btn-sm ms-2" @click="fetchAnalysis">
+                    <i class="bi bi-search"></i> 분석
+                </button>
             </div>
         </div>
 
-        <div class="card-body p-0 d-flex flex-row flex-grow-1">
-            <div id="path-analysis-map" style="height: 100%; width: 66.6%;"></div>
-
-            <div class="p-3 border-start d-flex flex-column" style="width: 33.3%;">
-                <h6 class="fw-bold text-primary mb-3">분석 요약 (총 {{ analysisStats.segmentCount }}회 이동)</h6>
-
-                <div class="bg-light p-3 rounded mb-3">
-                    <p class="mb-1 small text-muted">최다 발생 동선 (Top 1)</p>
-                    <h5 class="fw-bold text-dark mb-0 text-truncate">
-                        <i class="bi bi-arrow-right-circle-fill me-1"></i>
-                        {{ analysisStats.topPath.name || '데이터 없음' }}
-                    </h5>
-                    <span class="badge bg-primary mt-1">{{ analysisStats.topPath.count }}회 이동</span>
+        <!-- 바디 -->
+        <div class="card-body p-0 d-flex flex-row flex-grow-1" style="min-height: 600px;">
+            <!-- 좌측: 지도 (히트맵) -->
+            <div class="position-relative" style="width: 55%;">
+                <div id="hotspot-map" style="height: 100%; width: 100%;"></div>
+                <!-- 로딩 오버레이 -->
+                <div v-if="loading"
+                    class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                    style="background: rgba(255,255,255,0.8); z-index: 1000;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </div>
+            </div>
 
-                <div class="bg-light p-3 rounded mb-3">
-                    <p class="mb-1 small text-muted">분석 기간</p>
-                    <h5 class="fw-bold text-dark mb-0">{{ analysisStats.totalDays }}일 간 분석</h5>
-                </div>
+            <!-- 우측: 분석 패널 -->
+            <div class="border-start d-flex flex-column" style="width: 45%;">
+                <!-- 탭 네비게이션 -->
+                <ul class="nav nav-tabs px-3 pt-2">
+                    <li class="nav-item">
+                        <a class="nav-link" :class="{ active: activeTab === 'ranking' }" href="#"
+                            @click.prevent="activeTab = 'ranking'">
+                            <i class="bi bi-trophy me-1"></i>핫스팟 랭킹
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" :class="{ active: activeTab === 'trend' }" href="#"
+                            @click.prevent="activeTab = 'trend'">
+                            <i class="bi bi-graph-up me-1"></i>트렌드
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" :class="{ active: activeTab === 'pattern' }" href="#"
+                            @click.prevent="activeTab = 'pattern'">
+                            <i class="bi bi-calendar-week me-1"></i>패턴 분석
+                        </a>
+                    </li>
+                </ul>
 
-                <h6 class="fw-bold text-secondary mt-1 mb-2">동선 상세 목록</h6>
-                <div class="list-group list-group-flush small flex-grow-1" style="overflow-y: auto;">
-                    <a href="#" class="list-group-item list-group-item-action py-2"
-                        v-for="(path, index) in analysisStats.detailedPaths" :key="index"
-                        @click.prevent="zoomToPath(path.startLat, path.startLng, path.endLat, path.endLng)">
-                        <div class="d-flex w-100 justify-content-between">
-                            <small :class="{ 'fw-bold text-danger': index === 0 }">{{ path.count }}회</small>
-                            <small class="text-muted">{{ path.type }}</small>
+                <!-- 탭 컨텐츠 -->
+                <div class="tab-content flex-grow-1 overflow-auto p-3">
+                    <!-- 핫스팟 랭킹 탭 -->
+                    <div v-if="activeTab === 'ranking'">
+                        <!-- 요약 통계 -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="bg-primary bg-opacity-10 rounded p-2 text-center">
+                                    <div class="small text-muted">총 방문</div>
+                                    <div class="fs-5 fw-bold text-primary">{{ formatNumber(analysisData.totalVisits) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-success bg-opacity-10 rounded p-2 text-center">
+                                    <div class="small text-muted">고유 방문자</div>
+                                    <div class="fs-5 fw-bold text-success">{{
+                                        formatNumber(analysisData.totalUniqueUsers) }}</div>
+                                </div>
+                            </div>
                         </div>
-                        <p class="mb-1 text-truncate" :class="{ 'fw-bold': index === 0 }">
-                            {{ path.startName }} <i class="bi bi-caret-right-fill mx-1"></i> {{ path.endName }}
-                        </p>
-                    </a>
+
+                        <!-- 핫스팟 TOP 10 -->
+                        <h6 class="fw-bold mb-2"><i class="bi bi-fire text-danger me-1"></i>TOP 10 핫스팟</h6>
+                        <div class="list-group list-group-flush mb-3">
+                            <a href="#" class="list-group-item list-group-item-action py-2"
+                                v-for="(place, index) in analysisData.hotspotRanking" :key="place.placeId"
+                                @click.prevent="selectPlace(place)"
+                                :class="{ 'active': selectedPlace?.placeId === place.placeId }">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge me-2" :class="getRankBadgeClass(index)">{{ index + 1
+                                        }}</span>
+                                        <span :class="{ 'fw-bold': index < 3 }">{{ place.placeName }}</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">{{ place.visitCount }}회</span>
+                                        <small class="text-muted ms-1">({{ place.uniqueUserCount }}명)</small>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- 급상승 장소 -->
+                        <h6 class="fw-bold mb-2"><i class="bi bi-arrow-up-circle text-success me-1"></i>급상승 장소</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item py-2" v-for="place in analysisData.risingPlaces?.slice(0, 5)"
+                                :key="'rising-' + place.placeId">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>{{ place.placeName }}</span>
+                                    <span class="badge" :class="getTrendBadgeClass(place.trendStatus)">
+                                        <i class="bi" :class="getTrendIcon(place.trendStatus)"></i>
+                                        {{ place.growthRate > 0 ? '+' : '' }}{{ place.growthRate }}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div v-if="!analysisData.risingPlaces?.length" class="text-muted small text-center py-3">
+                                급상승 장소가 없습니다
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 트렌드 탭 -->
+                    <div v-if="activeTab === 'trend'">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">장소 선택</label>
+                            <select class="form-select form-select-sm" v-model="selectedPlaceId"
+                                @change="fetchPlaceTrend">
+                                <option :value="null">전체 트렌드</option>
+                                <option v-for="place in analysisData.hotspotRanking" :key="place.placeId"
+                                    :value="place.placeId">
+                                    {{ place.placeName }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- 트렌드 차트 -->
+                        <div class="bg-light rounded p-3" style="height: 300px;">
+                            <canvas ref="trendChart"></canvas>
+                        </div>
+
+                        <!-- 트렌드 요약 -->
+                        <div class="mt-3" v-if="trendSummary">
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="small text-muted">최고 방문일</div>
+                                        <div class="fw-bold small">{{ trendSummary.peakDate }}</div>
+                                        <div class="text-primary">{{ trendSummary.peakCount }}회</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="small text-muted">일평균</div>
+                                        <div class="fw-bold text-success">{{ trendSummary.avgDaily }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="small text-muted">추세</div>
+                                        <div class="fw-bold" :class="trendSummary.trendClass">
+                                            <i class="bi" :class="trendSummary.trendIcon"></i>
+                                            {{ trendSummary.trendLabel }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 패턴 분석 탭 -->
+                    <div v-if="activeTab === 'pattern'">
+                        <!-- 요일별 분포 -->
+                        <h6 class="fw-bold mb-2"><i class="bi bi-calendar3 me-1"></i>요일별 방문 분포</h6>
+                        <div class="bg-light rounded p-3 mb-3" style="height: 200px;">
+                            <canvas ref="dayOfWeekChart"></canvas>
+                        </div>
+
+                        <!-- 요일별 상세 -->
+                        <div class="table-responsive mb-4">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>요일</th>
+                                        <th class="text-end">방문수</th>
+                                        <th>인기 장소</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="day in analysisData.dayOfWeekDistribution" :key="day.dayOfWeek">
+                                        <td>
+                                            <span class="badge" :class="getDayBadgeClass(day.dayOfWeek)">
+                                                {{ day.dayLabel }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">{{ formatNumber(day.totalVisits) }}</td>
+                                        <td class="small text-truncate" style="max-width: 150px;">
+                                            {{ day.topPlaceName }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- 월별 분포 -->
+                        <h6 class="fw-bold mb-2"><i class="bi bi-calendar-month me-1"></i>월별 방문 추이</h6>
+                        <div class="bg-light rounded p-3" style="height: 200px;">
+                            <canvas ref="monthlyChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -63,355 +217,497 @@
 <script>
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.heat';
+import Chart from 'chart.js/auto';
+import axios from 'axios';
 
-// Leaflet 마커 이미지 경로 수정
+// Leaflet 마커 아이콘 설정
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: markerIcon2x,
+    iconUrl: markerIcon,
+    shadowUrl: markerShadow
+});
 
-function getTodayDate() {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const apiClient = axios.create({ baseURL: API_BASE_URL });
 
 export default {
-    name: "SpatialAnalysis",
-    props: {
-        spatialData: {
-            type: Array,
-            required: true,
-            default: () => [],
-        },
-    },
+    name: 'HotspotAnalysis',
     data() {
         return {
-            map: null,
-            pathLayerGroup: null,
-            markerLayerGroup: null,
-            legendControl: null,
-            startDate: '2025-10-01',
-            endDate: getTodayDate(),
-            analysisType: 'PLACE',
-            pathKeyMap: new Map(),
-            analysisStats: {
-                segmentCount: 0,
-                totalDays: 0,
-                topPath: { name: '', count: 0, startLat: 0, startLng: 0, endLat: 0, endLng: 0 },
-                detailedPaths: []
+            // 날짜
+            startDate: this.getDefaultStartDate(),
+            endDate: this.getTodayDate(),
+
+            // 상태
+            loading: false,
+            activeTab: 'ranking',
+            selectedPlace: null,
+            selectedPlaceId: null,
+
+            // 데이터
+            analysisData: {
+                totalVisits: 0,
+                totalUniqueUsers: 0,
+                hotspotRanking: [],
+                risingPlaces: [],
+                dayOfWeekDistribution: [],
+                monthlyDistribution: [],
+                trendData: []
             },
-            resizeObserver: null,
+            placeTrendData: [],
+
+            // 지도
+            map: null,
+            heatLayer: null,
+            markerLayerGroup: null,
+
+            // 차트
+            trendChart: null,
+            dayOfWeekChart: null,
+            monthlyChart: null,
+
+            resizeObserver: null
         };
     },
+    computed: {
+        trendSummary() {
+            const data = this.selectedPlaceId ? this.placeTrendData : this.analysisData.trendData;
+            if (!data || data.length === 0) return null;
+
+            const visits = data.map(d => d.visitCount);
+            const maxVisit = Math.max(...visits);
+            const maxIndex = visits.indexOf(maxVisit);
+            const avgDaily = (visits.reduce((a, b) => a + b, 0) / visits.length).toFixed(1);
+
+            // 간단한 추세 계산 (후반부 평균 vs 전반부 평균)
+            const mid = Math.floor(data.length / 2);
+            const firstHalf = visits.slice(0, mid).reduce((a, b) => a + b, 0) / mid || 0;
+            const secondHalf = visits.slice(mid).reduce((a, b) => a + b, 0) / (data.length - mid) || 0;
+
+            let trendLabel, trendClass, trendIcon;
+            if (secondHalf > firstHalf * 1.1) {
+                trendLabel = '상승';
+                trendClass = 'text-success';
+                trendIcon = 'bi-arrow-up';
+            } else if (secondHalf < firstHalf * 0.9) {
+                trendLabel = '하락';
+                trendClass = 'text-danger';
+                trendIcon = 'bi-arrow-down';
+            } else {
+                trendLabel = '유지';
+                trendClass = 'text-secondary';
+                trendIcon = 'bi-dash';
+            }
+
+            return {
+                peakDate: data[maxIndex]?.dateLabel || '-',
+                peakCount: maxVisit,
+                avgDaily,
+                trendLabel,
+                trendClass,
+                trendIcon
+            };
+        }
+    },
     mounted() {
-        this.$nextTick(this.initMap);
-        this.updateAnalysis();
+        this.$nextTick(() => {
+            this.initMap();
+            this.fetchAnalysis();
+        });
     },
     watch: {
-        spatialData: {
-            handler() {
-                if (this.map) {
-                    this.drawPaths();
+        activeTab(newTab) {
+            this.$nextTick(() => {
+                if (newTab === 'trend') {
+                    this.renderTrendChart();
+                } else if (newTab === 'pattern') {
+                    this.renderDayOfWeekChart();
+                    this.renderMonthlyChart();
                 }
-            },
-            deep: true,
-        },
+            });
+        }
     },
     methods: {
-        calculateStats() {
-            if (!Array.isArray(this.spatialData) || this.spatialData.length === 0) {
-                this.analysisStats = { segmentCount: 0, totalDays: 0, topPath: { name: '데이터 없음', count: 0 }, detailedPaths: [] };
+        // === 유틸리티 ===
+        getTodayDate() {
+            return new Date().toISOString().split('T')[0];
+        },
+        getDefaultStartDate() {
+            const d = new Date();
+            d.setMonth(d.getMonth() - 1);
+            return d.toISOString().split('T')[0];
+        },
+        formatNumber(num) {
+            return num?.toLocaleString() || '0';
+        },
+        getRankBadgeClass(index) {
+            if (index === 0) return 'bg-danger';
+            if (index === 1) return 'bg-warning text-dark';
+            if (index === 2) return 'bg-info';
+            return 'bg-secondary';
+        },
+        getTrendBadgeClass(status) {
+            switch (status) {
+                case 'RISING': case 'NEW': return 'bg-success';
+                case 'DECLINING': return 'bg-danger';
+                default: return 'bg-secondary';
+            }
+        },
+        getTrendIcon(status) {
+            switch (status) {
+                case 'RISING': case 'NEW': return 'bi-arrow-up';
+                case 'DECLINING': return 'bi-arrow-down';
+                default: return 'bi-dash';
+            }
+        },
+        getDayBadgeClass(day) {
+            if (day === 6) return 'bg-primary'; // 토요일
+            if (day === 7) return 'bg-danger';  // 일요일
+            return 'bg-secondary';
+        },
+
+        // === API 호출 ===
+        async fetchAnalysis() {
+            // 날짜 유효성 검사
+            if (this.startDate > this.endDate) {
+                alert('시작일이 종료일보다 늦을 수 없습니다.');
                 return;
             }
 
-            const totalSegments = this.spatialData.reduce((sum, s) => sum + s.segmentCount, 0);
+            this.loading = true;
+            try {
+                const response = await apiClient.get('/api/admin/hotspot/analysis', {
+                    params: {
+                        startDate: this.startDate,
+                        endDate: this.endDate,
+                        type: 'DAILY',
+                        limit: 10
+                    }
+                });
+                this.analysisData = response.data;
+                console.log('✅ 핫스팟 분석 로드 완료:', this.analysisData);
 
-            const start = new Date(this.startDate);
-            const end = new Date(this.endDate);
-            const diffTime = Math.abs(end - start);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                this.updateHeatmap();
 
-            const detailedPaths = this.spatialData.map(s => ({
-                count: s.segmentCount,
-                startName: s.startPlaceName || `장소 ${s.startPlaceId}`,
-                endName: s.endPlaceName || `장소 ${s.endPlaceId}`,
-                startLat: s.startLat,
-                startLng: s.startLng,
-                endLat: s.endLat,
-                endLng: s.endLng,
-                type: (s.segmentCount >= 50) ? '최다 이동' : (s.segmentCount >= 10 ? '주요 이동' : '일반 이동')
-            }));
-
-            const top = detailedPaths[0] || { count: 0, startName: '데이터 없음', endName: '', startLat: 0, startLng: 0, endLat: 0, endLng: 0 };
-            const topPathName = `${top.startName} → ${top.endName}`;
-
-            this.analysisStats = {
-                segmentCount: totalSegments,
-                totalDays: diffDays,
-                topPath: { name: topPathName, count: top.count, startLat: top.startLat, startLng: top.startLng, endLat: top.endLat, endLng: top.endLng },
-                detailedPaths: detailedPaths
-            };
+                if (this.activeTab === 'trend') {
+                    this.renderTrendChart();
+                } else if (this.activeTab === 'pattern') {
+                    this.renderDayOfWeekChart();
+                    this.renderMonthlyChart();
+                }
+            } catch (error) {
+                console.error('❌ 핫스팟 분석 실패:', error);
+                alert('데이터 로드에 실패했습니다.');
+            } finally {
+                this.loading = false;
+            }
         },
 
-        zoomToPath(startLat, startLng, endLat, endLng) {
-            if (!this.map) return;
-            const startPoint = L.latLng(startLat, startLng);
-            const endPoint = L.latLng(endLat, endLng);
+        async fetchPlaceTrend() {
+            if (!this.selectedPlaceId) {
+                this.placeTrendData = [];
+                this.renderTrendChart();
+                return;
+            }
 
-            this.map.fitBounds(L.latLngBounds(startPoint, endPoint), { padding: [100, 100] });
+            try {
+                const response = await apiClient.get(`/api/admin/hotspot/trend/${this.selectedPlaceId}`, {
+                    params: {
+                        startDate: this.startDate,
+                        endDate: this.endDate
+                    }
+                });
+                this.placeTrendData = response.data;
+                this.renderTrendChart();
+            } catch (error) {
+                console.error('❌ 장소 트렌드 로드 실패:', error);
+            }
         },
 
-        updateAnalysis() {
-            this.$emit('reload-data', this.startDate, this.endDate, this.analysisType);
-        },
-
-        // initMap 수정 - ResizeObserver와 중복 호출 제거
+        // === 지도 ===
         initMap() {
-            this.map = L.map('path-analysis-map').setView([36.5, 127.8], 7);
+            this.map = L.map('hotspot-map').setView([36.5, 127.8], 7);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+                attribution: '&copy; OpenStreetMap contributors'
             }).addTo(this.map);
 
-            this.pathLayerGroup = L.layerGroup().addTo(this.map);
             this.markerLayerGroup = L.layerGroup().addTo(this.map);
 
-            // ✅ ResizeObserver만 사용 (중복 호출 방지)
+            // ResizeObserver
             this.resizeObserver = new ResizeObserver(() => {
-                if (this.map) {
-                    this.map.invalidateSize();
-                }
+                if (this.map) this.map.invalidateSize();
             });
-
-            const mapContainer = document.getElementById('path-analysis-map');
-            if (mapContainer) {
-                this.resizeObserver.observe(mapContainer);
-            }
-
-            // ✅ 초기 데이터 로드
-            this.drawPaths();
+            const mapContainer = document.getElementById('hotspot-map');
+            if (mapContainer) this.resizeObserver.observe(mapContainer);
         },
 
-        getLineWeight(count) {
-            if (count >= 50) return 8;
-            if (count >= 20) return 6;
-            if (count >= 5) return 4;
-            return 2;
-        },
-        getLineColor(count) {
-            if (count >= 50) return '#FF5733';
-            if (count >= 10) return '#4A7CEC';
-            return '#00BFFF';
-        },
-        getLineOpacity(count) {
-            if (count >= 50) return 1.0;
-            if (count >= 10) return 0.8;
-            return 0.5;
-        },
-
-        addLegend() {
-            const legend = L.control({ position: 'bottomright' });
-            legend.onAdd = () => {
-                const div = L.DomUtil.create('div', 'info legend');
-                div.style.backgroundColor = 'white';
-                div.style.padding = '10px';
-                div.style.borderRadius = '5px';
-                div.innerHTML = '<b>경로 이동 빈도</b><br>' +
-                    '<i style="background:#FF5733; width: 20px; height: 8px; display: inline-block; margin-right: 5px;"></i> 50회 이상 (매우 잦음)<br>' +
-                    '<i style="background:#4A7CEC; width: 20px; height: 5px; display: inline-block; margin-right: 5px;"></i> 10회 ~ 49회 (잦음)<br>' +
-                    '<i style="background:#00BFFF; width: 20px; height: 3px; display: inline-block; margin-right: 5px;"></i> 1회 ~ 9회 (낮음)';
-                return div;
-            };
-
-            if (this.legendControl) { this.map.removeControl(this.legendControl); }
-            this.legendControl = legend;
-            legend.addTo(this.map);
-        },
-
-        drawMarkers() {
-            if (this.markerLayerGroup) { this.map.removeLayer(this.markerLayerGroup); }
-            this.markerLayerGroup = L.layerGroup().addTo(this.map);
-
-            const places = {};
-            this.spatialData.forEach(segment => {
-                if (segment.startLat && !places[segment.startPlaceId]) {
-                    places[segment.startPlaceId] = { name: segment.startPlaceName || `장소 ${segment.startPlaceId}`, lat: segment.startLat, lng: segment.startLng, count: 0 };
-                }
-                if (segment.endLat && !places[segment.endPlaceId]) {
-                    places[segment.endPlaceId] = { name: segment.endPlaceName || `장소 ${segment.endPlaceId}`, lat: segment.endLat, lng: segment.endLng, count: 0 };
-                }
-                if (places[segment.startPlaceId]) places[segment.startPlaceId].count += segment.segmentCount;
-                if (places[segment.endPlaceId]) places[segment.endPlaceId].count += segment.segmentCount;
-            });
-
-            Object.keys(places).forEach(id => {
-                const place = places[id];
-                const markerSize = 25 + Math.min(place.count / 10, 20);
-
-                const customIcon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div style="background-color: #34495e; border-radius: 50%; width: ${markerSize}px; height: ${markerSize}px; text-align: center; line-height: ${markerSize}px; color: white; font-weight: bold; font-size: 10px; border: 2px solid white;">${place.name.substring(0, 1)}</div>`,
-                    iconSize: [markerSize, markerSize],
-                    // ✅ [수정완료] CSS transform 대신 앵커로 중심점 조정
-                    iconAnchor: [markerSize / 2, markerSize / 2]
-                });
-
-                L.marker([place.lat, place.lng], { icon: customIcon })
-                    .bindPopup(`<b>${place.name}</b><br>총 이동량(출/도착): ${place.count}회`)
-                    .addTo(this.markerLayerGroup);
-            });
-        },
-
-        // drawPaths 수정 - 마지막 invalidateSize만 남기기
-        drawPaths() {
+        updateHeatmap() {
             if (!this.map) return;
 
-            this.pathLayerGroup.clearLayers();
-            this.pathKeyMap.clear();
+            // 기존 레이어 제거
+            if (this.heatLayer) {
+                this.map.removeLayer(this.heatLayer);
+            }
+            this.markerLayerGroup.clearLayers();
 
-            this.drawMarkers();
-            this.addLegend();
-            this.calculateStats(); // ✅ 통계 계산도 여기서
+            const ranking = this.analysisData.hotspotRanking || [];
+            if (ranking.length === 0) return;
 
-            if (!Array.isArray(this.spatialData) || this.spatialData.length === 0) {
-                this.map.setView([36.5, 127.8], 7);
-                return;
+            // 히트맵 데이터 생성
+            const maxVisit = Math.max(...ranking.map(p => p.visitCount));
+            const heatData = ranking.map(place => [
+                place.latitude,
+                place.longitude,
+                place.visitCount / maxVisit // 정규화된 강도
+            ]);
+
+            // 히트맵 레이어 추가
+            this.heatLayer = L.heatLayer(heatData, {
+                radius: 35,
+                blur: 25,
+                maxZoom: 10,
+                gradient: {
+                    0.2: '#00BFFF',
+                    0.4: '#00FF7F',
+                    0.6: '#FFD700',
+                    0.8: '#FF8C00',
+                    1.0: '#FF0000'
+                }
+            }).addTo(this.map);
+
+            // 마커 추가 (상위 10개)
+            ranking.forEach((place, index) => {
+                const size = 30 - index * 2;
+                const icon = L.divIcon({
+                    className: 'custom-hotspot-marker',
+                    html: `<div style="
+                        background: ${this.getHeatColor(place.visitCount, maxVisit)};
+                        width: ${size}px;
+                        height: ${size}px;
+                        border-radius: 50%;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-weight: bold;
+                        font-size: 12px;
+                    ">${index + 1}</div>`,
+                    iconSize: [size, size],
+                    iconAnchor: [size / 2, size / 2]
+                });
+
+                L.marker([place.latitude, place.longitude], { icon })
+                    .bindPopup(`
+                        <b>${index + 1}위: ${place.placeName}</b><br>
+                        방문: ${place.visitCount}회<br>
+                        방문자: ${place.uniqueUserCount}명
+                    `)
+                    .addTo(this.markerLayerGroup);
+            });
+
+            // 지도 범위 조정
+            const bounds = ranking.map(p => [p.latitude, p.longitude]);
+            if (bounds.length > 0) {
+                this.map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        },
+
+        getHeatColor(value, max) {
+            const ratio = value / max;
+            if (ratio > 0.8) return '#FF0000';
+            if (ratio > 0.6) return '#FF8C00';
+            if (ratio > 0.4) return '#FFD700';
+            if (ratio > 0.2) return '#00FF7F';
+            return '#00BFFF';
+        },
+
+        selectPlace(place) {
+            this.selectedPlace = place;
+            if (this.map) {
+                this.map.setView([place.latitude, place.longitude], 10);
+            }
+        },
+
+        // === 차트 ===
+        renderTrendChart() {
+            const ctx = this.$refs.trendChart;
+            if (!ctx) return;
+
+            if (this.trendChart) {
+                this.trendChart.destroy();
             }
 
-            const allPathCoordinates = [];
-            const offsetDistance = 0.00008;
+            const data = this.selectedPlaceId ? this.placeTrendData : this.analysisData.trendData;
+            if (!data || data.length === 0) return;
 
-            this.spatialData.forEach(segment => {
-                try {
-                    const geoJson = JSON.parse(segment.pathGeoJson);
-                    if (geoJson && geoJson.type === 'LineString') {
-                        const count = segment.segmentCount;
-                        const weight = this.getLineWeight(count);
-                        const color = this.getLineColor(count);
-                        const opacity = this.getLineOpacity(count);
-
-                        const startId = segment.startPlaceId;
-                        const endId = segment.endPlaceId;
-
-                        const forwardKey = `${startId}-${endId}`;
-                        const backwardKey = `${endId}-${startId}`;
-
-                        let offsetGeoJson = geoJson;
-                        let isOverlapping = false;
-
-                        if (this.pathKeyMap.has(backwardKey)) {
-                            offsetGeoJson = this.applyOffsetToGeoJson(geoJson, offsetDistance);
-                            isOverlapping = true;
+            this.trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.dateLabel),
+                    datasets: [
+                        {
+                            label: '일별 방문',
+                            data: data.map(d => d.visitCount),
+                            borderColor: '#4A7CEC',
+                            backgroundColor: 'rgba(74, 124, 236, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: '7일 이동평균',
+                            data: data.map(d => d.movingAverage),
+                            borderColor: '#FF6B6B',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 0
                         }
-
-                        if (!this.pathKeyMap.has(forwardKey)) {
-                            this.pathKeyMap.set(forwardKey, true);
-                        } else {
-                            return;
-                        }
-
-                        const pathLayer = L.geoJSON(offsetGeoJson, {
-                            style: {
-                                color: color,
-                                weight: weight,
-                                opacity: opacity,
-                                lineCap: 'round',
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 10,
+                                maxRotation: 45
                             }
-                        }).bindPopup(
-                            `<b>동선 분석 결과</b><hr>` +
-                            `출발: <b>${segment.startPlaceName || segment.startPlaceId}</b><br>` +
-                            `도착: <b>${segment.endPlaceName || segment.endPlaceId}</b><br>` +
-                            `이동 빈도: <b>${count}회</b>` +
-                            (isOverlapping ? `<br><small style="color: red;">(경로 겹침: 오프셋 적용됨)</small>` : '')
-                        );
-
-                        this.pathLayerGroup.addLayer(pathLayer);
-
-                        L.geoJSON(geoJson).getLayers().forEach(layer => {
-                            if (layer.getLatLngs) {
-                                allPathCoordinates.push(...layer.getLatLngs());
-                            }
-                        });
+                        },
+                        y: { beginAtZero: true }
                     }
-                } catch (e) {
-                    console.error("GeoJSON 데이터 파싱 오류:", e, segment.pathGeoJson);
-                }
-            });
-
-            if (allPathCoordinates.length > 0) {
-                this.map.fitBounds(allPathCoordinates, { padding: [50, 50] });
-            }
-
-            // ✅ 모든 레이어 추가 완료 후 한 번만 호출
-            this.$nextTick(() => {
-                if (this.map) {
-                    this.map.invalidateSize();
                 }
             });
         },
 
-        applyOffsetToGeoJson(geoJson, offset) {
-            if (geoJson.type !== 'LineString' || offset === 0) return geoJson;
-            const simplifiedCoordinates = geoJson.coordinates.map(coord => [coord[0] + offset, coord[1]]);
-            return {
-                ...geoJson,
-                coordinates: simplifiedCoordinates
-            };
-        },
-    },
-    emits: ['reload-data'],
-    beforeUnmount() {
-        if (this.map) {
-            if (this.resizeObserver) {
-                const mapContainer = document.getElementById('path-analysis-map');
-                if (mapContainer) this.resizeObserver.unobserve(mapContainer);
+        renderDayOfWeekChart() {
+            const ctx = this.$refs.dayOfWeekChart;
+            if (!ctx) return;
+
+            if (this.dayOfWeekChart) {
+                this.dayOfWeekChart.destroy();
             }
-            this.map.remove();
+
+            const data = this.analysisData.dayOfWeekDistribution || [];
+            if (data.length === 0) return;
+
+            const colors = data.map(d => {
+                if (d.dayOfWeek === 6) return '#4A7CEC'; // 토
+                if (d.dayOfWeek === 7) return '#FF6B6B'; // 일
+                return '#6C757D';
+            });
+
+            this.dayOfWeekChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.dayLabel),
+                    datasets: [{
+                        label: '방문수',
+                        data: data.map(d => d.totalVisits),
+                        backgroundColor: colors,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        },
+
+        renderMonthlyChart() {
+            const ctx = this.$refs.monthlyChart;
+            if (!ctx) return;
+
+            if (this.monthlyChart) {
+                this.monthlyChart.destroy();
+            }
+
+            const data = this.analysisData.monthlyDistribution || [];
+            if (data.length === 0) return;
+
+            this.monthlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.monthLabel),
+                    datasets: [{
+                        label: '월별 방문',
+                        data: data.map(d => d.totalVisits),
+                        borderColor: '#28A745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
         }
+    },
+
+    beforeUnmount() {
+        if (this.trendChart) this.trendChart.destroy();
+        if (this.dayOfWeekChart) this.dayOfWeekChart.destroy();
+        if (this.monthlyChart) this.monthlyChart.destroy();
+
+        if (this.resizeObserver) {
+            const mapContainer = document.getElementById('hotspot-map');
+            if (mapContainer) this.resizeObserver.unobserve(mapContainer);
+        }
+
+        if (this.map) this.map.remove();
     }
 };
 </script>
 
 <style scoped>
-/* Leaflet DivIcon의 커스텀 스타일 */
-.custom-div-icon {
-    border-radius: 50%;
-    text-align: center;
-    font-size: 10px;
-    font-weight: bold;
-    color: white;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-    /* ✅ [수정완료] transform 삭제 (JS의 iconAnchor로 대체) */
-    /* transform: translate(-50%, -50%); */
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    padding: 0.5rem 1rem;
 }
 
-/* UI 레이아웃 */
-.card {
-    display: flex;
-    flex-direction: column;
+.nav-tabs .nav-link.active {
+    color: #4A7CEC;
+    border-bottom: 2px solid #4A7CEC;
+    background: transparent;
 }
 
-.card-body {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: row;
-    min-height: 0;
+.list-group-item.active {
+    background-color: #4A7CEC;
+    border-color: #4A7CEC;
 }
 
-#path-analysis-map {
+#hotspot-map {
     min-height: 500px;
 }
+</style>
 
-.p-3.border-start {
-    display: flex;
-    flex-direction: column;
+<!-- 전역 스타일 (scoped 없이) - Leaflet 마커용 -->
+<style>
+.custom-hotspot-marker {
+    background: transparent !important;
+    border: none !important;
 }
 
-.list-group {
-    flex-grow: 1;
-    overflow-y: auto;
+/* 핵심 수정: Leaflet 마커 컨테이너 위치 고정 */
+.leaflet-marker-icon.custom-hotspot-marker {
+    margin: 0 !important;
 }
 </style>
