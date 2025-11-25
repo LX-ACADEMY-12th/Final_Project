@@ -38,7 +38,7 @@
 
       <div v-if="filteredItems.length === 0" class="status-container empty-state">
         <p class="text-muted">
-          '{{ selectedTab }}' 탭에 해당하는 관심 코스가 없습니다.
+          '{{ selectedTab === '전시' ? '전시관' : '과학 탐험지' }}' 탭에 해당하는 관심 코스가 없습니다.
         </p>
       </div>
 

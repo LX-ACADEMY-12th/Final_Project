@@ -250,19 +250,37 @@ const handleItemClick = (item) => {
 
 };
 
-// 🚨 [추가된 함수] 대전 시청으로 현위치를 고정 설정하고 검색 실행
+// 🟢 지도 중심을 카드 캐러셀을 고려하여 조정하는 함수 추가
+const panToWithOffset = (lat, lng) => {
+  if (!map.value) return;
+
+  const targetLatLng = new window.kakao.maps.LatLng(lat, lng);
+
+  // 1. 먼저 목표 지점으로 이동
+  map.value.setCenter(targetLatLng);
+
+  // 2. 카드 캐러셀 영역만큼 위로 오프셋 적용
+  const projection = map.value.getProjection();
+  const point = projection.pointFromCoords(targetLatLng);
+
+  // 카드 캐러셀 높이 (170px) + 여백 (20px) = 190px
+  // 화면 중앙에서 위로 이동시키기 위해 픽셀 값의 절반만큼 조정
+  const offsetY = 95; // 190px / 2
+
+  const adjustedPoint = new window.kakao.maps.Point(point.x, point.y - offsetY);
+  const adjustedLatLng = projection.coordsFromPoint(adjustedPoint);
+
+  // 3. 조정된 위치로 부드럽게 이동
+  map.value.panTo(adjustedLatLng);
+};
+
+// 대전 시청으로 현위치를 고정 설정하고 검색 실행
 const setDemoLocation = async () => {
-  // 1. currentUserLocation을 대전시청 좌표로 고정 설정
   currentUserLocation.value = DEMO_LOCATION;
 
   if (map.value) {
-    const demoLatLng = new window.kakao.maps.LatLng(
-      currentUserLocation.value.lat,
-      currentUserLocation.value.lng
-    );
-
-    // 2. 지도 이동 및 레벨 조정 (goToCurrentLocation 로직 참조)
-    map.value.panTo(demoLatLng);
+    // panTo 대신 panToWithOffset 사용
+    panToWithOffset(currentUserLocation.value.lat, currentUserLocation.value.lng);
 
     setTimeout(() => {
       map.value.setLevel(3, {
@@ -272,7 +290,6 @@ const setDemoLocation = async () => {
       });
     }, 300);
 
-    // 3. 기존 마커 제거 및 새로운 커스텀 오버레이 표시
     if (currentLocationMarker.value) {
       currentLocationMarker.value.setMap(null);
     }
@@ -285,7 +302,10 @@ const setDemoLocation = async () => {
     `;
 
     const newOverlay = new window.kakao.maps.CustomOverlay({
-      position: demoLatLng,
+      position: new window.kakao.maps.LatLng(
+        currentUserLocation.value.lat,
+        currentUserLocation.value.lng
+      ),
       content: content,
     });
 
@@ -293,7 +313,6 @@ const setDemoLocation = async () => {
     currentLocationMarker.value = newOverlay;
   }
 
-  // 4. 새로운 위치 기반으로 검색 실행
   await performSearch();
 
   eventBus.emit('show-global-alert', {
@@ -378,12 +397,8 @@ const goToCurrentLocation = async () => {
   try {
     await getCurrentLocation();
     if (currentUserLocation.value && map.value) {
-      const currentLatLng = new window.kakao.maps.LatLng(
-        currentUserLocation.value.lat,
-        currentUserLocation.value.lng
-      );
-
-      map.value.panTo(currentLatLng);
+      // panTo 대신 panToWithOffset 사용
+      panToWithOffset(currentUserLocation.value.lat, currentUserLocation.value.lng);
 
       setTimeout(() => {
         map.value.setLevel(3, {
@@ -398,14 +413,17 @@ const goToCurrentLocation = async () => {
       }
 
       const content = `
-    <div class="current-location-wrapper">
-     <div class="current-location-dot"></div>
-     <div class="current-location-pulse"></div>
-    </div>
-   `;
+        <div class="current-location-wrapper">
+          <div class="current-location-dot"></div>
+          <div class="current-location-pulse"></div>
+        </div>
+      `;
 
       const newOverlay = new window.kakao.maps.CustomOverlay({
-        position: currentLatLng,
+        position: new window.kakao.maps.LatLng(
+          currentUserLocation.value.lat,
+          currentUserLocation.value.lng
+        ),
         content: content,
       });
 

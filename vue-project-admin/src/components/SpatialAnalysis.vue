@@ -115,7 +115,6 @@ export default {
         spatialData: {
             handler() {
                 if (this.map) {
-                    this.calculateStats();
                     this.drawPaths();
                 }
             },
@@ -168,42 +167,32 @@ export default {
 
         updateAnalysis() {
             this.$emit('reload-data', this.startDate, this.endDate, this.analysisType);
-
-            this.$nextTick(() => {
-                setTimeout(() => {
-                    if (this.map) {
-                        this.map.invalidateSize();
-                    }
-                }, 150);
-            });
         },
 
+        // initMap 수정 - ResizeObserver와 중복 호출 제거
         initMap() {
             this.map = L.map('path-analysis-map').setView([36.5, 127.8], 7);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
             }).addTo(this.map);
+
             this.pathLayerGroup = L.layerGroup().addTo(this.map);
             this.markerLayerGroup = L.layerGroup().addTo(this.map);
-            this.drawPaths();
 
+            // ✅ ResizeObserver만 사용 (중복 호출 방지)
             this.resizeObserver = new ResizeObserver(() => {
                 if (this.map) {
                     this.map.invalidateSize();
                 }
             });
+
             const mapContainer = document.getElementById('path-analysis-map');
             if (mapContainer) {
                 this.resizeObserver.observe(mapContainer);
             }
 
-            this.map.on('moveend', () => {
-                this.map.invalidateSize();
-            });
-
-            setTimeout(() => {
-                if (this.map) this.map.invalidateSize();
-            }, 100);
+            // ✅ 초기 데이터 로드
+            this.drawPaths();
         },
 
         getLineWeight(count) {
@@ -276,13 +265,16 @@ export default {
             });
         },
 
+        // drawPaths 수정 - 마지막 invalidateSize만 남기기
         drawPaths() {
             if (!this.map) return;
+
             this.pathLayerGroup.clearLayers();
             this.pathKeyMap.clear();
 
             this.drawMarkers();
             this.addLegend();
+            this.calculateStats(); // ✅ 통계 계산도 여기서
 
             if (!Array.isArray(this.spatialData) || this.spatialData.length === 0) {
                 this.map.setView([36.5, 127.8], 7);
@@ -339,7 +331,9 @@ export default {
                         this.pathLayerGroup.addLayer(pathLayer);
 
                         L.geoJSON(geoJson).getLayers().forEach(layer => {
-                            if (layer.getLatLngs) { allPathCoordinates.push(...layer.getLatLngs()); }
+                            if (layer.getLatLngs) {
+                                allPathCoordinates.push(...layer.getLatLngs());
+                            }
                         });
                     }
                 } catch (e) {
@@ -351,12 +345,11 @@ export default {
                 this.map.fitBounds(allPathCoordinates, { padding: [50, 50] });
             }
 
+            // ✅ 모든 레이어 추가 완료 후 한 번만 호출
             this.$nextTick(() => {
-                setTimeout(() => {
-                    if (this.map) {
-                        this.map.invalidateSize();
-                    }
-                }, 100);
+                if (this.map) {
+                    this.map.invalidateSize();
+                }
             });
         },
 
