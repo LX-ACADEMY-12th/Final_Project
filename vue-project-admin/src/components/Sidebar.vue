@@ -7,7 +7,7 @@
         </div>
         <div>
           <h4 class="mb-0 fw-bold">과학 어디가?</h4>
-          <small class="text-muted">관리자 대시보드</small>
+          <small class="text-white">관리자 대시보드</small>
         </div>
       </div>
     </div>
@@ -15,10 +15,17 @@
     <nav class="sidebar-nav">
       <h6 class="sidebar-heading">메뉴</h6>
 
+
+      <a href="#" class="nav-item" :class="{ active: currentView === 'places' }" @click.prevent="changeView('places')">
+        <i class="bi bi-database-fill-gear"></i>
+        <span>컨텐츠 관리</span>
+        <div class="nav-item-indicator"></div>
+      </a>
+
       <a href="#" class="nav-item" :class="{ active: currentView === 'reviews' }"
         @click.prevent="changeView('reviews')">
         <i class="bi bi-chat-square-text-fill"></i>
-        <span>신고 후기 관리</span>
+        <span>신고된 후기 관리</span>
         <div class="nav-item-indicator"></div>
       </a>
 
@@ -26,12 +33,6 @@
         @click.prevent="changeView('notices')">
         <i class="bi bi-megaphone-fill"></i>
         <span>공지사항 관리</span>
-        <div class="nav-item-indicator"></div>
-      </a>
-
-      <a href="#" class="nav-item" :class="{ active: currentView === 'places' }" @click.prevent="changeView('places')">
-        <i class="bi bi-database-fill-gear"></i>
-        <span>컨텐츠 관리</span>
         <div class="nav-item-indicator"></div>
       </a>
 
@@ -46,7 +47,7 @@
     <div class="sidebar-footer">
       <div class="footer-content">
         <i class="bi bi-shield-check"></i>
-        <small>© 2025 교과서 Service</small>
+        <small>© 2025 과학 어디가 Service</small>
       </div>
     </div>
   </div>

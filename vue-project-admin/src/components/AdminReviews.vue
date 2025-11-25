@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ContentHeader iconClass="bi bi-chat-square-text" title="1. 신고 후기 관리" description="신고 접수된 후기를 처리하는 핵심 기능입니다." />
+    <ContentHeader iconClass="bi bi-chat-square-text" title="신고된 후기 관리" description="신고 접수된 후기를 관리합니다." />
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-body">
         <form class="row g-3 align-items-center" @submit.prevent="handleSearch">

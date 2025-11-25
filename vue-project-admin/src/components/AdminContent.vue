@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ContentHeader iconClass="bi bi-pencil-square" title="3. 컨텐츠 편집" description="전시관, 전시, 체험 장소 데이터를 관리합니다." />
+    <ContentHeader iconClass="bi bi-pencil-square" title="컨텐츠 관리" description="전시관, 전시관별 전시, 과학탐험지 정보를 관리합니다." />
 
     <ul class="nav nav-tabs mb-3">
       <li class="nav-item">

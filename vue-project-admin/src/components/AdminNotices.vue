@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ContentHeader iconClass="bi bi-megaphone" title="2. 공지사항 등록/관리" description="새로운 공지사항을 등록하고 기존 공지사항을 관리합니다." />
+    <ContentHeader iconClass="bi bi-megaphone" title="공지사항 관리" description="새로운 공지사항을 등록하고 기존 공지사항을 관리합니다." />
     <div class="d-flex justify-content-end mb-4">
       <button class="btn btn-primary" @click="openCreateModal">
         <i class="bi bi-plus-circle me-2"></i>
