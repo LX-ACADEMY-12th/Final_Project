@@ -45,9 +45,9 @@
               <i class="bi bi-crosshair"></i>
             </div>
             <div class="card-text-wrap">
-              <div class="card-title">스탬프 투어</div>
+              <div class="card-title">스탬프 북</div>
               <div class="card-sub">
-                방문 인증 스탬프로<br> 과학 여행 기록하기
+                방문 인증 스탬프로<br> 기록하기
               </div>
             </div>
           </button>

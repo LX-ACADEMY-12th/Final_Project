@@ -59,8 +59,9 @@ const wrapRef = ref(null)
 const canvasHostRef = ref(null)
 let p5Instance = null
 
-const power = ref(2) // 1: 약, 2: 보통, 3: 강
-const powerText = computed(() => (['약하게', '보통', '아주 세게'][power.value - 1]))
+// 1: 약, 2: 보통, 3: 강
+const power = ref(2)
+const powerText = computed(() => ['약하게', '보통', '아주 세게'][power.value - 1])
 
 function onReset () {
   power.value = 2
@@ -69,7 +70,8 @@ function onReset () {
 }
 
 function onRun () {
-  if (p5Instance?.startRide) p5Instance.startRide()
+  if (!p5Instance?.startRide) return
+  p5Instance.startRide()
 }
 
 function updatePower () {
@@ -79,7 +81,7 @@ function updatePower () {
 /* ===================== p5 스케치 ===================== */
 const sketch = (p) => {
   let w = 430
-  let h = 380
+  let h = 420 // 🔹 최종 캔버스 높이
 
   // 트랙
   let cx = 0
@@ -104,7 +106,7 @@ const sketch = (p) => {
     const host = canvasHostRef.value
     const hostW = host?.clientWidth || 430
     w = Math.max(320, hostW)
-    h = 380
+    h = 420 // 🔹 여기서도 420으로 통일
 
     const c = p.createCanvas(w, h)
     c.parent(host)
@@ -112,8 +114,6 @@ const sketch = (p) => {
 
     initLayout()
     resetState()
-    p.noLoop()
-    p.redraw()
   }
 
   p.windowResized = () => {
@@ -121,17 +121,16 @@ const sketch = (p) => {
     if (!host) return
     const hostW = host.clientWidth || 430
     w = Math.max(320, hostW)
-    h = 380
+    h = 420
     p.resizeCanvas(w, h)
     initLayout()
-    resetState()
-    p.redraw()
+    // 상태는 유지, 레이아웃만 조정
   }
 
   function initLayout () {
     cx = w / 2
-    cy = h * 0.38
-    radius = Math.min(w, h) * 0.22
+    cy = h * 0.34 // 위로 조금 올림
+    radius = Math.min(w, h) * 0.24
   }
 
   function resetState () {
@@ -139,8 +138,6 @@ const sketch = (p) => {
     angVel = 0
     elapsed = 0
     riding = false
-
-    // 기본 에너지 느낌값
     updateEnergyFromAngle()
   }
 
@@ -157,10 +154,7 @@ const sketch = (p) => {
       stepRide()
       if (elapsed > rideDuration) {
         riding = false
-        p.noLoop()
       }
-    } else {
-      p.noLoop()
     }
   }
 
@@ -197,14 +191,18 @@ const sketch = (p) => {
     // 바닥선
     p.stroke('#e5e7eb')
     p.strokeWeight(2)
-    p.line(cx - radius * 1.2, cy + radius + 16, cx + radius * 1.2, cy + radius + 16)
+    p.line(
+      cx - radius * 1.2,
+      cy + radius + 16,
+      cx + radius * 1.2,
+      cy + radius + 16
+    )
 
     p.pop()
   }
 
   /* -------- 자전거(공) -------- */
   function drawBike () {
-    // 트랙 위 위치 계산
     const x = cx + radius * Math.cos(angle)
     const y = cy + radius * Math.sin(angle)
     const r = Math.min(w, h) * 0.035
@@ -249,9 +247,9 @@ const sketch = (p) => {
   /* -------- 에너지 바 -------- */
   function drawEnergyBars () {
     const boxW = w * 0.86
-    const boxH = 70
+    const boxH = 90
     const boxX = (w - boxW) / 2
-    const boxY = cy + radius + 26
+    const boxY = cy + radius + 22 // 트랙 아래 여유
 
     p.push()
     p.rectMode(p.CORNER)
@@ -270,27 +268,27 @@ const sketch = (p) => {
     p.fill('#4b5563')
     p.text('에너지 변화 보기', innerX, innerY)
 
-    const barY1 = innerY + 18
-    const barY2 = innerY + 38
+    // 🔹 바/라벨 간격을 넉넉하게 다시 계산
     const barH = 8
+    const barGap = 20
+    const barY1 = innerY + 26       // 첫 번째 바
+    const barY2 = barY1 + barH + barGap // 두 번째 바
 
     // 속도 에너지 바
     p.fill('#e5edff')
     p.rect(innerX, barY1, innerW, barH, 999)
     p.fill('#4f46e5')
     p.rect(innerX, barY1, innerW * speedEnergy, barH, 999)
-
     p.fill('#6b7280')
-    p.text('속도 에너지', innerX + 2, barY1 - 12)
+    p.text('속도 에너지', innerX + 2, barY1 - 13)
 
     // 높이 에너지 바
     p.fill('#fee2e2')
     p.rect(innerX, barY2, innerW, barH, 999)
     p.fill('#f97316')
     p.rect(innerX, barY2, innerW * heightEnergy, barH, 999)
-
     p.fill('#6b7280')
-    p.text('높이 에너지', innerX + 2, barY2 - 12)
+    p.text('높이 에너지', innerX + 2, barY2 - 13)
 
     p.pop()
   }
@@ -298,7 +296,7 @@ const sketch = (p) => {
   /* -------- 아래 상태 텍스트 -------- */
   function drawStatusText () {
     const boxW = w * 0.86
-    const boxH = 46
+    const boxH = 48
     const boxX = (w - boxW) / 2
     const boxY = h - boxH - 10
 
@@ -349,24 +347,20 @@ const sketch = (p) => {
       decay = 0.996
     }
 
-    // 처음에는 한 번 퍽! 밀어줌
     if (elapsed < 200) {
       angVel = baseSpeed
     } else {
-      // "위로 올라갈수록 느려지고, 내려오면 빨라지는" 느낌만 추가
-      const heightFactor = (1 - Math.sin(angle)) * 0.35 // 위로 갈수록 값 커짐
+      const heightFactor = (1 - Math.sin(angle)) * 0.35
       angVel += -heightFactor * 0.0008
     }
 
-    // 약한 힘일 때는 일정 각도 이상 못 올라가게
     if (powerLevel === 1) {
-      const maxAngle = p.PI * 1.1 // 약간 오른쪽 위까지
-      if (angle < maxAngle && angVel < 0) angVel *= -0.4 // 다시 아래로
+      const maxAngle = p.PI * 1.1
+      if (angle < maxAngle && angVel < 0) angVel *= -0.4
     } else if (powerLevel === 2) {
-      const maxAngle = p.PI * 1.45 // 거의 위근처
+      const maxAngle = p.PI * 1.45
       if (angle < maxAngle && angVel < 0) angVel *= -0.35
     } else {
-      // 3단계는 한 바퀴를 거의 돌 수 있게
       if (elapsed > rideDuration * 0.7) {
         angVel *= 0.97
       }
@@ -375,7 +369,6 @@ const sketch = (p) => {
     angVel *= decay
     angle += angVel
 
-    // 각도 범위 정리
     if (angle > p.TWO_PI + p.HALF_PI) angle -= p.TWO_PI
     if (angle < -p.HALF_PI) angle += p.TWO_PI
 
@@ -383,12 +376,11 @@ const sketch = (p) => {
   }
 
   function updateEnergyFromAngle () {
-    // 높이 에너지: 위로 갈수록 커짐 (0~1 근사)
-    // 아래(90도) -> 0, 위(270도) -> 1
+    // 높이 에너지: 위로 갈수록 커짐 (0~1)
     const norm = (Math.cos(angle) * -1 + 1) / 2
     heightEnergy = p.constrain(norm, 0, 1)
 
-    // 속도 에너지: "전체 에너지 - 위치 에너지" 느낌으로
+    // 속도 에너지: 전체 에너지 - 위치 에너지 느낌
     let totalE = 0.6
     if (powerLevel === 1) totalE = 0.5
     if (powerLevel === 3) totalE = 0.9
@@ -399,21 +391,16 @@ const sketch = (p) => {
   /* ===== Vue에서 사용하는 메서드 ===== */
   p.setPower = (lv) => {
     powerLevel = lv || 2
-    // 에너지 느낌값도 살짝 조정
     updateEnergyFromAngle()
-    if (!riding) p.redraw()
   }
 
   p.startRide = () => {
     resetState()
     riding = true
-    p.loop()
   }
 
   p.resetSketch = () => {
     resetState()
-    p.noLoop()
-    p.redraw()
   }
 }
 
@@ -437,6 +424,7 @@ onBeforeUnmount(() => {
   }
 })
 </script>
+
 
 <style scoped>
 .bike-sim {
@@ -612,7 +600,7 @@ onBeforeUnmount(() => {
 
 .canvas-host {
   width: 100%;
-  min-height: 340px;
+  min-height: 400px; /* 기존 380 -> 400 정도 */
   background: #ffffff;
 }
 

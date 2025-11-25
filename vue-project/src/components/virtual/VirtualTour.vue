@@ -108,108 +108,88 @@ onUnmounted(() => {
   }
 });
 </script>
+
 <style>
 #panorama-container {
   width: 100%;
   height: 100%;
 }
 
-/* --- 커스텀 핫스팟 스타일 시작 --- */
+/* --- 커스텀 핫스팟 스타일 --- */
 
-/* 1. Pannellum 기본 툴팁 숨기기 (우리가 만든 UI만 보이도록) */
+/* 1. Pannellum 기본 아이콘 숨기기 (기존 동일) */
 .pnlm-hotspot-base.nav-hotspot {
   background: transparent !important;
 }
-
 .pnlm-hotspot-base.nav-hotspot .pnlm-sprite {
   display: none !important;
 }
 
-/* 2. 우리 커스텀 UI (nh-wrap)의 기본 스타일 */
+/* 2. 툴팁 래퍼 초기화 (기존 동일) */
 .nav-hotspot .pnlm-tooltip.nh-wrap {
   background: transparent;
   box-shadow: none;
   border: none;
   padding: 0;
   pointer-events: none;
+  margin-top: -3px; /* 위치 미세 조정 */
 }
 
-/* 3. 실제 클릭 가능한 버튼 (nh-btn) */
+/* 3. 실제 버튼 (nh-btn) */
 .nav-hotspot .nh-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  /* ★[수정] 호버 시 텍스트가 나올 공간 확보 */
-  padding: 10px 12px;
+  gap: 8px; /* 아이콘과 글자 사이 간격 */
+  padding: 8px 12px; /* 안쪽 여백 */
   border-radius: 20px;
-  background: rgba(0, 0, 0, 0.55);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-  transform: translateY(0);
-  transition: transform 0.12s ease, background 0.2s ease;
+  
+  /* 배경을 항상 진하게 설정 (글자가 잘 보이도록) */
+  background: rgba(0, 0, 0, 0.7); 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  
   pointer-events: auto;
   cursor: pointer;
+  transition: transform 0.1s ease, background 0.2s;
 }
 
-/* 4. 호버 및 클릭 반응 */
-.nav-hotspot .nh-btn:active {
-  transform: translateY(1px);
-}
-
+/* 호버 시 배경만 약간 더 진하게 (크기 변화 X) */
 .nav-hotspot .nh-btn:hover {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.85);
+  transform: scale(1.05); /* 살짝 커지는 효과 */
 }
 
-/* 5. 아이콘 (화살표) */
+/* 4. 아이콘 (화살표) */
 .nav-hotspot .nh-icon {
   width: 16px;
   height: 16px;
-  display: inline-block;
+  display: block;
   background: #fff;
+  /* 아이콘 모양 */
   mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill="%23000" d="M10 3l6 6h-4v8H8V9H4l6-6z"/></svg>') no-repeat center / contain;
-
-  /* ★[추가] 텍스트가 나타날 때 아이콘이 밀리지 않도록 */
   flex-shrink: 0;
 }
 
-/* 6. 호버 시 뜨는 글자 (nh-chip) */
+/* 5. 글자 (nh-chip) - ★여기가 핵심 수정★ */
 .nav-hotspot .nh-chip {
   color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1;
-
-  /* ★★★ [수정] 호버 애니메이션 ★★★ */
-  max-width: 0;
-  opacity: 0;
-  overflow: hidden;
   white-space: nowrap;
-  /* 텍스트가 줄바꿈되지 않도록 */
-  transition: max-width 0.3s ease-out, opacity 0.2s 0.05s ease-out;
-  will-change: max-width, opacity;
-}
-
-/* ★[추가] 호버 시 텍스트(chip) 표시 */
-.nav-hotspot .nh-btn:hover .nh-chip {
-  max-width: 150px;
-  /* 텍스트 최대 길이 (필요시 조절) */
+  
+  /* 👇 기존의 숨김(max-width: 0, opacity: 0) 코드를 모두 삭제하고, 항상 보이게 설정 */
+  display: block; 
   opacity: 1;
+  max-width: none;
 }
 
-/* 7. 등장 애니메이션 */
+/* 6. 등장 애니메이션 (선택사항) */
 .nav-hotspot {
-  animation: nh-pop 0.18s ease-out;
+  animation: nh-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes nh-pop {
-  from {
-    transform: scale(0.96);
-    opacity: 0.6;
-  }
-
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 </style>
