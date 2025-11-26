@@ -5,18 +5,14 @@
         <i class="bi bi-arrow-left fs-5" style="cursor: pointer;" @click="goBack"></i>
       </div>
       <div class="header-center fw-bold fs-6" style="flex: 1; text-align: center;">
-        가상 관람
+        동선 미리보기
       </div>
       <div class="header-right" style="flex: 1;"></div>
     </div>
 
     <div class="main-content">
-      <VirtualTour
-        ref="virtualTourRef"
-        :config="dynamicTourConfig"
-        @scene-changed="handleSceneChange"
-        @hotspot-click="handleHotspotClick"
-      />
+      <VirtualTour ref="virtualTourRef" :config="dynamicTourConfig" @scene-changed="handleSceneChange"
+        @hotspot-click="handleHotspotClick" />
     </div>
   </div>
 </template>
@@ -79,21 +75,21 @@ const dynamicTourConfig = computed(() => {
 const currentSceneId = ref(dynamicTourConfig.value.default.firstScene)
 
 // 씬 이동
-function handleNavigation (sceneId) {
+function handleNavigation(sceneId) {
   virtualTourRef.value?.loadScene(sceneId)
 }
 
 // pannellum에서 씬 바뀔 때
-function handleSceneChange (newSceneId) {
+function handleSceneChange(newSceneId) {
   currentSceneId.value = newSceneId
   console.log('✅ [TourView] 씬 변경:', newSceneId)
 }
 
 // 핫스팟 클릭 (나가기용)
-function handleHotspotClick ({ hotspot }) {
+function handleHotspotClick({ hotspot }) {
   const text = hotspot?.text || ''
 
-  if (!text.includes('가상 답사를 종료합니다')) return
+  if (!text.includes('미리보기를 종료합니다')) return
 
   sessionStorage.setItem('pdv:returnFromTour', '1')
 
@@ -108,7 +104,7 @@ function handleHotspotClick ({ hotspot }) {
   }
 }
 
-function goBack () {
+function goBack() {
   router.back()
 }
 

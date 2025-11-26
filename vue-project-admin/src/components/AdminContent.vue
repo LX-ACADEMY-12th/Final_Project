@@ -10,7 +10,7 @@
         <a class="nav-link" :class="{ active: activeTab === 'exhibitions' }" @click="switchTab('exhibitions')">전시 관리</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" :class="{ active: activeTab === 'places' }" @click="switchTab('places')">체험 장소 관리</a>
+        <a class="nav-link" :class="{ active: activeTab === 'places' }" @click="switchTab('places')">과학 탐험지 관리</a>
       </li>
     </ul>
 

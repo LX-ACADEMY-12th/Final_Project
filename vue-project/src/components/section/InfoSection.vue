@@ -314,7 +314,7 @@ export default {
           '전기와 자기': ElectricShow,     // 예시: '중분류'
           '자기': MagnetField,
           '물질의 상태': StatesOfMatter,
-          '빛과 파동': StatesOfMatter,
+          // '빛과 파동': StatesOfMatter,
           '힘과 에너지': DigitalPhysicssShow,
           '생명과학과 인간의 생활': StatesOfMatter,
           '생물의 구조와 에너지': StatesOfMatter
