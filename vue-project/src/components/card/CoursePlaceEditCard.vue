@@ -100,7 +100,7 @@ export default {
       if (url && !url.startsWith('http')) {
         return IMAGE_BASE_URL + url;
       }
-      return url || 'https://placehold.co/800x600/AACCFF/000000';
+      return url || 'https://placehold.co/800x600/AACCFF/000000?text=%E2%80%8B';
     },
 
     // computed 속성: SVG 이미지 URL 생성 (item.color 의존성 제거)

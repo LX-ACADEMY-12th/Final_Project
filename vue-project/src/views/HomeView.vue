@@ -249,6 +249,7 @@ import BalanceScaleSim from '@/components/simulations/BalanceScaleSim.vue';
 import MaterialLab from '@/components/simulations/MaterialLab.vue';
 import PlantLifecycleSim from '@/components/simulations/PlantLifecycleSim.vue';
 import OceanSim from '@/components/simulations/OceanSim.vue';
+import DigestSim from '@/components/simulations/DigestSim.vue';
 
 export default {
   components: {
@@ -499,6 +500,7 @@ export default {
       const hasLifeContinue = targetUnits.some(unit => unit.title.includes('생물의 연속성'));
       const hasMaterial = targetUnits.some(unit => unit.title.includes('물체와 물질'));
       const hasFluidEarth = targetUnits.some(unit => unit.title.includes('유체지구'));
+      const hasDigest = targetUnits.some(unit => unit.title.includes('생명의 구조와 에너지'));
 
 
       // 4. 조건에 따라 컴포넌트 반환
@@ -507,6 +509,7 @@ export default {
       if (hasMaterial) return MaterialLab
       if (hasLifeContinue) return PlantLifecycleSim;    // '생물의 연속성'이 있으면 생명
       if (hasFluidEarth) return OceanSim;
+      if (hasDigest) return DigestSim;
 
       return null;
     });
